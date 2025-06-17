@@ -2,7 +2,7 @@
 
 Just drop the header file and you're good to go:
 
-Constructor arguments (filename is optinal if the Console output is enabled)
+Constructor arguments (filename is optional if the Console output is enabled)
 ```cpp
 Logger logger(filename, minLogLevel, enableConsole);
 ```
@@ -42,7 +42,7 @@ Logger logger("webserver.log");
 
 logger.debug("Processing request headers");
 logger.info("New connection: 127.0.0.1");
-logger.warning("Connection closed by client");
+logger.warn("Connection closed by client");
 logger.error("Failed to send response back to client");
 logger.critical("Out of memory! Server shutting down");
 ```

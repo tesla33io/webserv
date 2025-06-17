@@ -7,7 +7,7 @@ int main(void) {
   // Test different log levels
   logger.debug("Server initializing...");
   logger.info("Server started on port 8080");
-  logger.warning("High memory usage detected");
+  logger.warn("High memory usage detected");
   logger.error("Failed to connect to database");
   logger.critical("Server shutting down due to critical error");
 
@@ -20,6 +20,6 @@ int main(void) {
   logger.setLogLevel(Logger::WARNING);
   logger.debug("This won't be logged");
   logger.info("This won't be logged either");
-  logger.warning("This will be logged");
+  logger.warn("This will be logged");
 }
 
