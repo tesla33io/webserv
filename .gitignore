@@ -1,3 +1,6 @@
+# misc
+*.json
+
 # Prerequisites
 *.d
 
