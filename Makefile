@@ -34,7 +34,7 @@ TARGET			:= webserv
 SRC_DIR			:= ./
 
 #Source files
-SRC_FILES		+= src/main.cpp
+#SRC_FILES		+= src/main.cpp
 
 # Logger source files
 SRC_FILES		+= src/Logger/Logger.cpp
