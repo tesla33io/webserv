@@ -3,6 +3,7 @@
 locust/
 *.log
 webserv
+.cache/
 
 # Prerequisites
 *.d
