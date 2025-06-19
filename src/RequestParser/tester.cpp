@@ -6,7 +6,7 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/19 11:44:05 by jalombar          #+#    #+#             */
-/*   Updated: 2025/06/19 12:19:23 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/06/19 14:13:36 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -74,10 +74,10 @@ int main(void)
         ClientRequest request;
         bool ok = RequestParsingUtils::parse_request(raw, request);
 
-        std::cout << "=== Test: " << name << " ===" << std::endl;
+        std::cout << std::endl << "=== Test: " << name << " ===" << std::endl;
         std::cout << raw << std::endl;
         std::cout << "Result: " << (ok ? "PASS ✅" : "FAIL ❌") << std::endl;
-        std::cout << "-----------------------------" << std::endl;
+        std::cout << "-----------------------------" << std::endl << std::endl;
     }
 	return (0);
 }
