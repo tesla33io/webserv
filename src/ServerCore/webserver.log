@@ -1,0 +1,143 @@
+[2025-06-21 10:36:34] [INFO] The server is listening.
+[2025-06-21 10:45:22] [INFO] Request received
+[2025-06-21 10:45:23] [INFO] Request received
+[2025-06-21 11:07:15] [INFO] The server is listening.
+[2025-06-21 11:07:20] [INFO] Request received
+[2025-06-21 11:07:21] [INFO] Request received
+[2025-06-21 11:07:22] [INFO] Request received
+[2025-06-21 11:07:23] [INFO] Request received
+[2025-06-21 11:07:26] [INFO] Request received
+[2025-06-21 11:07:26] [INFO] Request received
+[2025-06-21 11:07:28] [INFO] Request received
+[2025-06-21 11:07:28] [INFO] Request received
+[2025-06-21 11:07:38] [INFO] Request received
+[2025-06-21 11:07:41] [INFO] Request received
+[2025-06-21 11:07:41] [INFO] Request received
+[2025-06-21 11:18:53] [INFO] The server is listening.
+[2025-06-21 11:18:53] [INFO] epoll structure created.
+[2025-06-21 11:18:53] [INFO] epoll monitoring has started.
+[2025-06-21 11:19:00] [INFO] Number of ready file descriptors: 1
+[2025-06-21 11:19:00] [INFO] Accepted new client connection, fd: 6
+[2025-06-21 11:19:00] [INFO] Number of ready file descriptors: 1
+[2025-06-21 11:19:00] [INFO] Request received from fd 6
+[2025-06-21 11:19:00] [INFO] Response sent, closing fd: 6
+[2025-06-21 11:19:00] [INFO] Number of ready file descriptors: 1
+[2025-06-21 11:19:00] [INFO] Accepted new client connection, fd: 6
+[2025-06-21 11:19:00] [INFO] Number of ready file descriptors: 1
+[2025-06-21 11:19:00] [INFO] Request received from fd 6
+[2025-06-21 11:19:00] [INFO] Response sent, closing fd: 6
+[2025-06-21 11:19:05] [INFO] Number of ready file descriptors: 1
+[2025-06-21 11:19:05] [INFO] Accepted new client connection, fd: 6
+[2025-06-21 11:19:05] [INFO] Number of ready file descriptors: 1
+[2025-06-21 11:19:05] [INFO] Request received from fd 6
+[2025-06-21 11:19:05] [INFO] Response sent, closing fd: 6
+[2025-06-21 11:19:05] [INFO] Number of ready file descriptors: 1
+[2025-06-21 11:19:05] [INFO] Accepted new client connection, fd: 6
+[2025-06-21 11:19:05] [INFO] Number of ready file descriptors: 1
+[2025-06-21 11:19:05] [INFO] Request received from fd 6
+[2025-06-21 11:19:05] [INFO] Response sent, closing fd: 6
+[2025-06-21 11:19:06] [INFO] Number of ready file descriptors: 1
+[2025-06-21 11:19:06] [INFO] Accepted new client connection, fd: 6
+[2025-06-21 11:19:06] [INFO] Number of ready file descriptors: 1
+[2025-06-21 11:19:06] [INFO] Request received from fd 6
+[2025-06-21 11:19:06] [INFO] Response sent, closing fd: 6
+[2025-06-21 11:19:06] [INFO] Number of ready file descriptors: 1
+[2025-06-21 11:19:06] [INFO] Accepted new client connection, fd: 6
+[2025-06-21 11:19:06] [INFO] Number of ready file descriptors: 1
+[2025-06-21 11:19:06] [INFO] Request received from fd 6
+[2025-06-21 11:19:06] [INFO] Response sent, closing fd: 6
+[2025-06-21 11:24:54] [DEBUG] Creating server socket...
+[2025-06-21 11:24:54] [DEBUG] Converting host IP string: 0.0.0.0
+[2025-06-21 11:24:54] [DEBUG] Binding to 0.0.0.0:8080
+[2025-06-21 11:24:54] [DEBUG] Setting socket to listen with backlog 128
+[2025-06-21 11:24:54] [INFO] Server 'ServerExample' is now listening on 0.0.0.0:8080
+[2025-06-21 11:24:54] [INFO] epoll structure created.
+[2025-06-21 11:24:54] [INFO] epoll monitoring has started.
+[2025-06-21 11:25:14] [INFO] Number of ready file descriptors: 1
+[2025-06-21 11:25:14] [INFO] Accepted new client connection, fd: 6
+[2025-06-21 11:25:14] [INFO] Number of ready file descriptors: 1
+[2025-06-21 11:25:14] [INFO] Request received from fd 6
+[2025-06-21 11:25:14] [INFO] Response sent, closing fd: 6
+[2025-06-21 11:25:14] [INFO] Number of ready file descriptors: 1
+[2025-06-21 11:25:14] [INFO] Accepted new client connection, fd: 6
+[2025-06-21 11:25:14] [INFO] Number of ready file descriptors: 1
+[2025-06-21 11:25:14] [INFO] Request received from fd 6
+[2025-06-21 11:25:14] [INFO] Response sent, closing fd: 6
+[2025-06-21 11:26:11] [INFO] Number of ready file descriptors: 1
+[2025-06-21 11:26:11] [INFO] Accepted new client connection, fd: 6
+[2025-06-21 11:26:11] [INFO] Number of ready file descriptors: 1
+[2025-06-21 11:26:11] [INFO] Request received from fd 6
+[2025-06-21 11:26:11] [INFO] Response sent, closing fd: 6
+[2025-06-21 11:26:11] [INFO] Number of ready file descriptors: 1
+[2025-06-21 11:26:11] [INFO] Accepted new client connection, fd: 6
+[2025-06-21 11:26:11] [INFO] Number of ready file descriptors: 1
+[2025-06-21 11:26:11] [INFO] Request received from fd 6
+[2025-06-21 11:26:11] [INFO] Response sent, closing fd: 6
+[2025-06-21 11:39:47] [DEBUG] Creating server socket...
+[2025-06-21 11:39:47] [DEBUG] Converting host IP string: 0.0.0.0
+[2025-06-21 11:39:47] [DEBUG] Binding to 0.0.0.0:8080
+[2025-06-21 11:39:47] [DEBUG] Setting socket to listen with backlog 128
+[2025-06-21 11:39:47] [INFO] Server 'ServerExample' is now listening on 0.0.0.0:8080
+[2025-06-21 11:39:47] [DEBUG] Creating epoll instance for server: ServerExample
+[2025-06-21 11:39:47] [INFO] [ServerExample] Epoll instance created (fd = 5)
+[2025-06-21 11:39:47] [DEBUG] Adding server fd 4 to epoll watch list
+[2025-06-21 11:39:47] [INFO] Started epoll monitoring on server fd
+[2025-06-21 11:40:03] [DEBUG] epoll_wait() returned 1 ready file descriptor(s)
+[2025-06-21 11:40:03] [INFO] Accepted new client connection (fd = 6)
+[2025-06-21 11:40:03] [DEBUG] epoll_wait() returned 1 ready file descriptor(s)
+[2025-06-21 11:40:03] [INFO] Request received from fd 6
+[2025-06-21 11:40:03] [DEBUG] Raw HTTP request from fd 6:
+GET / HTTP/1.1
+Host: localhost:8080
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:139.0) Gecko/20100101 Firefox/139.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+Accept-Language: en-US,en;q=0.5
+Accept-Encoding: gzip, deflate, br, zstd
+Connection: keep-alive
+Upgrade-Insecure-Requests: 1
+Sec-Fetch-Dest: document
+Sec-Fetch-Mode: navigate
+Sec-Fetch-Site: none
+Sec-Fetch-User: ?1
+Priority: u=0, i
+
+
+[2025-06-21 11:40:03] [INFO] Response sent, closing connection (fd = 6)
+[2025-06-21 11:40:03] [DEBUG] epoll_wait() returned 1 ready file descriptor(s)
+[2025-06-21 11:40:03] [INFO] Accepted new client connection (fd = 6)
+[2025-06-21 11:40:03] [DEBUG] epoll_wait() returned 1 ready file descriptor(s)
+[2025-06-21 11:40:03] [INFO] Request received from fd 6
+[2025-06-21 11:40:03] [DEBUG] Raw HTTP request from fd 6:
+GET /favicon.ico HTTP/1.1
+Host: localhost:8080
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:139.0) Gecko/20100101 Firefox/139.0
+Accept: image/avif,image/webp,image/png,image/svg+xml,image/*;q=0.8,*/*;q=0.5
+Accept-Language: en-US,en;q=0.5
+Accept-Encoding: gzip, deflate, br, zstd
+Connection: keep-alive
+Referer: http://localhost:8080/
+Sec-Fetch-Dest: image
+Sec-Fetch-Mode: no-cors
+Sec-Fetch-Site: same-origin
+Priority: u=6
+
+
+[2025-06-21 11:40:03] [INFO] Response sent, closing connection (fd = 6)
+[2025-06-21 11:43:01] [DEBUG] Creating server socket...
+[2025-06-21 11:43:01] [DEBUG] Converting host IP string: 0.0.0.0
+[2025-06-21 11:43:01] [DEBUG] Binding to 0.0.0.0:8080
+[2025-06-21 11:43:01] [DEBUG] Setting socket to listen with backlog 128
+[2025-06-21 11:43:01] [INFO] Server 'ServerExample' is now listening on 0.0.0.0:8080
+[2025-06-21 11:43:01] [DEBUG] Creating epoll instance for server: ServerExample
+[2025-06-21 11:43:01] [INFO] [ServerExample] epoll instance created | server_fd = 4, epoll_fd = 5, listening on 0.0.0.0:8080
+[2025-06-21 11:43:01] [DEBUG] Adding server fd 4 to epoll watch list
+[2025-06-21 11:43:01] [INFO] Started epoll monitoring on server fd
+[2025-06-21 11:44:27] [DEBUG] Creating server socket...
+[2025-06-21 11:44:27] [DEBUG] Converting host IP string: 0.0.0.0
+[2025-06-21 11:44:27] [DEBUG] Binding to 0.0.0.0:8080
+[2025-06-21 11:44:27] [DEBUG] Setting socket to listen with backlog 128
+[2025-06-21 11:44:27] [INFO] [ServerExample]' is now listening on 0.0.0.0:8080
+[2025-06-21 11:44:27] [DEBUG] Creating epoll instance for server: ServerExample
+[2025-06-21 11:44:27] [INFO] [ServerExample] epoll instance created | server_fd = 4, epoll_fd = 5, listening on 0.0.0.0:8080
+[2025-06-21 11:44:27] [DEBUG] Adding server fd 4 to epoll watch list
+[2025-06-21 11:44:27] [INFO] Started epoll monitoring on server fd
