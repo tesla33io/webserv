@@ -176,7 +176,8 @@ void WebServer::handleClientData(int client_fd) {
 	if (bytes_read == 0) {
 		_lggr.info("Client disconnected (fd: " + string_utils::to_string(client_fd) + ")\n");
 		closeConnection(client_fd);
-	} else if (bytes_read == -1 && errno != EAGAIN && errno != EWOULDBLOCK) {
+	} else if (bytes_read == -1) {
+	//} else if (bytes_read == -1 && errno != EAGAIN && errno != EWOULDBLOCK) {
 		_lggr.error("Error reading from client (fd: " + string_utils::to_string<int>(client_fd) +
 		            ")\n");
 		closeConnection(client_fd);
