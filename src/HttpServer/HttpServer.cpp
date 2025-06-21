@@ -220,7 +220,8 @@ void WebServer::sendResponse(int client_fd) {
 	                       "<html><body><h1>Don't Panic!"
 	                       "</h1><p>Your request was "
 	                       "processed.</p></body></html>";
-	if (resps.find(client_fd) == resps.end()) {
+	if (resps.find(client_fd) != resps.end()) {
+		resps[client_fd] += 1;
 		if (resps[client_fd] >= 9) {
 			response = "HTTP/1.1 200 OK\r\n"
 			           "Content-Type: text/html\r\n"
