@@ -1,0 +1,20 @@
+server {
+	listen			8080;
+	server_name		example1.com;
+	root			/var1/www/example.com;
+
+	location / {
+		index index.html index.htm;
+	}
+}
+
+server {
+	listen			8081;
+	server_name		example2.com;
+	root			/var2/www/example.com;
+
+	location / {
+		index index.html index.htm;
+	}
+}
+
