@@ -1,6 +1,7 @@
 #include "HttpServer.hpp"
 #include "src/Utils/StringUtils.hpp"
 #include <sys/socket.h>
+#include <unistd.h>
 
 WebServer::WebServer(int p)
     : _server_fd(-1), _epoll_fd(-1), _port(p), _backlog(SOMAXCONN),
@@ -176,7 +177,8 @@ void WebServer::handleClientData(int client_fd) {
 	if (bytes_read == 0) {
 		_lggr.info("Client disconnected (fd: " + string_utils::to_string(client_fd) + ")\n");
 		closeConnection(client_fd);
-	} else if (bytes_read == -1 && errno != EAGAIN && errno != EWOULDBLOCK) {
+	} else if (bytes_read == -1) {
+		//} else if (bytes_read == -1 && errno != EAGAIN && errno != EWOULDBLOCK) {
 		_lggr.error("Error reading from client (fd: " + string_utils::to_string<int>(client_fd) +
 		            ")\n");
 		closeConnection(client_fd);
@@ -198,56 +200,73 @@ void WebServer::processRequest(int client_fd, const std::string &request) {
 	// Extract method and path from first line
 	size_t first_space = request.find(' ');
 	size_t second_space = request.find(' ', first_space + 1);
+	struct Request req;
 
 	if (first_space != std::string::npos && second_space != std::string::npos) {
-		std::string method = request.substr(0, first_space);
-		std::string path = request.substr(first_space + 1, second_space - first_space - 1);
+		req.method = request.substr(0, first_space);
+		req.path = request.substr(first_space + 1, second_space - first_space - 1);
+		req.clfd = client_fd;
 
-		_lggr.info("Method: " + method + ", Path: " + path + "\n");
+		_lggr.info("Method: " + req.method + ", Path: " + req.path + "\n");
 	}
 
 	// Send a simple HTTP response
-	sendResponse(client_fd);
+	sendResponse(&req);
 }
 
-void WebServer::sendResponse(int client_fd) {
-	static std::map<int, int> resps;
-	std::string response = "HTTP/1.1 200 OK\r\n"
-	                       "Content-Type: text/html\r\n"
-	                       "Content-Length: 81\r\n"
-	                       "Connection: keep-alive\r\n"
-	                       "\r\n"
-	                       "<html><body><h1>Don't Panic!"
-	                       "</h1><p>Your request was "
-	                       "processed.</p></body></html>";
-	if (resps.find(client_fd) != resps.end()) {
-		resps[client_fd] += 1;
-		if (resps[client_fd] >= 9) {
+void WebServer::sendResponse(struct Request *req) {
+	bool close_conn = true;
+	std::string response;
+	std::ifstream file;
+
+	if (req->method == "GET") {
+		_lggr.debug("Requested path: " + req->path);
+		file.open(req->path.c_str(), std::ios::in | std::ios::binary);
+
+		if (!file.is_open()) {
+			_lggr.error("[Resp] File not found: " + req->path);
+			response = "HTTP/1.1 404 Not Found\r\n"
+			           "Content-Type: text/plain\r\n"
+			           "Content-Length: 13\r\n\r\n"
+			           "404 Not Found";
+		} else {
+			std::stringstream buffer;
+			buffer << file.rdbuf();
+			file.close();
+
+			// TODO: content-type detection
+			std::string fileContent = buffer.str();
 			response = "HTTP/1.1 200 OK\r\n"
-			           "Content-Type: text/html\r\n"
-			           "Content-Length: 81\r\n"
-			           "Connection: close\r\n"
-			           "\r\n"
-			           "<html><body><h1>Don't Panic!"
-			           "</h1><p>Your request was "
-			           "processed.</p></body></html>";
+			           "Content-Type: text/plain,text/html\r\n"
+			           "Content-Length: " +
+			           string_utils::to_string<int>(fileContent.size()) + "\r\n\r\n" + fileContent;
 		}
-		resps[client_fd] = resps[client_fd] + 1;
+	} else if (req->method == "POST" || req->method == "DELETE") {
+		response = "HTTP/1.1 501 Not Implemented\r\n"
+		           "Content-Type: application/json\r\n"
+		           "Content-Length: 42\r\n\r\n"
+		           "{\"status\": 501,\"error\": \"Not Implemented\"}";
 	} else {
-		resps[client_fd] = 1;
+		response = "HTTP/1.1 405 Method Not Allowed\r\n"
+		           "Content-Type: text/plain\r\n"
+		           "Content-Length: 23\r\n\r\n"
+		           "405 Method Not Allowed";
 	}
 
-	ssize_t bytes_sent = send(client_fd, response.c_str(), response.length(), 0);
-	if (bytes_sent == -1) {
-		_lggr.error("Failed to send response to client (fd: " + string_utils::to_string(client_fd) +
-		            ")\n");
+	ssize_t bytes_sent = send(req->clfd, response.c_str(), response.size(), 0);
+	if (bytes_sent < 0) {
+		_lggr.error("Failed to send response to client (fd: " + string_utils::to_string(req->clfd) +
+		            ")");
 	} else {
 		_lggr.debug("Sent " + string_utils::to_string(bytes_sent) + " bytes response to fd " +
-		            string_utils::to_string(client_fd) + "\n");
+		            string_utils::to_string(req->clfd));
 	}
 
-	// Close connection after response (HTTP/1.0 style)
-	closeConnection(client_fd);
+	// TODO: handle headers such as `keep-alive` connection
+
+	if (close_conn) {
+		closeConnection(req->clfd);
+	}
 }
 
 void WebServer::closeConnection(int client_fd) {

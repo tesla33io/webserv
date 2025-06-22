@@ -9,6 +9,7 @@
 #include <signal.h>
 #include <fcntl.h>
 #include <iostream>
+#include <fstream>
 #include <map>
 #include <netinet/in.h>
 #include <sys/epoll.h>
@@ -16,7 +17,12 @@
 #include <sys/socket.h>
 #include <netdb.h>
 #include <unistd.h>
-#include <vector>
+
+struct Request {
+	std::string method;
+	std::string path;
+	int clfd;
+};
 
 class WebServer {
 
@@ -45,7 +51,7 @@ class WebServer {
 	void handleClientData(int client_fd);
 	bool isCompleteRequest(const std::string &request);
 	void processRequest(int client_fd, const std::string &request);
-	void sendResponse(int client_fd);
+	void sendResponse(struct Request *req);
 	void closeConnection(int client_fd);
 	void cleanup();
 };
