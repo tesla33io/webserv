@@ -6,16 +6,16 @@
 
 #include <arpa/inet.h>
 #include <cstring>
-#include <signal.h>
 #include <fcntl.h>
-#include <iostream>
 #include <fstream>
+#include <iostream>
 #include <map>
-#include <netinet/in.h>
-#include <sys/epoll.h>
-#include <sys/types.h>
-#include <sys/socket.h>
 #include <netdb.h>
+#include <netinet/in.h>
+#include <signal.h>
+#include <sys/epoll.h>
+#include <sys/socket.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 struct Request {
@@ -32,7 +32,7 @@ class WebServer {
 
 	bool initialize();
 	void run();
-	
+
 	static bool _running;
 
   private:
@@ -51,11 +51,11 @@ class WebServer {
 	void handleClientData(int client_fd);
 	bool isCompleteRequest(const std::string &request);
 	void processRequest(int client_fd, const std::string &request);
-	void sendResponse(struct Request *req);
+	void sendResponse(const Request &req);
 	void closeConnection(int client_fd);
 	void cleanup();
 };
 
-bool WebServer::_running;
+bool WebServer::_running; //TODO: fix this
 
 #endif // HTTPSERVER_HPP

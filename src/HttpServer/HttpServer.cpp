@@ -211,20 +211,20 @@ void WebServer::processRequest(int client_fd, const std::string &request) {
 	}
 
 	// Send a simple HTTP response
-	sendResponse(&req);
+	sendResponse(req);
 }
 
-void WebServer::sendResponse(struct Request *req) {
+void WebServer::sendResponse(const Request &req) {
 	bool close_conn = true;
 	std::string response;
 	std::ifstream file;
 
-	if (req->method == "GET") {
-		_lggr.debug("Requested path: " + req->path);
-		file.open(req->path.c_str(), std::ios::in | std::ios::binary);
+	if (req.method == "GET") {
+		_lggr.debug("Requested path: " + req.path);
+		file.open(req.path.c_str(), std::ios::in | std::ios::binary);
 
 		if (!file.is_open()) {
-			_lggr.error("[Resp] File not found: " + req->path);
+			_lggr.error("[Resp] File not found: " + req.path);
 			response = "HTTP/1.1 404 Not Found\r\n"
 			           "Content-Type: text/plain\r\n"
 			           "Content-Length: 13\r\n\r\n"
@@ -241,7 +241,7 @@ void WebServer::sendResponse(struct Request *req) {
 			           "Content-Length: " +
 			           string_utils::to_string<int>(fileContent.size()) + "\r\n\r\n" + fileContent;
 		}
-	} else if (req->method == "POST" || req->method == "DELETE") {
+	} else if (req.method == "POST" || req.method == "DELETE") {
 		response = "HTTP/1.1 501 Not Implemented\r\n"
 		           "Content-Type: application/json\r\n"
 		           "Content-Length: 42\r\n\r\n"
@@ -253,19 +253,19 @@ void WebServer::sendResponse(struct Request *req) {
 		           "405 Method Not Allowed";
 	}
 
-	ssize_t bytes_sent = send(req->clfd, response.c_str(), response.size(), 0);
+	ssize_t bytes_sent = send(req.clfd, response.c_str(), response.size(), 0);
 	if (bytes_sent < 0) {
-		_lggr.error("Failed to send response to client (fd: " + string_utils::to_string(req->clfd) +
+		_lggr.error("Failed to send response to client (fd: " + string_utils::to_string(req.clfd) +
 		            ")");
 	} else {
 		_lggr.debug("Sent " + string_utils::to_string(bytes_sent) + " bytes response to fd " +
-		            string_utils::to_string(req->clfd));
+		            string_utils::to_string(req.clfd));
 	}
 
 	// TODO: handle headers such as `keep-alive` connection
 
 	if (close_conn) {
-		closeConnection(req->clfd);
+		closeConnection(req.clfd);
 	}
 }
 
