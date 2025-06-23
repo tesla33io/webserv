@@ -38,7 +38,8 @@ SRC_DIR			:= ./
 
 # Logger source files
 SRC_FILES		+= src/HttpServer/HttpServer.cpp
-#SRC_FILES		+= src/Logger/Logger.cpp
+SRC_FILES		+= src/HttpServer/Handlers/FileHandler.cpp
+SRC_FILES		+= src/HttpServer/Handlers/ResponseHandler.cpp
 
 #Object files directory
 OBJ_DIR			:= obj/
