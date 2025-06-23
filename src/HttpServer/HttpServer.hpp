@@ -5,6 +5,7 @@
 #include "../Utils/StringUtils.hpp"
 
 #include <arpa/inet.h>
+#include <climits>
 #include <cstring>
 #include <fcntl.h>
 #include <fstream>
@@ -41,6 +42,7 @@ class WebServer {
 	int _port;
 	int _backlog;
 	std::map<int, std::string> _client_buffers;
+	std::string _root_path;
 	Logger _lggr;
 
 	static const int MAX_EVENTS = 64;
@@ -52,10 +54,18 @@ class WebServer {
 	bool isCompleteRequest(const std::string &request);
 	void processRequest(int client_fd, const std::string &request);
 	void sendResponse(const Request &req);
+	std::string handleGetRequest(const std::string &path);
 	void closeConnection(int client_fd);
 	void cleanup();
+
+  public:
+	// Handlers
+	std::string getFileContent(std::string path);
+
+  private:
+	// Handlers
+	std::string detectContentType(const std::string &path);
 };
 
-bool WebServer::_running; //TODO: fix this
 
 #endif // HTTPSERVER_HPP

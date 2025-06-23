@@ -1,7 +1,10 @@
 #include "HttpServer.hpp"
 #include "src/Utils/StringUtils.hpp"
+#include <cstring>
 #include <sys/socket.h>
 #include <unistd.h>
+
+bool WebServer::_running; // TODO: fix this
 
 WebServer::WebServer(int p)
     : _server_fd(-1), _epoll_fd(-1), _port(p), _backlog(SOMAXCONN),
@@ -17,6 +20,17 @@ WebServer::~WebServer() {
 void sigint_handler(int sig) {
 	(void)sig;
 	WebServer::_running = false;
+}
+
+// tmp until config parser is done
+static std::string getCurrentWorkingDirectory() {
+	char buffer[PATH_MAX];
+	if (getcwd(buffer, sizeof(buffer)) != NULL) {
+		return std::string(buffer);
+	} else {
+		perror("getcwd failed");
+		return std::string();
+	}
 }
 
 bool WebServer::initialize() {
@@ -86,6 +100,11 @@ bool WebServer::initialize() {
 
 	_lggr.info("Server initialized on port " + string_utils::to_string(_port) + "\n");
 	_running = true;
+	_root_path = getCurrentWorkingDirectory();
+	if (_root_path.empty()) {
+		_lggr.error("Couldn't get current working dir to proceed further");
+		return false;
+	}
 	return _running;
 }
 
@@ -200,11 +219,12 @@ void WebServer::processRequest(int client_fd, const std::string &request) {
 	// Extract method and path from first line
 	size_t first_space = request.find(' ');
 	size_t second_space = request.find(' ', first_space + 1);
-	struct Request req;
+	Request req;
 
 	if (first_space != std::string::npos && second_space != std::string::npos) {
 		req.method = request.substr(0, first_space);
-		req.path = request.substr(first_space + 1, second_space - first_space - 1);
+		req.path = _root_path;
+		req.path += request.substr(first_space + 1, second_space - first_space - 1);
 		req.clfd = client_fd;
 
 		_lggr.info("Method: " + req.method + ", Path: " + req.path + "\n");
@@ -217,30 +237,9 @@ void WebServer::processRequest(int client_fd, const std::string &request) {
 void WebServer::sendResponse(const Request &req) {
 	bool close_conn = true;
 	std::string response;
-	std::ifstream file;
 
 	if (req.method == "GET") {
-		_lggr.debug("Requested path: " + req.path);
-		file.open(req.path.c_str(), std::ios::in | std::ios::binary);
-
-		if (!file.is_open()) {
-			_lggr.error("[Resp] File not found: " + req.path);
-			response = "HTTP/1.1 404 Not Found\r\n"
-			           "Content-Type: text/plain\r\n"
-			           "Content-Length: 13\r\n\r\n"
-			           "404 Not Found";
-		} else {
-			std::stringstream buffer;
-			buffer << file.rdbuf();
-			file.close();
-
-			// TODO: content-type detection
-			std::string fileContent = buffer.str();
-			response = "HTTP/1.1 200 OK\r\n"
-			           "Content-Type: text/plain,text/html\r\n"
-			           "Content-Length: " +
-			           string_utils::to_string<int>(fileContent.size()) + "\r\n\r\n" + fileContent;
-		}
+		response = handleGetRequest(req.path);
 	} else if (req.method == "POST" || req.method == "DELETE") {
 		response = "HTTP/1.1 501 Not Implemented\r\n"
 		           "Content-Type: application/json\r\n"
