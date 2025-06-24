@@ -6,13 +6,21 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/17 15:43:17 by jalombar          #+#    #+#             */
-/*   Updated: 2025/06/20 14:59:48 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/06/24 12:39:09 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "request_parser.hpp"
 #include "../Logger/Logger.hpp"
 #include "../utils/utils.hpp"
+
+const char *RequestParsingUtils::find_header(ClientRequest &request, const std::string &header) {
+	std::map<std::string, std::string>::iterator it =
+	    request.headers.find(header);
+	if (it == request.headers.end())
+		return (NULL);
+	return (it->second.c_str());
+}
 
 bool RequestParsingUtils::assign_method(std::string &method,
                                         ClientRequest &request) {
@@ -101,10 +109,10 @@ bool RequestParsingUtils::parse_req_line(std::istringstream &stream,
 	
 	size_t second_space = trimmed_line.find(' ', first_space + 1);
 	if (second_space == std::string::npos) {
-		logger.logWithPrefix(Logger::WARNING, "HTTP", "Request line missing second space");
-		return (false);
+		logger.logWithPrefix(Logger::WARNING, "HTTP", "Invalid request line format");
+    	return (false);
 	}
-	
+
 	// Check for extra spaces between components
 	if (first_space == 0 || second_space == first_space + 1) {
 		logger.logWithPrefix(Logger::WARNING, "HTTP", "Extra spaces between request line components");
@@ -116,13 +124,34 @@ bool RequestParsingUtils::parse_req_line(std::istringstream &stream,
 		logger.logWithPrefix(Logger::WARNING, "HTTP", "Extra spaces after HTTP version");
 		return (false);
 	}
-	
+
 	// Manual parsing to ensure exactly one space between components
 	method = trimmed_line.substr(0, first_space);
 	request.uri = trimmed_line.substr(first_space + 1, second_space - first_space - 1);
 	request.version = trimmed_line.substr(second_space + 1);
 
 	return (RequestParsingUtils::check_req_line(request, method));
+}
+
+bool RequestParsingUtils::check_header(std::string &name, std::string &value, ClientRequest &request) {
+	Logger logger;
+	// Check header size
+	if (name.size() > MAX_HEADER_NAME_LENGTH) {
+		logger.logWithPrefix(Logger::WARNING, "HTTP", "Header name too big");
+		return (false);
+	} else if (value.size() > MAX_HEADER_VALUE_LENGTH) {
+		logger.logWithPrefix(Logger::WARNING, "HTTP", "Header value too big");
+		return (false);
+	}
+	// Check for duplicate header
+	if (find_header(request, GeneralUtils::to_lower(name))) {
+		logger.logWithPrefix(Logger::WARNING, "HTTP", 
+			"Duplicate header present");
+		return (false);
+	}
+	if (GeneralUtils::to_lower(name) == "transfer-encoding" && GeneralUtils::to_lower(value) == "chunked")
+		request.chunked_encoding = true;
+	return (true);
 }
 
 bool RequestParsingUtils::parse_headers(std::istringstream &stream,
@@ -147,7 +176,7 @@ bool RequestParsingUtils::parse_headers(std::istringstream &stream,
 		size_t colon = line.find(':');
 		if (colon == std::string::npos) {
 			logger.logWithPrefix(Logger::WARNING, "HTTP",
-			                     "Invalid value in request header");
+			                     "Invalid header format");
 			return (false);
 		}
 		std::string name = trim_side(line.substr(0, colon), 1);
@@ -174,8 +203,57 @@ bool RequestParsingUtils::parse_headers(std::istringstream &stream,
 				return (false);
 			}
 		}
-
+		if (!check_header(name, value, request))
+			return (false);
 		request.headers[GeneralUtils::to_lower(name)] = value;
+	}
+	// Check for host header
+	if (!find_header(request, "host")) {
+		logger.logWithPrefix(Logger::WARNING, "HTTP", 
+			"No Host header present");
+		return (false);
+	}
+	// Check for Transfer-encoding=chunked and Content-length headers
+	if (request.chunked_encoding && find_header(request, "content-length")) {
+		logger.logWithPrefix(Logger::WARNING, "HTTP", 
+			"Content-length header present with chunked encoding");
+		return (false);
+	}
+	return (true);
+}
+
+bool RequestParsingUtils::chunked_encoding(std::istringstream &stream,
+                                     ClientRequest &request) {
+	Logger logger;
+	std::string line;
+	while (1)
+	{
+		std::getline(stream, line);
+		if (!line.empty() && line[line.length() - 1] == '\r')
+			line.erase(line.length() - 1);
+		std::istringstream content_stream(line);
+		int content_length;
+		if (!(content_stream >> content_length) || content_length < 0) {
+			logger.logWithPrefix(Logger::WARNING, "HTTP",
+			                     "Invalid Length value");
+			return (false);
+		}
+		if (content_length == 0)
+			break ;
+		std::getline(stream, line);
+		std::istringstream body_stream(line);
+		// Read exactly content_length bytes
+		std::string body(content_length, '\0');
+		body_stream.read(&body[0], content_length);
+		std::streamsize actually_read = body_stream.gcount();
+		if (actually_read != content_length) {
+			std::ostringstream msg;
+			msg << "Body length mismatch: expected " << content_length
+			    << " bytes, but read " << actually_read << " bytes";
+			logger.logWithPrefix(Logger::WARNING, "HTTP", msg.str());
+			return (false);
+		}
+		request.body.append(body);
 	}
 	return (true);
 }
@@ -186,35 +264,38 @@ bool RequestParsingUtils::parse_body(std::istringstream &stream,
 	logger.logWithPrefix(Logger::INFO, "HTTP", "Parsing message body");
 
 	// Check if Content-Lenght Header exists and size is valid
-	std::map<std::string, std::string>::iterator it =
-	    request.headers.find("content-length");
-	if (it == request.headers.end()) {
-		logger.logWithPrefix(Logger::WARNING, "HTTP",
-		                     "No Content-Length header present");
-		return (false);
-	}
+	if (!request.chunked_encoding) {
+		const char *header_value = find_header(request, "content-length");
+		if (!header_value) {
+			logger.logWithPrefix(Logger::WARNING, "HTTP",
+			                     "No Content-Length header present");
+			return (false);
+		}
+		std::istringstream content_stream(header_value);
+		int content_length;
+		if (!(content_stream >> content_length) || content_length < 0) {
+			logger.logWithPrefix(Logger::WARNING, "HTTP",
+			                     "Invalid Content-Length value");
+			return (false);
+		}
 
-	std::istringstream content_stream(it->second);
-	int content_length;
-	if (!(content_stream >> content_length) || content_length < 0) {
-		logger.logWithPrefix(Logger::WARNING, "HTTP",
-		                     "Invalid Content-Length value");
-		return (false);
+		// Read exactly content_length bytes
+		std::string body(content_length, '\0');
+		stream.read(&body[0], content_length);
+		std::streamsize actually_read = stream.gcount();
+		if (actually_read != content_length) {
+			std::ostringstream msg;
+			msg << "Body length mismatch: expected " << content_length
+			    << " bytes, but read " << actually_read << " bytes";
+			logger.logWithPrefix(Logger::WARNING, "HTTP", msg.str());
+			return (false);
+		}
+		request.body = body;
 	}
-
-	// Read exactly content_length bytes
-	std::string body(content_length, '\0');
-	stream.read(&body[0], content_length);
-	std::streamsize actually_read = stream.gcount();
-	if (actually_read != content_length) {
-		std::ostringstream msg;
-		msg << "Body length mismatch: expected " << content_length
-		    << " bytes, but read " << actually_read << " bytes";
-		logger.logWithPrefix(Logger::WARNING, "HTTP", msg.str());
-		return (false);
+	else {
+		if (!chunked_encoding(stream, request))
+			return (false);
 	}
-	request.body = body;
-
 	return (true);
 }
 
@@ -225,7 +306,8 @@ bool RequestParsingUtils::parse_request(const std::string &raw_request,
 		logger.logWithPrefix(Logger::WARNING, "HTTP", "No request received");
 		return (false);
 	}
-
+	
+	request.chunked_encoding = false;
 	std::istringstream stream(raw_request);
 
 	// Parse request line

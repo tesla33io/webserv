@@ -6,7 +6,7 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/19 11:44:05 by jalombar          #+#    #+#             */
-/*   Updated: 2025/06/20 11:54:26 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/06/24 12:09:09 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -61,7 +61,7 @@ void init_requests() {
 	                   "POST /submit HTTP/1.1\r\n"
 	                   "Host: example.com\r\n"
 	                   "Content-Type: application/x-www-form-urlencoded\r\n"
-	                   "Content-Length: 13\r\n"
+	                   "Content-Length: 12\r\n"
 	                   "\r\n"
 	                   "name=ChatGPT"));
 }
