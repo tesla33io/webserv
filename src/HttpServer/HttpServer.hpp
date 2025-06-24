@@ -65,6 +65,7 @@ class WebServer {
   private:
 	// Handlers
 	std::string detectContentType(const std::string &path);
+	std::string generateErrorResponse(int errorCode);
 };
 
 

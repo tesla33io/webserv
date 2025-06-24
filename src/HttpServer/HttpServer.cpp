@@ -241,15 +241,9 @@ void WebServer::sendResponse(const Request &req) {
 	if (req.method == "GET") {
 		response = handleGetRequest(req.path);
 	} else if (req.method == "POST" || req.method == "DELETE") {
-		response = "HTTP/1.1 501 Not Implemented\r\n"
-		           "Content-Type: application/json\r\n"
-		           "Content-Length: 42\r\n\r\n"
-		           "{\"status\": 501,\"error\": \"Not Implemented\"}";
+		response = generateErrorResponse(501);
 	} else {
-		response = "HTTP/1.1 405 Method Not Allowed\r\n"
-		           "Content-Type: text/plain\r\n"
-		           "Content-Length: 23\r\n\r\n"
-		           "405 Method Not Allowed";
+		response = generateErrorResponse(405);
 	}
 
 	ssize_t bytes_sent = send(req.clfd, response.c_str(), response.size(), 0);
