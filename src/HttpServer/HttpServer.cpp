@@ -1,10 +1,12 @@
 #include "HttpServer.hpp"
+#include "src/Logger/Logger.hpp"
 #include "src/Utils/StringUtils.hpp"
 #include <cstring>
 #include <sys/socket.h>
 #include <unistd.h>
 
 bool WebServer::_running; // TODO: fix this
+bool interrupted = false;
 
 WebServer::WebServer(int p)
     : _server_fd(-1), _epoll_fd(-1), _port(p), _backlog(SOMAXCONN),
@@ -13,13 +15,14 @@ WebServer::WebServer(int p)
 }
 
 WebServer::~WebServer() {
-	_lggr.info("Destroying the instance of the Webserver.");
+	_lggr.debug("Destroying the instance of the Webserver.");
 	cleanup();
 }
 
 void sigint_handler(int sig) {
 	(void)sig;
 	WebServer::_running = false;
+	interrupted = true;
 }
 
 // tmp until config parser is done
@@ -34,10 +37,11 @@ static std::string getCurrentWorkingDirectory() {
 }
 
 bool WebServer::initialize() {
-	_lggr.debug("Overload SIGINT behaviour\n");
+	_lggr.debug("Overload SIGINT behaviour");
 	signal(SIGINT, &sigint_handler);
-	_lggr.debug("Overload SIGTERM behaviour\n");
+	_lggr.debug("Overload SIGTERM behaviour");
 	signal(SIGTERM, &sigint_handler);
+	interrupted = false;
 
 	// Populate address structs
 	struct addrinfo hints, *res;
@@ -47,21 +51,21 @@ bool WebServer::initialize() {
 	hints.ai_flags = AI_PASSIVE;
 
 	if (getaddrinfo(NULL, string_utils::to_string<int>(_port).c_str(), &hints, &res) != 0) {
-		_lggr.error("Failed to get address info\n");
+		_lggr.error("Failed to get address info");
 		return false;
 	}
 
 	// Create server socket
 	_server_fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
 	if (_server_fd == -1) {
-		_lggr.error("Failed to create socket\n");
+		_lggr.error("Failed to create socket");
 		return false;
 	}
 
 	// https://stackoverflow.com/questions/14388706/how-do-so-reuseaddr-and-so-reuseport-differ/14388707?newreg=e3fae32d955646afad5169c421fb403a
 	int set_true = 1;
 	if (setsockopt(_server_fd, SOL_SOCKET, SO_REUSEADDR, &set_true, sizeof(set_true)) == -1) {
-		_lggr.error("Failed to set socket options\n");
+		_lggr.error("Failed to set socket options");
 		return false;
 	}
 
@@ -71,20 +75,20 @@ bool WebServer::initialize() {
 	}
 
 	if (bind(_server_fd, res->ai_addr, res->ai_addrlen) == -1) {
-		_lggr.error("Failed to bind socket to port " + string_utils::to_string<int>(_port) + "\n");
+		_lggr.error("Failed to bind socket to port " + string_utils::to_string<int>(_port));
 		return false;
 	}
 
 	// Listen for connections
 	if (listen(_server_fd, _backlog) == -1) {
-		_lggr.error("Failed to listen on socket\n");
+		_lggr.error("Failed to listen on socket");
 		return false;
 	}
 
 	// RTFM! `man 7 epoll`
 	_epoll_fd = epoll_create1(0);
 	if (_epoll_fd == -1) {
-		_lggr.error("Failed to create epoll instance\n");
+		_lggr.error("Failed to create epoll instance");
 		return false;
 	}
 
@@ -94,11 +98,11 @@ bool WebServer::initialize() {
 	ev.data.fd = _server_fd;
 
 	if (epoll_ctl(_epoll_fd, EPOLL_CTL_ADD, _server_fd, &ev) == -1) {
-		_lggr.error("Failed to add server socket to epoll\n");
+		_lggr.error("Failed to add server socket to epoll");
 		return false;
 	}
 
-	_lggr.info("Server initialized on port " + string_utils::to_string(_port) + "\n");
+	_lggr.info("Server initialized on port " + string_utils::to_string(_port));
 	_running = true;
 	_root_path = getCurrentWorkingDirectory();
 	if (_root_path.empty()) {
@@ -111,12 +115,15 @@ bool WebServer::initialize() {
 void WebServer::run() {
 	struct epoll_event events[MAX_EVENTS];
 
-	_lggr.debug("Server running. Waiting for connections...\n");
+	_lggr.debug("Server running. Waiting for connections...");
 
 	while (_running) {
 		int nfds = epoll_wait(_epoll_fd, events, MAX_EVENTS, -1);
-		if (nfds == -1) {
-			_lggr.error("epoll_wait failed\n");
+		if (nfds == -1 && !interrupted) {
+			_lggr.error("epoll_wait failed. Stopping the server");
+			break;
+		} else if (nfds == -1 && interrupted) {
+			_lggr.warn("Program was interrupted. Stopping the server");
 			break;
 		}
 
@@ -133,12 +140,12 @@ void WebServer::run() {
 bool WebServer::setNonBlocking(int fd) {
 	int flags = fcntl(fd, F_GETFL, 0);
 	if (flags == -1) {
-		_lggr.error("Failed to get socket flags\n");
+		_lggr.error("Failed to get socket flags");
 		return false;
 	}
 
 	if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1) {
-		_lggr.error("Failed to set socket non-blocking\n");
+		_lggr.error("Failed to set socket non-blocking");
 		return false;
 	}
 
@@ -151,7 +158,7 @@ void WebServer::handleNewConnection() {
 
 	int client_fd = accept(_server_fd, (struct sockaddr *)&client_addr, &client_len);
 	if (client_fd == -1) {
-		_lggr.error("Failed to accept connection\n");
+		_lggr.error("Failed to accept connection");
 		return;
 	}
 
@@ -166,7 +173,7 @@ void WebServer::handleNewConnection() {
 
 	if (epoll_ctl(_epoll_fd, EPOLL_CTL_ADD, client_fd, &ev) == -1) {
 		_lggr.error("Failed to add client socket (fd: " + string_utils::to_string<int>(client_fd) +
-		            ") to epoll\n");
+		            ") to epoll");
 		close(client_fd);
 		return;
 	}
@@ -176,30 +183,33 @@ void WebServer::handleNewConnection() {
 
 	_lggr.info("New connection from " + std::string(inet_ntoa(client_addr.sin_addr)) + ":" +
 	           string_utils::to_string<unsigned short>(ntohs(client_addr.sin_port)) +
-	           " (fd: " + string_utils::to_string<int>(client_fd) + ")\n");
+	           " (fd: " + string_utils::to_string<int>(client_fd) + ")");
 }
 
 void WebServer::handleClientData(int client_fd) {
 	char buffer[BUFFER_SIZE];
 	ssize_t bytes_read;
+	bool request_processed = false;
 
 	while ((bytes_read = recv(client_fd, buffer, sizeof(buffer) - 1, 0)) > 0) {
+		_lggr.logWithPrefix(Logger::DEBUG, "recv loop", "Bytes read: " + string_utils::to_string(bytes_read));
 		buffer[bytes_read] = '\0';
 		_client_buffers[client_fd] += std::string(buffer);
 
 		if (isCompleteRequest(_client_buffers[client_fd])) {
 			processRequest(client_fd, _client_buffers[client_fd]);
 			_client_buffers[client_fd].clear();
+			request_processed = true;
 		}
 	}
 
 	if (bytes_read == 0) {
-		_lggr.info("Client disconnected (fd: " + string_utils::to_string(client_fd) + ")\n");
+		_lggr.info("Client disconnected (fd: " + string_utils::to_string(client_fd) + ")");
 		closeConnection(client_fd);
-	} else if (bytes_read == -1) {
+	} else if (bytes_read == -1 && !request_processed) {
 		//} else if (bytes_read == -1 && errno != EAGAIN && errno != EWOULDBLOCK) {
 		_lggr.error("Error reading from client (fd: " + string_utils::to_string<int>(client_fd) +
-		            ")\n");
+		            ")");
 		closeConnection(client_fd);
 	}
 }
@@ -211,10 +221,10 @@ bool WebServer::isCompleteRequest(const std::string &request) {
 }
 
 void WebServer::processRequest(int client_fd, const std::string &request) {
-	_lggr.info("Processing request from fd " + string_utils::to_string(client_fd) + ":\n");
-	_lggr.debug("--- Request Start ---\n");
+	_lggr.info("Processing request from fd " + string_utils::to_string(client_fd) + ":");
+	_lggr.debug("--- Request Start ---");
 	_lggr.debug(request);
-	_lggr.debug("--- Request End ---\n\n");
+	_lggr.debug("--- Request End ---\n");
 
 	// Extract method and path from first line
 	size_t first_space = request.find(' ');
@@ -227,7 +237,7 @@ void WebServer::processRequest(int client_fd, const std::string &request) {
 		req.path += request.substr(first_space + 1, second_space - first_space - 1);
 		req.clfd = client_fd;
 
-		_lggr.info("Method: " + req.method + ", Path: " + req.path + "\n");
+		_lggr.info("Method: " + req.method + ", Path: " + req.path + "");
 	}
 
 	// Send a simple HTTP response
