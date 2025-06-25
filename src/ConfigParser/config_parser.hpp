@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/21 14:53:33 by htharrau          #+#    #+#             */
-/*   Updated: 2025/06/25 17:47:02 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/06/25 18:41:56 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -55,7 +55,7 @@ struct LocConfig {
 	std::vector<std::string>  	index;
 
 } ;
-
+   
 struct ServerConfig {
 	std::string 				host = "0.0.0.0";
 	int 						port = 8080;
