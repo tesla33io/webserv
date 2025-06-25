@@ -6,7 +6,7 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/17 15:43:17 by jalombar          #+#    #+#             */
-/*   Updated: 2025/06/24 12:39:09 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/06/25 15:08:41 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,25 +14,13 @@
 #include "../Logger/Logger.hpp"
 #include "../utils/utils.hpp"
 
+/* Utils */
 const char *RequestParsingUtils::find_header(ClientRequest &request, const std::string &header) {
 	std::map<std::string, std::string>::iterator it =
 	    request.headers.find(header);
 	if (it == request.headers.end())
 		return (NULL);
 	return (it->second.c_str());
-}
-
-bool RequestParsingUtils::assign_method(std::string &method,
-                                        ClientRequest &request) {
-	if (method == "GET")
-		request.method = GET;
-	else if (method == "POST")
-		request.method = POST;
-	else if (method == "DELETE")
-		request.method = DELETE_;
-	else
-		return (false);
-	return (true);
 }
 
 // Trim type: 1=left side, 2=right side, 3=both
@@ -50,133 +38,24 @@ std::string RequestParsingUtils::trim_side(const std::string &s, int type) {
 	return (result);
 }
 
-
-bool RequestParsingUtils::check_req_line(ClientRequest &request, std::string &method) {
-	Logger logger;
-
-	if (method.empty() || request.uri.empty() || request.version.empty()) {
-		logger.logWithPrefix(Logger::WARNING, "HTTP",
-		                     "Empty component in request line");
-		return (false);
-	}
-
-	if (method.find(' ') != std::string::npos || request.uri.find(' ') != std::string::npos || request.version.find(' ') != std::string::npos) {
-		logger.logWithPrefix(Logger::WARNING, "HTTP", "Extra spaces in request line");
-		return (false);
-	}
-	
-	if (!(request.version == "HTTP/1.0" || request.version == "HTTP/1.1")) {
-		logger.logWithPrefix(Logger::WARNING, "HTTP", "Invalid HTTP version");
-		return (false);
-	}
-	
-	if (request.uri.length() > MAX_URI_LENGTH) {
-		logger.logWithPrefix(Logger::WARNING, "HTTP", "Uri too big");
-		return (false);
-	}
-	
-	if (!RequestParsingUtils::assign_method(method, request)) {
-		logger.logWithPrefix(Logger::WARNING, "HTTP", "Invalid method");
-		return (false);
-	}
-	
-	return (true);
-}
-
-bool RequestParsingUtils::parse_req_line(std::istringstream &stream,
-                                         ClientRequest &request) {
-	Logger logger;
-	std::string line;
-	std::string method;
-	logger.logWithPrefix(Logger::INFO, "HTTP", "Parsing request line");
-
-	if (!std::getline(stream, line)) {
-		logger.logWithPrefix(Logger::WARNING, "HTTP", "No request line present");
-		return (false);
-	}
-
-	if (!line.empty() && line[line.length() - 1] == '\r')
-		line.erase(line.length() - 1);
-
-	std::string trimmed_line = trim_side(line, 3);
-	
-	// Check for proper format: exactly one space between each component
-	size_t first_space = trimmed_line.find(' ');
-	if (first_space == std::string::npos) {
-		logger.logWithPrefix(Logger::WARNING, "HTTP", "Request line missing spaces");
-		return (false);
-	}
-	
-	size_t second_space = trimmed_line.find(' ', first_space + 1);
-	if (second_space == std::string::npos) {
-		logger.logWithPrefix(Logger::WARNING, "HTTP", "Invalid request line format");
-    	return (false);
-	}
-
-	// Check for extra spaces between components
-	if (first_space == 0 || second_space == first_space + 1) {
-		logger.logWithPrefix(Logger::WARNING, "HTTP", "Extra spaces between request line components");
-		return (false);
-	}
-	
-	// Check for trailing spaces or extra spaces after version
-	if (trimmed_line.find(' ', second_space + 1) != std::string::npos) {
-		logger.logWithPrefix(Logger::WARNING, "HTTP", "Extra spaces after HTTP version");
-		return (false);
-	}
-
-	// Manual parsing to ensure exactly one space between components
-	method = trimmed_line.substr(0, first_space);
-	request.uri = trimmed_line.substr(first_space + 1, second_space - first_space - 1);
-	request.version = trimmed_line.substr(second_space + 1);
-
-	return (RequestParsingUtils::check_req_line(request, method));
-}
-
-bool RequestParsingUtils::check_header(std::string &name, std::string &value, ClientRequest &request) {
-	Logger logger;
-	// Check header size
-	if (name.size() > MAX_HEADER_NAME_LENGTH) {
-		logger.logWithPrefix(Logger::WARNING, "HTTP", "Header name too big");
-		return (false);
-	} else if (value.size() > MAX_HEADER_VALUE_LENGTH) {
-		logger.logWithPrefix(Logger::WARNING, "HTTP", "Header value too big");
-		return (false);
-	}
-	// Check for duplicate header
-	if (find_header(request, GeneralUtils::to_lower(name))) {
-		logger.logWithPrefix(Logger::WARNING, "HTTP", 
-			"Duplicate header present");
-		return (false);
-	}
-	if (GeneralUtils::to_lower(name) == "transfer-encoding" && GeneralUtils::to_lower(value) == "chunked")
-		request.chunked_encoding = true;
-	return (true);
-}
-
-bool RequestParsingUtils::parse_headers(std::istringstream &stream,
+bool RequestParsingUtils::parse_trailing_headers(std::istringstream &stream,
                                         ClientRequest &request) {
 	Logger logger;
 	std::string line;
-	logger.logWithPrefix(Logger::INFO, "HTTP", "Parsing headers");
-	int header_count = 0;
+	logger.logWithPrefix(Logger::INFO, "HTTP", "Parsing trailing headers");
+	
 	while (std::getline(stream, line)) {
-		// Check header count limit
-		if (++header_count > 100) {
-			logger.logWithPrefix(Logger::WARNING, "HTTP", "Too many headers");
-			return (false);
-		}
-
+		// Check if end of request
 		if (!line.empty() && line[line.length() - 1] == '\r')
 			line.erase(line.length() - 1);
 
 		if (line.empty())
-			break;
+			return (true);
 
 		size_t colon = line.find(':');
 		if (colon == std::string::npos) {
 			logger.logWithPrefix(Logger::WARNING, "HTTP",
-			                     "Invalid header format");
+			                     "Invalid trailing header");
 			return (false);
 		}
 		std::string name = trim_side(line.substr(0, colon), 1);
@@ -203,102 +82,19 @@ bool RequestParsingUtils::parse_headers(std::istringstream &stream,
 				return (false);
 			}
 		}
+		// Check for valid header to be in trailing
+		if (GeneralUtils::to_lower(name) == "te" || GeneralUtils::to_lower(name) == "connection") {
+			logger.logWithPrefix(Logger::WARNING, "HTTP", "Invalid headers to be in trailing");
+			return (false);
+		}
 		if (!check_header(name, value, request))
 			return (false);
 		request.headers[GeneralUtils::to_lower(name)] = value;
 	}
-	// Check for host header
-	if (!find_header(request, "host")) {
-		logger.logWithPrefix(Logger::WARNING, "HTTP", 
-			"No Host header present");
-		return (false);
-	}
-	// Check for Transfer-encoding=chunked and Content-length headers
-	if (request.chunked_encoding && find_header(request, "content-length")) {
-		logger.logWithPrefix(Logger::WARNING, "HTTP", 
-			"Content-length header present with chunked encoding");
-		return (false);
-	}
 	return (true);
 }
 
-bool RequestParsingUtils::chunked_encoding(std::istringstream &stream,
-                                     ClientRequest &request) {
-	Logger logger;
-	std::string line;
-	while (1)
-	{
-		std::getline(stream, line);
-		if (!line.empty() && line[line.length() - 1] == '\r')
-			line.erase(line.length() - 1);
-		std::istringstream content_stream(line);
-		int content_length;
-		if (!(content_stream >> content_length) || content_length < 0) {
-			logger.logWithPrefix(Logger::WARNING, "HTTP",
-			                     "Invalid Length value");
-			return (false);
-		}
-		if (content_length == 0)
-			break ;
-		std::getline(stream, line);
-		std::istringstream body_stream(line);
-		// Read exactly content_length bytes
-		std::string body(content_length, '\0');
-		body_stream.read(&body[0], content_length);
-		std::streamsize actually_read = body_stream.gcount();
-		if (actually_read != content_length) {
-			std::ostringstream msg;
-			msg << "Body length mismatch: expected " << content_length
-			    << " bytes, but read " << actually_read << " bytes";
-			logger.logWithPrefix(Logger::WARNING, "HTTP", msg.str());
-			return (false);
-		}
-		request.body.append(body);
-	}
-	return (true);
-}
-
-bool RequestParsingUtils::parse_body(std::istringstream &stream,
-                                     ClientRequest &request) {
-	Logger logger;
-	logger.logWithPrefix(Logger::INFO, "HTTP", "Parsing message body");
-
-	// Check if Content-Lenght Header exists and size is valid
-	if (!request.chunked_encoding) {
-		const char *header_value = find_header(request, "content-length");
-		if (!header_value) {
-			logger.logWithPrefix(Logger::WARNING, "HTTP",
-			                     "No Content-Length header present");
-			return (false);
-		}
-		std::istringstream content_stream(header_value);
-		int content_length;
-		if (!(content_stream >> content_length) || content_length < 0) {
-			logger.logWithPrefix(Logger::WARNING, "HTTP",
-			                     "Invalid Content-Length value");
-			return (false);
-		}
-
-		// Read exactly content_length bytes
-		std::string body(content_length, '\0');
-		stream.read(&body[0], content_length);
-		std::streamsize actually_read = stream.gcount();
-		if (actually_read != content_length) {
-			std::ostringstream msg;
-			msg << "Body length mismatch: expected " << content_length
-			    << " bytes, but read " << actually_read << " bytes";
-			logger.logWithPrefix(Logger::WARNING, "HTTP", msg.str());
-			return (false);
-		}
-		request.body = body;
-	}
-	else {
-		if (!chunked_encoding(stream, request))
-			return (false);
-	}
-	return (true);
-}
-
+/* Parser */
 bool RequestParsingUtils::parse_request(const std::string &raw_request,
                                         ClientRequest &request) {
 	Logger logger;
@@ -318,71 +114,16 @@ bool RequestParsingUtils::parse_request(const std::string &raw_request,
 	if (!parse_headers(stream, request))
 		return (false);
 
-	// Read body (rest of the stream)
-	if (request.method == POST) {
-		if (!parse_body(stream, request))
+	// Parse body
+	if (!parse_body(stream, request))
+		return (false);
+
+	// Parse trailing headers (if any)
+	if (request.chunked_encoding) {
+		if (!parse_trailing_headers(stream, request))
 			return (false);
 	}
-
-	// Remove trailing newline if present
-	if (!request.body.empty() &&
-	    request.body[request.body.length() - 1] == '\n')
-		request.body.erase(request.body.length() - 1);
 
 	logger.logWithPrefix(Logger::INFO, "HTTP", "Request parsing completed");
 	return (true);
 }
-
-/* bool	parse_request(const std::string &raw_request, ClientRequest &request) {
-    if (raw_request.empty())
-        return (false);
-
-    std::istringstream stream(raw_request);
-    std::string line;
-
-    // Parse request line
-    if (!std::getline(stream, line))
-        return (false);
-
-    // Remove \r if present
-    if (!line.empty() && line[line.length() - 1] == '\r')
-        line.erase(line.length() - 1);
-
-    std::istringstream request_line(trim(line));
-    if (!(request_line >> request.method >> request.uri >> request.version))
-        return (false);
-
-    // Parse headers
-    while (std::getline(stream, line)) {
-        if (!line.empty() && line[line.length() - 1] == '\r')
-            line.erase(line.length() - 1);
-
-        if (line.empty()) // Empty line = end of headers
-            break;
-
-        size_t colon = line.find(':');
-        if (colon == std::string::npos)
-            return (false);
-                std::string name = trim(line.substr(0, colon));
-                std::string value = trim(line.substr(colon + 1));
-
-        // Trim spaces
-        if (!value.empty() && value[0] == ' ')
-            value.erase(0, 1);
-
-        request.headers[name] = value;
-    }
-
-    // Read body (rest of the stream)
-    std::ostringstream body_stream;
-    while (std::getline(stream, line)) {
-        body_stream << line << '\n';
-    }
-    request.body = body_stream.str();
-
-    // Remove trailing newline if present
-    if (!request.body.empty() && request.body[request.body.length() - 1] ==
-'\n') request.body.erase(request.body.length() - 1);
-
-    return (true);
-} */

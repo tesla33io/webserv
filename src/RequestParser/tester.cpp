@@ -6,7 +6,7 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/19 11:44:05 by jalombar          #+#    #+#             */
-/*   Updated: 2025/06/24 12:09:09 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/06/25 15:09:15 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -257,13 +257,19 @@ void add_malformed_body_tests() {
         "\r\n"
         "short"));
     
+	std::string headers = "POST /submit HTTP/1.1\r\n"
+		"Host: example.com\r\n"
+		"Content-Length: 10\r\n"
+		"\r\n";
+	std::string body = std::string("test\x00data", 10);
     // Body with null bytes (usually OK but depends on implementation)
-    test_requests.push_back(std::make_pair("body_with_nulls (GOOD)", 
+	test_requests.push_back(std::make_pair("body_with_nulls (GOOD)", headers + body));
+/*     test_requests.push_back(std::make_pair("body_with_nulls (GOOD)", 
         "POST /submit HTTP/1.1\r\n"
         "Host: example.com\r\n"
         "Content-Length: 10\r\n"
         "\r\n"
-        "test\x00data"));
+        "test\x00data")); */
 }
 
 void add_security_tests() {
@@ -278,13 +284,6 @@ void add_security_tests() {
         "\r\n"
         "GET /admin HTTP/1.1\r\n"
         "Host: example.com\r\n"
-        "\r\n"));
-    
-    // Header injection attempt
-    test_requests.push_back(std::make_pair("header_injection (BAD)", 
-        "GET /index.html HTTP/1.1\r\n"
-        "Host: example.com\r\n"
-        "X-Forwarded-For: 1.2.3.4\r\nX-Admin: true\r\n"
         "\r\n"));
 }
 

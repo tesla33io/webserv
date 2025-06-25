@@ -6,7 +6,7 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/17 15:32:36 by jalombar          #+#    #+#             */
-/*   Updated: 2025/06/24 12:01:20 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/06/25 13:39:20 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,16 +36,17 @@ struct ClientRequest {
 };
 
 namespace RequestParsingUtils {
+	bool check_and_trim_line(std::string &line);
 	const char *find_header(ClientRequest &request, const std::string &header);
 	bool assign_method(std::string &method, ClientRequest &request);
 	std::string trim_side(const std::string &s, int type);
-	// std::string read_request(int fd);
 	bool check_req_line(ClientRequest &request, std::string &method);
 	bool parse_req_line(std::istringstream &stream, ClientRequest &request);
 	bool check_header(std::string &name, std::string &value, ClientRequest &request);
 	bool parse_headers(std::istringstream &stream, ClientRequest &request);
 	bool chunked_encoding(std::istringstream &stream, ClientRequest &request);
 	bool parse_body(std::istringstream &stream, ClientRequest &request);
+	bool parse_trailing_headers(std::istringstream &stream, ClientRequest &request);
 	bool parse_request(const std::string &raw_request, ClientRequest &request);
 } // namespace RequestParsingUtils
 
