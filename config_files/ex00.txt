@@ -1,0 +1,14 @@
+server {
+    listen      8080;
+    server_name localhost;
+    root        ./html;
+    index       index.html;
+
+    location /images/ {
+        root ./img;
+    }
+
+    location / {
+        autoindex on;
+    }
+}

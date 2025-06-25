@@ -12,21 +12,24 @@ mail		    For mail protocols (SMTP, IMAP, POP3) (not used in webserv)
 (global)	  Directives like worker_processes, pid, etc. that are outside any block
 
 Parsing: 
-AST parsing to be more extensive
-Directives list: we create an array with the valid directives we handle. If a 
-directive is not recognized -> error. Need to check which are relevant.
-File locations: we check the existence of the files. Error if not exist
-
+AST parsing with line check (error message will be printed with the line number)
+Then one server structure for easy acces to infos
 
 Edge cases (not handled): 
  - Multi-line values: Some directives (e.g., log_format) allow multi-line values. 
-   -> probably not needed 
- - Include directive:
-   include can pull in other files. -> probably not needed
- - Semicolons inside quotes, Escaped characters
+   -> not needed 
+ - Include directive can pull in other files. -> probably not needed
 
- DEFAULT VALUES - handling where?
- CHUNK thing - to research
+
+to do:
+- parse the tree into the strucutres
+- implement the checks on all directives
+- set up the DEFAULT VALUES 
+- tests (subject: You must provide configuration files and default files to test
+  and demonstrate that every feature works during the evaluation)
+
+TESTS : to compare with NGINX (docker run) :
+// docker run --rm -v $(pwd)/mini.conf:/etc/nginx/nginx.conf:ro nginx nginx -t
 
 
 ////////////////////////////////////////////////////////////////////////////////

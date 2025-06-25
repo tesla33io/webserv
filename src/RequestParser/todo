@@ -1,0 +1,14 @@
+Host header
+no colon header
+duplicate header
+long header value
+header folding ?
+lf only ?
+mixed line endings
+missing final crlf ?
+uri control char ?
+chunked encoding ?
+chunked with content length ?
+body with nulls
+request smuggling ?
+header injection ?

@@ -1,35 +1,16 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   tester.cpp                                         :+:      :+:    :+:   */
+/*   struct_parser.cpp                                  :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/06/22 15:58:38 by htharrau          #+#    #+#             */
-/*   Updated: 2025/06/25 13:46:00 by htharrau         ###   ########.fr       */
+/*   Created: 2025/06/25 13:42:34 by htharrau          #+#    #+#             */
+/*   Updated: 2025/06/25 13:42:50 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "config_parser.hpp"
 #include "../Logger/Logger.hpp"
-
-
-int main(int argc, char **argv) {
-
-	Logger logger("config.log", Logger::DEBUG, true);
-	if (argc != 2)
-		return (1);
-		
-	ConfigNode config;
-	if (!ConfigParsing::parser(argv[1], config))
-		return (1);
-	ConfigParsing::pretty_print(config, "", true);
-
-	vector<ConfigServer> servers;
-	if (!ConfigParsing::parser(argv[1], config))
-		return (1);
-	servers = 
-	
-
-}
+#include "../Utils/StringUtils.hpp"
 

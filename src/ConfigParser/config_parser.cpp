@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/21 14:53:37 by htharrau          #+#    #+#             */
-/*   Updated: 2025/06/23 19:52:04 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/06/25 13:31:08 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,10 +14,10 @@
 // NGINX ERROR MESSAGES
 
 [emerg] unexpected "}" in /etc/nginx/nginx.conf:45
-→ You closed a block that wasn’t open.
+→ You closed a ConfigNode that wasn’t open.
 
 [emerg] unexpected end of file, expecting "}" in /etc/nginx/nginx.conf:67
-→ You forgot to close a block (e.g., server { with no matching }).
+→ You forgot to close a ConfigNode (e.g., server { with no matching }).
 
 [emerg] invalid number of arguments in "listen" directive in /etc/nginx/nginx.conf:20
 → The directive was given too many or too few arguments.
@@ -26,10 +26,10 @@
 → You forgot the semicolon at the end of a directive.
 
 [emerg] "listen" directive is not allowed here in /etc/nginx/nginx.conf:13
-→ You probably put listen outside of a server block.
+→ You probably put listen outside of a server ConfigNode.
 
 [emerg] duplicate "listen" directive in /etc/nginx/nginx.conf:25
-→ You defined listen more than once in a server block without using default_server, etc.
+→ You defined listen more than once in a server ConfigNode without using default_server, etc.
 
 [emerg] a duplicate default server for 0.0.0.0:80 in /etc/nginx/nginx.conf:35
 → You have more than one default_server for the same address/port.
@@ -48,32 +48,6 @@
 #include "config_parser.hpp"
 #include "../Logger/Logger.hpp"
 #include "../Utils/StringUtils.hpp"
-
-// struct ConfigNode {
-// 	std::string name;
-// 	std::vector<std::string> args;
-// 	std::vector<ConfigNode> children;
-// 	int lineNumber;
-// };
-
-// struct Validity {
-// 	std::string name;
-// 	std::vector<std::string> contexts;
-// 	bool nested;
-// 	size_t maxArgs; 
-// };
-
-
-// bool parser(const std::string &filePath, ConfigNode &ConfigNode);
-// bool parse_config(std::ifstream &file, ConfigNode &parent, Logger& logger);
-// std::string preProcess(const std::string& line);
-// std::vector<std::string> tokenize(const std::string& line);
-// bool isBlockStart(const std::string& line);
-// bool isBlockEnd(const std::string& line);
-// bool isDirective(const std::string& line);
-// std::string join_args(const std::vector<std::string>& args);
-// void pretty_print(const ConfigNode& node, const std::string& prefix = "", bool isLast = true);
-
 
 
 namespace ConfigParsing {
@@ -101,25 +75,25 @@ namespace ConfigParsing {
 			if (clean.empty())
 				continue;
 
-			if (isBlockStart(clean)) {
+			if (isConfigNodeStart(clean)) {
 				std::string trimmed = string_utils::rtrim(clean.substr(0, clean.size() - 1));
 				std::vector<std::string> tokens = tokenize(trimmed);
 				if (tokens.empty()) {
-					logger.logWithPrefix(Logger::ERROR, "Configuration file", "Empty block at line " + string_utils::to_string(line_nb));
+					logger.logWithPrefix(Logger::ERROR, "Configuration file", "Empty ConfigNode at line " + string_utils::to_string(line_nb));
 					return false;
 				}
-				ConfigNode block;
-				block.name = tokens[0];
-				block.args = std::vector<std::string>(tokens.begin() + 1, tokens.end());
-				block.lineNumber = line_nb;
-				if (!ConfigParsing::parse_config(file, block, logger)) {
+				ConfigNode ConfigNode;
+				ConfigNode.name = tokens[0];
+				ConfigNode.args = std::vector<std::string>(tokens.begin() + 1, tokens.end());
+				ConfigNode.lineNumber = line_nb;
+				if (!ConfigParsing::parse_config(file, ConfigNode, logger)) {
 					return false;
 				}
-				parent.children.push_back(block);
+				parent.children.push_back(ConfigNode);
 				continue;
 			}
 
-			if (isBlockEnd(clean)) {
+			if (isConfigNodeEnd(clean)) {
 				parent.lineNumber = line_nb;
 				return true;
 			}
@@ -158,10 +132,10 @@ namespace ConfigParsing {
 
 	//////////////////////////////////////////////
 	// isUtil
-	bool isBlockStart(const std::string& line) {
+	bool isConfigNodeStart(const std::string& line) {
 		return (string_utils::ends_with(line, "{"));
 	}
-	bool isBlockEnd(const std::string& line) {
+	bool isConfigNodeEnd(const std::string& line) {
 		return (line == "}") ;
 	}
 	bool isDirective(const std::string& line) {
