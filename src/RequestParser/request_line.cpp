@@ -6,7 +6,7 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/25 10:33:32 by jalombar          #+#    #+#             */
-/*   Updated: 2025/06/25 10:47:37 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/06/26 10:10:50 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -120,8 +120,7 @@ bool RequestParsingUtils::check_req_line(ClientRequest &request,
 		return (false);
 	}
 	std::string decoded_uri;
-	if (!decode_and_validate_uri(request.uri, decoded_uri))
-	{
+	if (!decode_and_validate_uri(request.uri, decoded_uri)) {
 		logger.logWithPrefix(Logger::WARNING, "HTTP", "Invalid uri");
 		return (false);
 	}
@@ -186,7 +185,7 @@ bool RequestParsingUtils::parse_req_line(std::istringstream &stream,
 	// Manual parsing to ensure exactly one space between components
 	method = trimmed_line.substr(0, first_space);
 	request.uri =
-	    trimmed_line.substr(first_space + 1, second_space - first_space - 1);		
+	    trimmed_line.substr(first_space + 1, second_space - first_space - 1);
 	request.version = trimmed_line.substr(second_space + 1);
 
 	return (RequestParsingUtils::check_req_line(request, method));

@@ -6,7 +6,7 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/25 10:46:18 by jalombar          #+#    #+#             */
-/*   Updated: 2025/06/25 15:07:37 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/06/26 10:12:04 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -45,15 +45,16 @@ bool RequestParsingUtils::chunked_encoding(std::istringstream &stream,
 			return (false);
 		}
 		// Find final chunk
-		if (chunk_length == 0)
-		{
+		if (chunk_length == 0) {
 			if (!std::getline(stream, line)) {
-				logger.logWithPrefix(Logger::WARNING, "HTTP", "Invalid chunked encoding");
+				logger.logWithPrefix(Logger::WARNING, "HTTP",
+				                     "Invalid chunked encoding");
 			}
 			if (!check_and_trim_line(line))
 				return (false);
 			if (!line.empty()) {
-				logger.logWithPrefix(Logger::WARNING, "HTTP", "Missing end of chunked body");
+				logger.logWithPrefix(Logger::WARNING, "HTTP",
+				                     "Missing end of chunked body");
 				return (false);
 			}
 			return (true);
@@ -96,7 +97,8 @@ bool RequestParsingUtils::parse_body(std::istringstream &stream,
 	// Enforce Content-Length for POST even if body is empty
 	if (!content_length_value) {
 		if (request.method == POST) {
-			logger.logWithPrefix(Logger::WARNING, "HTTP", "Missing Content-Length for POST");
+			logger.logWithPrefix(Logger::WARNING, "HTTP",
+			                     "Missing Content-Length for POST");
 			return (false);
 		}
 
@@ -104,7 +106,8 @@ bool RequestParsingUtils::parse_body(std::istringstream &stream,
 		std::streampos start = stream.tellg();
 		char probe;
 		if (stream.get(probe)) {
-			logger.logWithPrefix(Logger::WARNING, "HTTP", "Request has body but no Content-Length");
+			logger.logWithPrefix(Logger::WARNING, "HTTP",
+			                     "Request has body but no Content-Length");
 			return (false);
 		}
 		// Rewind and accept

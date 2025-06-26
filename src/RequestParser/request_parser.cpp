@@ -6,7 +6,7 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/17 15:43:17 by jalombar          #+#    #+#             */
-/*   Updated: 2025/06/25 15:08:41 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/06/26 10:10:34 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,7 +15,8 @@
 #include "../utils/utils.hpp"
 
 /* Utils */
-const char *RequestParsingUtils::find_header(ClientRequest &request, const std::string &header) {
+const char *RequestParsingUtils::find_header(ClientRequest &request,
+                                             const std::string &header) {
 	std::map<std::string, std::string>::iterator it =
 	    request.headers.find(header);
 	if (it == request.headers.end())
@@ -38,12 +39,13 @@ std::string RequestParsingUtils::trim_side(const std::string &s, int type) {
 	return (result);
 }
 
+/* Trailing headers parser */
 bool RequestParsingUtils::parse_trailing_headers(std::istringstream &stream,
-                                        ClientRequest &request) {
+                                                 ClientRequest &request) {
 	Logger logger;
 	std::string line;
 	logger.logWithPrefix(Logger::INFO, "HTTP", "Parsing trailing headers");
-	
+
 	while (std::getline(stream, line)) {
 		// Check if end of request
 		if (!line.empty() && line[line.length() - 1] == '\r')
@@ -83,8 +85,10 @@ bool RequestParsingUtils::parse_trailing_headers(std::istringstream &stream,
 			}
 		}
 		// Check for valid header to be in trailing
-		if (GeneralUtils::to_lower(name) == "te" || GeneralUtils::to_lower(name) == "connection") {
-			logger.logWithPrefix(Logger::WARNING, "HTTP", "Invalid headers to be in trailing");
+		if (GeneralUtils::to_lower(name) == "te" ||
+		    GeneralUtils::to_lower(name) == "connection") {
+			logger.logWithPrefix(Logger::WARNING, "HTTP",
+			                     "Invalid headers to be in trailing");
 			return (false);
 		}
 		if (!check_header(name, value, request))
@@ -102,7 +106,7 @@ bool RequestParsingUtils::parse_request(const std::string &raw_request,
 		logger.logWithPrefix(Logger::WARNING, "HTTP", "No request received");
 		return (false);
 	}
-	
+
 	request.chunked_encoding = false;
 	std::istringstream stream(raw_request);
 

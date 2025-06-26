@@ -6,7 +6,7 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/17 15:32:36 by jalombar          #+#    #+#             */
-/*   Updated: 2025/06/25 13:39:20 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/06/26 10:09:11 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,7 +17,7 @@
 
 const size_t MAX_URI_LENGTH = 2048;
 const size_t MAX_HEADER_NAME_LENGTH = 1024;
-const size_t MAX_HEADER_VALUE_LENGTH = 8000; 
+const size_t MAX_HEADER_VALUE_LENGTH = 8000;
 
 enum RequestMethod { GET, POST, DELETE_ };
 

@@ -6,7 +6,7 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/25 10:46:05 by jalombar          #+#    #+#             */
-/*   Updated: 2025/06/25 15:06:58 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/06/26 10:19:48 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,9 +18,9 @@
 bool RequestParsingUtils::check_header(std::string &name, std::string &value,
                                        ClientRequest &request) {
 	Logger logger;
-	std::ostringstream msg;
-	msg << "Checking header: " << name << "_" << value;
-	logger.logWithPrefix(Logger::INFO, "HTTP", msg.str());
+	/* std::ostringstream msg;
+	msg << "Checking header: " << name << ":" << value;
+	logger.logWithPrefix(Logger::INFO, "HTTP", msg.str()); */
 	// Check header size
 	if (name.size() > MAX_HEADER_NAME_LENGTH) {
 		logger.logWithPrefix(Logger::WARNING, "HTTP", "Header name too big");
