@@ -6,11 +6,11 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/19 11:44:05 by jalombar          #+#    #+#             */
-/*   Updated: 2025/06/26 10:12:24 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/06/26 10:28:13 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "request_parser.hpp"
+#include "../request_parser.hpp"
 
 std::vector<std::pair<std::string, std::string> > test_requests;
 
