@@ -2,6 +2,7 @@
 #include "src/Logger/Logger.hpp"
 #include "src/Utils/StringUtils.hpp"
 #include <cstring>
+#include "src/RequestParser/request_parser.hpp"
 #include <sys/socket.h>
 #include <unistd.h>
 
@@ -220,37 +221,42 @@ bool WebServer::isCompleteRequest(const std::string &request) {
 	return request.find("\r\n\r\n") != std::string::npos;
 }
 
-void WebServer::processRequest(int client_fd, const std::string &request) {
+void WebServer::processRequest(int client_fd, const std::string &raw_req) {
 	_lggr.info("Processing request from fd " + string_utils::to_string(client_fd) + ":");
-	_lggr.debug("--- Request Start ---");
-	_lggr.debug(request);
-	_lggr.debug("--- Request End ---\n");
+	_lggr.debug("--- Request Start ---\n");
+	_lggr.debug(raw_req);
+	_lggr.debug("--- Request End ---\n\n");
 
-	// Extract method and path from first line
-	size_t first_space = request.find(' ');
-	size_t second_space = request.find(' ', first_space + 1);
-	Request req;
-
-	if (first_space != std::string::npos && second_space != std::string::npos) {
-		req.method = request.substr(0, first_space);
-		req.path = _root_path;
-		req.path += request.substr(first_space + 1, second_space - first_space - 1);
-		req.clfd = client_fd;
-
-		_lggr.info("Method: " + req.method + ", Path: " + req.path + "");
+	ClientRequest req;
+	req.clfd = client_fd;
+	if (!RequestParsingUtils::parse_request(raw_req, req)) {
+		//
 	}
+
+//	// Extract method and path from first line
+//	size_t first_space = request.find(' ');
+//	size_t second_space = request.find(' ', first_space + 1);
+//	struct Request req;
+//
+//	if (first_space != std::string::npos && second_space != std::string::npos) {
+//		req.method = request.substr(0, first_space);
+//		req.path = request.substr(first_space + 1, second_space - first_space - 1);
+//		req.clfd = client_fd;
+//
+//		_lggr.info("Method: " + req.method + ", Path: " + req.path + "\n");
+//	}
 
 	// Send a simple HTTP response
 	sendResponse(req);
 }
 
-void WebServer::sendResponse(const Request &req) {
+void WebServer::sendResponse(const ClientRequest &req) {
 	bool close_conn = true;
 	std::string response;
 
-	if (req.method == "GET") {
-		response = handleGetRequest(req.path);
-	} else if (req.method == "POST" || req.method == "DELETE") {
+	if (req.method == GET) {
+		response = handleGetRequest(req.uri);
+	} else if (req.method == POST || req.method == DELETE_) {
 		response = generateErrorResponse(501);
 	} else {
 		response = generateErrorResponse(405);
