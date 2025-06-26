@@ -37,7 +37,8 @@ SRC_DIR			:= ./
 #SRC_FILES		+= src/main.cpp
 
 # Logger source files
-SRC_FILES		+= src/Logger/Logger.cpp
+SRC_FILES		+= src/HttpServer/HttpServer.cpp
+#SRC_FILES		+= src/Logger/Logger.cpp
 
 #Object files directory
 OBJ_DIR			:= obj/

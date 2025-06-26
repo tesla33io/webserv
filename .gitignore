@@ -1,5 +1,9 @@
 # misc
 *.json
+locust/
+*.log
+webserv
+.cache/
 
 # Prerequisites
 *.d

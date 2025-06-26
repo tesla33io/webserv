@@ -1,0 +1,61 @@
+#ifndef HTTPSERVER_HPP
+#define HTTPSERVER_HPP
+
+#include "../Logger/Logger.hpp"
+#include "../Utils/StringUtils.hpp"
+
+#include <arpa/inet.h>
+#include <cstring>
+#include <fcntl.h>
+#include <fstream>
+#include <iostream>
+#include <map>
+#include <netdb.h>
+#include <netinet/in.h>
+#include <signal.h>
+#include <sys/epoll.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <unistd.h>
+
+struct Request {
+	std::string method;
+	std::string path;
+	int clfd;
+};
+
+class WebServer {
+
+  public:
+	WebServer(int p);
+	~WebServer();
+
+	bool initialize();
+	void run();
+
+	static bool _running;
+
+  private:
+	int _server_fd;
+	int _epoll_fd;
+	int _port;
+	int _backlog;
+	std::map<int, std::string> _client_buffers;
+	Logger _lggr;
+
+	static const int MAX_EVENTS = 64;
+	static const int BUFFER_SIZE = 4096;
+
+	bool setNonBlocking(int fd);
+	void handleNewConnection();
+	void handleClientData(int client_fd);
+	bool isCompleteRequest(const std::string &request);
+	void processRequest(int client_fd, const std::string &request);
+	void sendResponse(const Request &req);
+	void closeConnection(int client_fd);
+	void cleanup();
+};
+
+bool WebServer::_running; //TODO: fix this
+
+#endif // HTTPSERVER_HPP
