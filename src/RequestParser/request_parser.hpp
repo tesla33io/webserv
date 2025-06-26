@@ -33,6 +33,9 @@ struct ClientRequest {
 
 	// Body (optional)
 	std::string body;
+
+	// Client FD
+	int clfd;
 };
 
 namespace RequestParsingUtils {

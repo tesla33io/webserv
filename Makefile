@@ -38,6 +38,11 @@ SRC_DIR			:= ./
 
 # Logger source files
 SRC_FILES		+= src/HttpServer/HttpServer.cpp
+SRC_FILES		+= src/RequestParser/request_parser.cpp
+SRC_FILES		+= src/RequestParser/request_line.cpp
+SRC_FILES		+= src/RequestParser/headers.cpp
+SRC_FILES		+= src/RequestParser/body.cpp
+SRC_FILES		+= src/utils/utils.cpp
 #SRC_FILES		+= src/Logger/Logger.cpp
 
 #Object files directory

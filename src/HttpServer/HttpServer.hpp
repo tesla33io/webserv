@@ -3,6 +3,7 @@
 
 #include "../Logger/Logger.hpp"
 #include "../Utils/StringUtils.hpp"
+#include "../RequestParser/request_parser.hpp"
 
 #include <arpa/inet.h>
 #include <cstring>
@@ -50,8 +51,8 @@ class WebServer {
 	void handleNewConnection();
 	void handleClientData(int client_fd);
 	bool isCompleteRequest(const std::string &request);
-	void processRequest(int client_fd, const std::string &request);
-	void sendResponse(const Request &req);
+	void processRequest(int client_fd, const std::string &raw_req);
+	void sendResponse(const ClientRequest &req);
 	void closeConnection(int client_fd);
 	void cleanup();
 };
