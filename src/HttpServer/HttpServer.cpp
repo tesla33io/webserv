@@ -1,12 +1,13 @@
 #include "HttpServer.hpp"
 #include "src/Logger/Logger.hpp"
+#include "src/RequestParser/request_parser.hpp"
 #include "src/Utils/StringUtils.hpp"
 #include <cstring>
-#include "src/RequestParser/request_parser.hpp"
+#include <netdb.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
-bool WebServer::_running; // TODO: fix this
+bool WebServer::_running;
 bool interrupted = false;
 
 WebServer::WebServer(int p)
@@ -95,13 +96,16 @@ bool WebServer::initialize() {
 
 	// Add server socket to epoll
 	struct epoll_event ev;
-	ev.events = EPOLLIN | EPOLLET;
+	ev.events = EPOLLIN | EPOLLRDHUP | EPOLLERR | EPOLLET;
 	ev.data.fd = _server_fd;
 
 	if (epoll_ctl(_epoll_fd, EPOLL_CTL_ADD, _server_fd, &ev) == -1) {
 		_lggr.error("Failed to add server socket to epoll");
 		return false;
 	}
+
+	// Cleanup
+	freeaddrinfo(res);
 
 	_lggr.info("Server initialized on port " + string_utils::to_string(_port));
 	_running = true;
@@ -115,16 +119,17 @@ bool WebServer::initialize() {
 
 void WebServer::run() {
 	struct epoll_event events[MAX_EVENTS];
+	_last_cleanup = getCurrentTime();
 
 	_lggr.debug("Server running. Waiting for connections...");
 
 	while (_running) {
-		int nfds = epoll_wait(_epoll_fd, events, MAX_EVENTS, -1);
+		int nfds = epoll_wait(_epoll_fd, events, MAX_EVENTS, 1000);
 		if (nfds == -1 && !interrupted) {
-			_lggr.error("epoll_wait failed. Stopping the server");
+			_lggr.error("epoll_wait failed: " + std::string(strerror(errno)));
 			break;
 		} else if (nfds == -1 && interrupted) {
-			_lggr.warn("Program was interrupted. Stopping the server");
+			_lggr.warn("Program interrupted, shutting down...");
 			break;
 		}
 
@@ -132,13 +137,28 @@ void WebServer::run() {
 			if (events[i].data.fd == _server_fd) {
 				handleNewConnection();
 			} else {
-				handleClientData(events[i].data.fd);
+				if (_connections.find(events[i].data.fd) != _connections.end()) {
+					handleClientData(events[i].data.fd);
+				} else {
+					_lggr.debug("Ignoring event for unknown fd: " +
+					            string_utils::to_string(events[i].data.fd));
+				}
 			}
+		}
+
+		cleanupExpiredConnections();
+
+		static time_t last_stats = 0;
+		time_t current_time = getCurrentTime();
+		if (current_time - last_stats >= 30) { // Every 30 seconds
+			logConnectionStats();
+			last_stats = current_time;
 		}
 	}
 }
 
 bool WebServer::setNonBlocking(int fd) {
+	_lggr.debug("Setting fd [" + string_utils::to_string(fd) + "] as non-blocking");
 	int flags = fcntl(fd, F_GETFL, 0);
 	if (flags == -1) {
 		_lggr.error("Failed to get socket flags");
@@ -153,144 +173,51 @@ bool WebServer::setNonBlocking(int fd) {
 	return true;
 }
 
-void WebServer::handleNewConnection() {
-	struct sockaddr_in client_addr;
-	socklen_t client_len = sizeof(client_addr);
+inline time_t WebServer::getCurrentTime() const { return time(NULL); }
 
-	int client_fd = accept(_server_fd, (struct sockaddr *)&client_addr, &client_len);
-	if (client_fd == -1) {
-		_lggr.error("Failed to accept connection");
-		return;
-	}
+bool WebServer::isConnectionExpired(const ConnectionInfo *conn) const {
+	time_t current_time = getCurrentTime();
+	time_t timeout = conn->keep_alive ? KEEP_ALIVE_TO : CONNECTION_TO;
 
-	if (!setNonBlocking(client_fd)) {
-		close(client_fd);
-		return;
-	}
-
-	struct epoll_event ev;
-	ev.events = EPOLLIN | EPOLLET;
-	ev.data.fd = client_fd;
-
-	if (epoll_ctl(_epoll_fd, EPOLL_CTL_ADD, client_fd, &ev) == -1) {
-		_lggr.error("Failed to add client socket (fd: " + string_utils::to_string<int>(client_fd) +
-		            ") to epoll");
-		close(client_fd);
-		return;
-	}
-
-	// Initialize client buffer
-	_client_buffers[client_fd] = "";
-
-	_lggr.info("New connection from " + std::string(inet_ntoa(client_addr.sin_addr)) + ":" +
-	           string_utils::to_string<unsigned short>(ntohs(client_addr.sin_port)) +
-	           " (fd: " + string_utils::to_string<int>(client_fd) + ")");
+	return (current_time - conn->last_activity) > timeout;
 }
 
-void WebServer::handleClientData(int client_fd) {
-	char buffer[BUFFER_SIZE];
-	ssize_t bytes_read;
-	bool request_processed = false;
+void WebServer::logConnectionStats() {
+	size_t active_connections = _connections.size();
+	size_t keep_alive_connections = 0;
 
-	while ((bytes_read = recv(client_fd, buffer, sizeof(buffer) - 1, 0)) > 0) {
-		_lggr.logWithPrefix(Logger::DEBUG, "recv loop", "Bytes read: " + string_utils::to_string(bytes_read));
-		buffer[bytes_read] = '\0';
-		_client_buffers[client_fd] += std::string(buffer);
-
-		if (isCompleteRequest(_client_buffers[client_fd])) {
-			processRequest(client_fd, _client_buffers[client_fd]);
-			_client_buffers[client_fd].clear();
-			request_processed = true;
+	for (std::map<int, ConnectionInfo *>::const_iterator it = _connections.begin();
+	     it != _connections.end(); ++it) {
+		if (it->second->keep_alive) {
+			keep_alive_connections++;
 		}
 	}
 
-	if (bytes_read == 0) {
-		_lggr.info("Client disconnected (fd: " + string_utils::to_string(client_fd) + ")");
-		closeConnection(client_fd);
-	} else if (bytes_read == -1 && !request_processed) {
-		//} else if (bytes_read == -1 && errno != EAGAIN && errno != EWOULDBLOCK) {
-		_lggr.error("Error reading from client (fd: " + string_utils::to_string<int>(client_fd) +
-		            ")");
-		closeConnection(client_fd);
-	}
-}
-
-bool WebServer::isCompleteRequest(const std::string &request) {
-	// Simple check for HTTP request completion
-	// Look for double CRLF which indicates end of headers
-	return request.find("\r\n\r\n") != std::string::npos;
-}
-
-void WebServer::processRequest(int client_fd, const std::string &raw_req) {
-	_lggr.info("Processing request from fd " + string_utils::to_string(client_fd) + ":");
-	_lggr.debug("--- Request Start ---\n");
-	_lggr.debug(raw_req);
-	_lggr.debug("--- Request End ---\n\n");
-
-	ClientRequest req;
-	req.clfd = client_fd;
-	if (!RequestParsingUtils::parse_request(raw_req, req)) {
-		//
-	}
-
-//	// Extract method and path from first line
-//	size_t first_space = request.find(' ');
-//	size_t second_space = request.find(' ', first_space + 1);
-//	struct Request req;
-//
-//	if (first_space != std::string::npos && second_space != std::string::npos) {
-//		req.method = request.substr(0, first_space);
-//		req.path = request.substr(first_space + 1, second_space - first_space - 1);
-//		req.clfd = client_fd;
-//
-//		_lggr.info("Method: " + req.method + ", Path: " + req.path + "\n");
-//	}
-
-	// Send a simple HTTP response
-	sendResponse(req);
-}
-
-void WebServer::sendResponse(const ClientRequest &req) {
-	bool close_conn = true;
-	std::string response;
-
-	if (req.method == GET) {
-		response = handleGetRequest(req.uri);
-	} else if (req.method == POST || req.method == DELETE_) {
-		response = generateErrorResponse(501);
-	} else {
-		response = generateErrorResponse(405);
-	}
-
-	ssize_t bytes_sent = send(req.clfd, response.c_str(), response.size(), 0);
-	if (bytes_sent < 0) {
-		_lggr.error("Failed to send response to client (fd: " + string_utils::to_string(req.clfd) +
-		            ")");
-	} else {
-		_lggr.debug("Sent " + string_utils::to_string(bytes_sent) + " bytes response to fd " +
-		            string_utils::to_string(req.clfd));
-	}
-
-	// TODO: handle headers such as `keep-alive` connection
-
-	if (close_conn) {
-		closeConnection(req.clfd);
-	}
-}
-
-void WebServer::closeConnection(int client_fd) {
-	epoll_ctl(_epoll_fd, EPOLL_CTL_DEL, client_fd, NULL);
-	close(client_fd);
-	_client_buffers.erase(client_fd);
+	_lggr.info("Connection Stats - Active: " + string_utils::to_string(active_connections) +
+	           ", Keep-Alive: " + string_utils::to_string(keep_alive_connections));
 }
 
 void WebServer::cleanup() {
+	_lggr.debug("Performing server cleanup...");
+
+	for (std::map<int, ConnectionInfo *>::iterator it = _connections.begin();
+	     it != _connections.end(); ++it) {
+		close(it->first);
+		delete it->second;
+	}
+	_connections.clear();
+
 	if (_server_fd != -1) {
 		close(_server_fd);
+		_server_fd = -1;
 	}
+
 	if (_epoll_fd != -1) {
 		close(_epoll_fd);
+		_epoll_fd = -1;
 	}
+
+	_lggr.info("Server cleanup completed");
 }
 
 int main(int argc, char *argv[]) {

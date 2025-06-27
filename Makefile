@@ -38,6 +38,8 @@ SRC_DIR			:= ./
 
 # Logger source files
 SRC_FILES		+= src/HttpServer/HttpServer.cpp
+SRC_FILES		+= src/HttpServer/Connection.cpp
+SRC_FILES		+= src/HttpServer/Request.cpp
 SRC_FILES		+= src/HttpServer/Handlers/FileHandler.cpp
 SRC_FILES		+= src/HttpServer/Handlers/ResponseHandler.cpp
 SRC_FILES		+= src/RequestParser/request_parser.cpp
@@ -45,7 +47,6 @@ SRC_FILES		+= src/RequestParser/request_line.cpp
 SRC_FILES		+= src/RequestParser/headers.cpp
 SRC_FILES		+= src/RequestParser/body.cpp
 SRC_FILES		+= src/utils/utils.cpp
-#SRC_FILES		+= src/Logger/Logger.cpp
 
 #Object files directory
 OBJ_DIR			:= obj/
@@ -90,7 +91,8 @@ endif
 
 .DEFAULT_GOAL	:= all
 
-all: $(TARGET) ## Build this project
+all: ## Build this project
+	$(MAKE) -j $(TARGET)
 
 #Compilation rule for object files
 $(OBJ_DIR)%.o: $(SRC_DIR)%.cpp

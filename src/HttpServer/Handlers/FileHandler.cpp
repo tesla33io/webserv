@@ -1,4 +1,5 @@
 #include "src/HttpServer/HttpServer.hpp"
+#include "src/Logger/Logger.hpp"
 #include "src/Utils/StringUtils.hpp"
 #include <fstream>
 
@@ -15,6 +16,9 @@ std::string WebServer::getFileContent(std::string path) {
 		buffer << file.rdbuf();
 		file.close();
 		content = buffer.str();
+		_lggr.logWithPrefix(Logger::DEBUG, "File Handling",
+		                    "Read " + string_utils::to_string(content.size()) + " bytes from " +
+		                        path);
 	}
 	return content;
 }
