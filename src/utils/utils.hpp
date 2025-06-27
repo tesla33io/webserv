@@ -6,14 +6,14 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/19 14:45:55 by jalombar          #+#    #+#             */
-/*   Updated: 2025/06/20 11:30:12 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/06/27 14:58:52 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #ifndef UTILS_HPP
 #define UTILS_HPP
 
-#include "../../webserv.hpp"
+# include "../../includes/webserv.hpp"
 
 namespace GeneralUtils {
 	std::string to_upper(std::string &s);

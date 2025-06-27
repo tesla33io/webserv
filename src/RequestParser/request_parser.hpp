@@ -6,20 +6,23 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/17 15:32:36 by jalombar          #+#    #+#             */
-/*   Updated: 2025/06/26 10:09:11 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/06/27 14:59:07 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#ifndef PARSING_HPP
-#define PARSING_HPP
+#ifndef REQUEST_PARSER_HPP
+#define REQUEST_PARSER_HPP
 
-#include "../../webserv.hpp"
+# include "../../includes/webserv.hpp"
+# include "../../includes/types.hpp"
+#include "../Logger/Logger.hpp"
+#include "../utils/utils.hpp"
 
 const size_t MAX_URI_LENGTH = 2048;
 const size_t MAX_HEADER_NAME_LENGTH = 1024;
 const size_t MAX_HEADER_VALUE_LENGTH = 8000;
 
-enum RequestMethod { GET, POST, DELETE_ };
+/* enum RequestMethod { GET, POST, DELETE_ };
 
 struct ClientRequest {
 	// Request line
@@ -36,7 +39,7 @@ struct ClientRequest {
 
 	// Client FD
 	int clfd;
-};
+}; */
 
 namespace RequestParsingUtils {
 	bool check_and_trim_line(std::string &line);

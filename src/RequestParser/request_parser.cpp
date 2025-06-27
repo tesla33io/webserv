@@ -6,13 +6,11 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/17 15:43:17 by jalombar          #+#    #+#             */
-/*   Updated: 2025/06/26 10:10:34 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/06/27 14:59:10 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "request_parser.hpp"
-#include "../Logger/Logger.hpp"
-#include "../utils/utils.hpp"
 
 /* Utils */
 const char *RequestParsingUtils::find_header(ClientRequest &request,
