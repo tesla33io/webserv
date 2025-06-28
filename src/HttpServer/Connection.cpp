@@ -2,40 +2,47 @@
 #include "src/Logger/Logger.hpp"
 #include "src/RequestParser/request_parser.hpp"
 #include "src/Utils/StringUtils.hpp"
+#include <cerrno>
 
 void WebServer::handleNewConnection() {
-	struct sockaddr_in client_addr;
-	socklen_t client_len = sizeof(client_addr);
+	while (true) {
+		struct sockaddr_in client_addr;
+		socklen_t client_len = sizeof(client_addr);
 
-	int client_fd = accept(_server_fd, (struct sockaddr *)&client_addr, &client_len);
-	if (client_fd == -1) {
-		_lggr.error("Failed to accept connection");
-		return;
+		int client_fd = accept(_server_fd, (struct sockaddr *)&client_addr, &client_len);
+		if (client_fd == -1) {
+			if (errno == EAGAIN || errno == EWOULDBLOCK) {
+				// No more pending connections
+				return;
+			} else {
+				_lggr.error("Failed to accept connection");
+				return;
+			}
+		}
+
+		if (!setNonBlocking(client_fd)) {
+			close(client_fd);
+			continue;
+		}
+
+		struct epoll_event ev;
+		ev.events = EPOLLIN | EPOLLRDHUP | EPOLLERR | EPOLLET;
+		ev.data.fd = client_fd;
+
+		if (epoll_ctl(_epoll_fd, EPOLL_CTL_ADD, client_fd, &ev) == -1) {
+			_lggr.error("Failed to add client socket (fd: " +
+			            string_utils::to_string<int>(client_fd) + ") to epoll");
+			close(client_fd);
+			continue;
+		}
+
+		// Initialize client buffer
+		addConnection(client_fd);
+
+		_lggr.info("New connection from " + std::string(inet_ntoa(client_addr.sin_addr)) + ":" +
+		           string_utils::to_string<unsigned short>(ntohs(client_addr.sin_port)) +
+		           " (fd: " + string_utils::to_string<int>(client_fd) + ")");
 	}
-
-	if (!setNonBlocking(client_fd)) {
-		close(client_fd);
-		return;
-	}
-
-	struct epoll_event ev;
-	ev.events = EPOLLIN | EPOLLRDHUP | EPOLLERR | EPOLLET;
-	ev.data.fd = client_fd;
-
-	if (epoll_ctl(_epoll_fd, EPOLL_CTL_ADD, client_fd, &ev) == -1) {
-		_lggr.error("Failed to add client socket (fd: " + string_utils::to_string<int>(client_fd) +
-		            ") to epoll");
-		close(client_fd);
-		return;
-	}
-
-	// Initialize client buffer
-	//_client_buffers[client_fd] = "";
-	addConnection(client_fd);
-
-	_lggr.info("New connection from " + std::string(inet_ntoa(client_addr.sin_addr)) + ":" +
-	           string_utils::to_string<unsigned short>(ntohs(client_addr.sin_port)) +
-	           " (fd: " + string_utils::to_string<int>(client_fd) + ")");
 }
 
 void WebServer::addConnection(int client_fd) {

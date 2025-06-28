@@ -29,6 +29,7 @@ struct Request {
 	
 #define KEEP_ALIVE_TO 5 // seconds
 #define MAX_KEEP_ALIVE_REQS 100
+#define MAX_EVENTS 4096
 
 class WebServer {
 
@@ -64,7 +65,6 @@ class WebServer {
 
 	static const int CONNECTION_TO = 30; // seconds
 	static const int CLEANUP_INTERVAL = 5; // seconds
-	static const int MAX_EVENTS = 4096;
 	static const int BUFFER_SIZE = 4096;
 
 	Logger _lggr;

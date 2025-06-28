@@ -42,6 +42,7 @@ std::string WebServer::generateErrorResponse(int errorCode) {
 		errorMessages[404] = "Not Found";
 		errorMessages[405] = "Method Not Allowed";
 		errorMessages[408] = "Request Timeout";
+		errorMessages[413] = "Content Too Large";
 		errorMessages[500] = "Internal Server Error";
 		errorMessages[501] = "Not Implemented";
 		errorMessages[502] = "Bad Gateway";

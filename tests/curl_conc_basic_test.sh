@@ -1,5 +1,11 @@
 #!/bin/bash
 
+if [[ $# != 2 ]]; then
+	echo "No enough arguments" 1>&2
+	echo "Usage: $0 <TARGET> <NUM_CLIENTS>" 1>&2
+	exit 1
+fi
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -9,9 +15,9 @@ NC='\033[0m' # No Color
 # Configuration
 SERVER_HOST="127.0.0.1"
 SERVER_PORT="8080"
-TARGET=".clang_format"
+TARGET="$1"
 ENDPOINT="http://${SERVER_HOST}:${SERVER_PORT}/${TARGET}"
-NUM_REQUESTS=10
+NUM_REQUESTS=$2
 TIMEOUT=5
 
 echo -e "${YELLOW}Testing concurrent connections to: $ENDPOINT${NC}"
@@ -34,9 +40,10 @@ echo "Using temporary directory: $TEMP_DIR"
 
 # Cleanup function
 cleanup() {
+    # rm -fr ./test_results_*
     echo "Copying results to ./test_results_$(date +%Y%m%d_%H%M%S)"
     cp -r "$TEMP_DIR" "./test_results_$(date +%Y%m%d_%H%M%S)"
-    rm -rf "$TEMP_DIR"
+    rm -fr "$TEMP_DIR"
 }
 trap cleanup EXIT
 

@@ -33,7 +33,7 @@ void WebServer::handleClientData(int client_fd) {
 				conn->buffer.clear();
 				conn->request_count++;
 				updateConnectionActivity(client_fd);
-				break;
+				continue;
 			}
 		} else if (bytes_read == 0) {
 			_lggr.info("Client disconnected (fd: " + string_utils::to_string(client_fd) + ")");

@@ -117,6 +117,33 @@ bool WebServer::initialize() {
 	return _running;
 }
 
+static std::string describeEpollEvents(uint32_t ev) {
+	std::vector<std::string> bits;
+	if (ev & EPOLLIN)
+		bits.push_back("EPOLLIN");
+	if (ev & EPOLLOUT)
+		bits.push_back("EPOLLOUT");
+	if (ev & EPOLLPRI)
+		bits.push_back("EPOLLPRI");
+	if (ev & EPOLLERR)
+		bits.push_back("EPOLLERR");
+	if (ev & EPOLLHUP)
+		bits.push_back("EPOLLHUP");
+	if (ev & EPOLLRDHUP)
+		bits.push_back("EPOLLRDHUP");
+	if (ev & EPOLLONESHOT)
+		bits.push_back("EPOLLONESHOT");
+	if (ev & EPOLLET)
+		bits.push_back("EPOLLET");
+	// …add any other flags you care about…
+	if (bits.empty())
+		return "0";
+	std::string s = bits[0];
+	for (size_t i = 1; i < bits.size(); ++i)
+		s += "|" + bits[i];
+	return s;
+}
+
 void WebServer::run() {
 	struct epoll_event events[MAX_EVENTS];
 	_last_cleanup = getCurrentTime();
@@ -132,8 +159,16 @@ void WebServer::run() {
 			_lggr.warn("Program interrupted, shutting down...");
 			break;
 		}
+		if (nfds == MAX_EVENTS) {
+			_lggr.warn("Hit MAX_EVENTS limit (" + string_utils::to_string(MAX_EVENTS) +
+			           "), may have more events pending");
+		}
 
 		for (int i = 0; i < nfds; i++) {
+			uint32_t evmask = events[i].events;
+			int fd = events[i].data.fd;
+			_lggr.debug("epoll event on fd=" + string_utils::to_string(fd) + " (" +
+			            describeEpollEvents(evmask) + ")");
 			if (events[i].data.fd == _server_fd) {
 				handleNewConnection();
 			} else {
@@ -144,6 +179,10 @@ void WebServer::run() {
 					            string_utils::to_string(events[i].data.fd));
 				}
 			}
+		}
+
+		if (nfds > 0) {
+			_lggr.debug("Processed " + string_utils::to_string(nfds) + " events");
 		}
 
 		cleanupExpiredConnections();
