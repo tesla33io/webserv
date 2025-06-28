@@ -25,7 +25,7 @@ CXXFLAGS		:= -Wall -Werror -Wextra -std=c++98 -pedantic
 LDLIBS			:=
 
 #Include directories
-INCLUDES		:= -I./
+INCLUDES		:= -I./ -I./src
 
 #Target executable
 TARGET			:= webserv
@@ -34,9 +34,6 @@ TARGET			:= webserv
 SRC_DIR			:= ./
 
 #Source files
-#SRC_FILES		+= src/main.cpp
-
-# Logger source files
 SRC_FILES		+= src/HttpServer/HttpServer.cpp
 SRC_FILES		+= src/HttpServer/Connection.cpp
 SRC_FILES		+= src/HttpServer/Request.cpp
@@ -58,7 +55,7 @@ OBJ_FILES		:= $(patsubst %.cpp, $(OBJ_DIR)%.o, $(SRC_FILES))
 DEP_DIR			:= dep/
 
 #Dependency files
-DEPENDS			:= $(patsubst %.o, $(DEP_DIR)%.d, $(OBJ_FILES))
+DEPENDS			:= $(patsubst %.cpp, $(DEP_DIR)%.d, $(SRC_FILES))
 -include $(DEPENDS)
 
 
@@ -96,8 +93,9 @@ all: ## Build this project
 
 #Compilation rule for object files
 $(OBJ_DIR)%.o: $(SRC_DIR)%.cpp
-	@$(MKDIR) $(@D)
-	$(CXX) $(CXXFLAGS) -MMD -MF $(patsubst %.o, %.d, $@) $(INCLUDES) -c $< -o $@
+	@$(MKDIR) $(dir $@)
+	@$(MKDIR) $(dir $(patsubst $(OBJ_DIR)%.o, $(DEP_DIR)%.d, $@))
+	$(CXX) $(CXXFLAGS) -MMD -MP -MF $(patsubst $(OBJ_DIR)%.o, $(DEP_DIR)%.d, $@) $(INCLUDES) -c $< -o $@
 
 #Rule for linking the target executable
 $(TARGET): $(OBJ_FILES)
