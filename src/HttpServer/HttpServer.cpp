@@ -8,7 +8,7 @@
 #include <unistd.h>
 
 bool WebServer::_running;
-bool interrupted = false;
+static bool interrupted = false;
 
 WebServer::WebServer(int p)
     : _server_fd(-1), _epoll_fd(-1), _port(p), _backlog(SOMAXCONN),
