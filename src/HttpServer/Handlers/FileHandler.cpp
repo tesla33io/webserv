@@ -9,7 +9,7 @@ std::string WebServer::getFileContent(std::string path) {
 
 	file.open(path.c_str(), std::ios::in | std::ios::binary);
 	if (!file.is_open()) {
-		_lggr.error("Coudln't open the file (" + path + ")");
+		_lggr.error("Couldn't open the file (" + path + ")");
 		return std::string();
 	} else {
 		std::stringstream buffer;
