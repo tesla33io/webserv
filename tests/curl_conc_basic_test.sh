@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if [[ $# != 2 ]]; then
-	echo "No enough arguments" 1>&2
+	echo "Not enough arguments" 1>&2
 	echo "Usage: $0 <TARGET> <NUM_CLIENTS>" 1>&2
 	exit 1
 fi
