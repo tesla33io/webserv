@@ -116,6 +116,9 @@ fclean: clean ## Restore project to initial state
 
 re: fclean all ## Rebuild project
 
+todo: ## Print todo's from source files
+	find . -type f \( -name "*.cpp" -o -name "*.hpp" \) -print | grep -v ".venv" | xargs grep --color -Hn "// *TODO"
+
 help: ## Show help info
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | \
 		awk 'BEGIN {FS = ":.*?## "}; {printf "$(CYAN)%-30s$(RESET) %s\n", $$1, $$2}'
