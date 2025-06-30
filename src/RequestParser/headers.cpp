@@ -11,7 +11,7 @@
 /* ************************************************************************** */
 
 #include "../Logger/Logger.hpp"
-#include "../utils/utils.hpp"
+#include "../Utils/StringUtils.hpp"
 #include "request_parser.hpp"
 
 /* Checks */
@@ -30,13 +30,13 @@ bool RequestParsingUtils::check_header(std::string &name, std::string &value,
 		return (false);
 	}
 	// Check for duplicate header
-	if (find_header(request, GeneralUtils::to_lower(name))) {
+	if (find_header(request, string_utils::to_lower(name))) {
 		logger.logWithPrefix(Logger::WARNING, "HTTP",
 		                     "Duplicate header present");
 		return (false);
 	}
-	if (GeneralUtils::to_lower(name) == "transfer-encoding" &&
-	    GeneralUtils::to_lower(value) == "chunked")
+	if (string_utils::to_lower(name) == "transfer-encoding" &&
+	    string_utils::to_lower(value) == "chunked")
 		request.chunked_encoding = true;
 	return (true);
 }
@@ -108,7 +108,7 @@ bool RequestParsingUtils::parse_headers(std::istringstream &stream,
 		}
 		if (!check_header(name, value, request))
 			return (false);
-		request.headers[GeneralUtils::to_lower(name)] = value;
+		request.headers[string_utils::to_lower(name)] = value;
 	}
 	logger.logWithPrefix(Logger::WARNING, "HTTP", "Missing final CRLF");
 	return (false);
