@@ -11,7 +11,6 @@
 /* ************************************************************************** */
 
 #include "../Logger/Logger.hpp"
-#include "../utils/utils.hpp"
 #include "request_parser.hpp"
 
 bool RequestParsingUtils::check_and_trim_line(std::string &line) {

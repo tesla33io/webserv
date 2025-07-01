@@ -85,15 +85,15 @@ bool RequestParsingUtils::parse_trailing_headers(std::istringstream &stream,
 			}
 		}
 		// Check for valid header to be in trailing
-		if (string_utils::to_lower(name) == "te" ||
-		    string_utils::to_lower(name) == "connection") {
+		if (su::to_lower(name) == "te" ||
+		    su::to_lower(name) == "connection") {
 			logger.logWithPrefix(Logger::WARNING, "HTTP",
 			                     "Invalid headers to be in trailing");
 			return (false);
 		}
 		if (!check_header(name, value, request))
 			return (false);
-		request.headers[string_utils::to_lower(name)] = value;
+		request.headers[su::to_lower(name)] = value;
 	}
 	return (true);
 }

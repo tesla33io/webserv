@@ -77,7 +77,8 @@ TOUCH			:= /bin/touch
 ############################
 
 ifeq ($(DEBUG), 1)
-	CXXFLAGS	+= -g3 -O0
+	CXXFLAGS	+= -fsanitize=address,undefined -D_GLIBCXX_DEBUG
+	#CXXFLAGS	+= -g3 -O0
 endif
 
 

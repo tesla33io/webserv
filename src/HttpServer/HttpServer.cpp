@@ -52,7 +52,7 @@ bool WebServer::initialize() {
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_flags = AI_PASSIVE;
 
-	if (getaddrinfo(NULL, string_utils::to_string<int>(_port).c_str(), &hints, &res) != 0) {
+	if (getaddrinfo(NULL, su::to_string<int>(_port).c_str(), &hints, &res) != 0) {
 		_lggr.error("Failed to get address info");
 		return false;
 	}
@@ -77,7 +77,7 @@ bool WebServer::initialize() {
 	}
 
 	if (bind(_server_fd, res->ai_addr, res->ai_addrlen) == -1) {
-		_lggr.error("Failed to bind socket to port " + string_utils::to_string<int>(_port));
+		_lggr.error("Failed to bind socket to port " + su::to_string<int>(_port));
 		return false;
 	}
 
@@ -107,8 +107,9 @@ bool WebServer::initialize() {
 	// Cleanup
 	freeaddrinfo(res);
 
-	_lggr.info("Server initialized on port " + string_utils::to_string(_port));
+	_lggr.info("Server initialized on port " + su::to_string(_port));
 	_running = true;
+	_max_content_length = 8192; // TODO: replace with the value from config
 	_root_path = getCurrentWorkingDirectory();
 	if (_root_path.empty()) {
 		_lggr.error("Couldn't get current working dir to proceed further");
@@ -135,7 +136,6 @@ static std::string describeEpollEvents(uint32_t ev) {
 		bits.push_back("EPOLLONESHOT");
 	if (ev & EPOLLET)
 		bits.push_back("EPOLLET");
-	// …add any other flags you care about…
 	if (bits.empty())
 		return "0";
 	std::string s = bits[0];
@@ -160,14 +160,14 @@ void WebServer::run() {
 			break;
 		}
 		if (nfds == MAX_EVENTS) {
-			_lggr.warn("Hit MAX_EVENTS limit (" + string_utils::to_string(MAX_EVENTS) +
+			_lggr.warn("Hit MAX_EVENTS limit (" + su::to_string(MAX_EVENTS) +
 			           "), may have more events pending");
 		}
 
 		for (int i = 0; i < nfds; i++) {
 			uint32_t evmask = events[i].events;
 			int fd = events[i].data.fd;
-			_lggr.debug("epoll event on fd=" + string_utils::to_string(fd) + " (" +
+			_lggr.debug("epoll event on fd=" + su::to_string(fd) + " (" +
 			            describeEpollEvents(evmask) + ")");
 			if (events[i].data.fd == _server_fd) {
 				handleNewConnection();
@@ -176,13 +176,13 @@ void WebServer::run() {
 					handleClientData(events[i].data.fd);
 				} else {
 					_lggr.debug("Ignoring event for unknown fd: " +
-					            string_utils::to_string(events[i].data.fd));
+					            su::to_string(events[i].data.fd));
 				}
 			}
 		}
 
 		if (nfds > 0) {
-			_lggr.debug("Processed " + string_utils::to_string(nfds) + " events");
+			_lggr.debug("Processed " + su::to_string(nfds) + " events");
 		}
 
 		cleanupExpiredConnections();
@@ -197,7 +197,7 @@ void WebServer::run() {
 }
 
 bool WebServer::setNonBlocking(int fd) {
-	_lggr.debug("Setting fd [" + string_utils::to_string(fd) + "] as non-blocking");
+	_lggr.debug("Setting fd [" + su::to_string(fd) + "] as non-blocking");
 	int flags = fcntl(fd, F_GETFL, 0);
 	if (flags == -1) {
 		_lggr.error("Failed to get socket flags");
@@ -232,8 +232,8 @@ void WebServer::logConnectionStats() {
 		}
 	}
 
-	_lggr.info("Connection Stats - Active: " + string_utils::to_string(active_connections) +
-	           ", Keep-Alive: " + string_utils::to_string(keep_alive_connections));
+	_lggr.info("Connection Stats - Active: " + su::to_string(active_connections) +
+	           ", Keep-Alive: " + su::to_string(keep_alive_connections));
 }
 
 void WebServer::cleanup() {

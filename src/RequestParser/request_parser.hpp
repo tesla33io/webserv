@@ -13,7 +13,13 @@
 #ifndef PARSING_HPP
 #define PARSING_HPP
 
-#include "../../webserv.hpp"
+# include <iostream>
+# include <sstream>
+# include <string>
+# include <map>
+# include <vector>
+# include <cstdlib>
+
 
 const size_t MAX_URI_LENGTH = 2048;
 const size_t MAX_HEADER_NAME_LENGTH = 1024;
