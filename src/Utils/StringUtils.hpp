@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 
-namespace string_utils {
+namespace su {
 
 /**
  * Convert any numeric type to string
