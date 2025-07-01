@@ -1,9 +1,9 @@
 #!/bin/bash
 
-if [[ $# != 2 ]]; then
-	echo "Not enough arguments" 1>&2
-	echo "Usage: $0 <TARGET> <NUM_CLIENTS>" 1>&2
-	exit 1
+if [[ $# -lt 2 ]]; then
+    echo "Not enough arguments" 1>&2
+    echo "Usage: $0 <TARGET> <NUM_CLIENTS> [<REQUEST_METHOD> <CONTENT_LENGTH>]" 1>&2
+    exit 1
 fi
 
 # Colors for output
@@ -19,6 +19,11 @@ TARGET="$1"
 ENDPOINT="http://${SERVER_HOST}:${SERVER_PORT}/${TARGET}"
 NUM_REQUESTS=$2
 TIMEOUT=5
+REQUEST_METHOD=$4 #:-GET} - to exclude get in the future
+CONTENT_LENGTH=${3:-0}
+
+echo $CONTENT_LENGTH
+echo $REQUEST_METHOD
 
 echo -e "${YELLOW}Testing concurrent connections to: $ENDPOINT${NC}"
 echo -e "${YELLOW}Number of parallel requests: $NUM_REQUESTS${NC}"
@@ -51,29 +56,42 @@ trap cleanup EXIT
 send_request() {
     local id=$1
     local start_time=$(date +%s.%N)
-    
+    local body=""
+
+    if [[ $CONTENT_LENGTH -gt 0 ]]; then
+        body=$(cat /dev/urandom | base64 | head -c $CONTENT_LENGTH)
+    fi
+
     # Send request with detailed timing and error info
-    local response=$(timeout $TIMEOUT curl -s -w "HTTPCODE:%{http_code}|TIME:%{time_total}|SIZE:%{size_download}" "$ENDPOINT" 2>&1)
+    local response
+    if [[ $CONTENT_LENGTH -gt 0 ]]; then
+        response=$(timeout $TIMEOUT curl -s -w "HTTPCODE:%{http_code}|TIME:%{time_total}|SIZE:%{size_download}" \
+            -X "$REQUEST_METHOD" -d "$body" "$ENDPOINT" 2>&1)
+    else
+        response=$(timeout $TIMEOUT curl -s -w "HTTPCODE:%{http_code}|TIME:%{time_total}|SIZE:%{size_download}" \
+            -X "$REQUEST_METHOD" "$ENDPOINT" 2>&1)
+    fi
+
     local curl_exit_code=$?
     local end_time=$(date +%s.%N)
     local duration=$(echo "$end_time - $start_time" | bc -l 2>/dev/null || echo "N/A")
-    
+
     # Parse curl output
     if [[ $response == *"HTTPCODE:"* ]]; then
-        local body=$(echo "$response" | sed 's/HTTPCODE:.*$//')
+        local body_content=$(echo "$response" | sed 's/HTTPCODE:.*$//')
         local http_code=$(echo "$response" | grep -o 'HTTPCODE:[0-9]*' | cut -d: -f2)
         local curl_time=$(echo "$response" | grep -o 'TIME:[0-9.]*' | cut -d: -f2)
         local size=$(echo "$response" | grep -o 'SIZE:[0-9]*' | cut -d: -f2)
     else
-        local body="$response"
+        local body_content="$response"
         local http_code="000"
         local curl_time="N/A"
         local size="0"
     fi
-    
+
     # Save response body
-    echo "$body" > "$TEMP_DIR/response_$id"
-    
+    echo "$body_content" > "$TEMP_DIR/response_$id"
+
     # Save metadata
     echo "Request ID: $id" > "$TEMP_DIR/meta_$id"
     echo "HTTP Code: $http_code" >> "$TEMP_DIR/meta_$id"
@@ -83,7 +101,7 @@ send_request() {
     echo "Response Size: $size bytes" >> "$TEMP_DIR/meta_$id"
     echo "Start Time: $start_time" >> "$TEMP_DIR/meta_$id"
     echo "End Time: $end_time" >> "$TEMP_DIR/meta_$id"
-    
+
     # Print progress
     if [ $curl_exit_code -eq 0 ] && [ "$http_code" = "200" ]; then
         echo -e "${GREEN}✓${NC} Request $id: HTTP $http_code (${duration}s)"
@@ -96,7 +114,7 @@ send_request() {
 
 # Export function so it can be used with parallel execution
 export -f send_request
-export TEMP_DIR ENDPOINT TIMEOUT RED GREEN NC
+export TEMP_DIR ENDPOINT TIMEOUT RED GREEN NC CONTENT_LENGTH REQUEST_METHOD
 
 echo "Starting concurrent requests..."
 start_time=$(date +%s.%N)

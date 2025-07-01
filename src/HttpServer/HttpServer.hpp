@@ -7,6 +7,7 @@
 
 #include <arpa/inet.h>
 #include <climits>
+#include <cstdio>
 #include <cstring>
 #include <fcntl.h>
 #include <fstream>
@@ -41,7 +42,6 @@ class WebServer {
 	void run();
 
 	static bool _running;
-
 	// Connection state tracking structure
 	struct ConnectionInfo {
 		int clfd;
@@ -59,13 +59,14 @@ class WebServer {
 	int _epoll_fd;
 	int _port;
 	int _backlog;
+	ssize_t _max_content_length;
 	std::map<int, ConnectionInfo *> _connections;
 	std::vector<int> _conn_to_close;
 	std::string _root_path;
 
 	static const int CONNECTION_TO = 30; // seconds
 	static const int CLEANUP_INTERVAL = 5; // seconds
-	static const int BUFFER_SIZE = 4096;
+	static const int BUFFER_SIZE = 4096 * 3;
 
 	Logger _lggr;
 	time_t _last_cleanup;

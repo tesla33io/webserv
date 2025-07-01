@@ -17,7 +17,7 @@ std::string WebServer::getFileContent(std::string path) {
 		file.close();
 		content = buffer.str();
 		_lggr.logWithPrefix(Logger::DEBUG, "File Handling",
-		                    "Read " + string_utils::to_string(content.size()) + " bytes from " +
+		                    "Read " + su::to_string(content.size()) + " bytes from " +
 		                        path);
 	}
 	return content;

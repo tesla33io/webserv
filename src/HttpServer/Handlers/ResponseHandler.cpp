@@ -16,7 +16,7 @@ std::string WebServer::handleGetRequest(const std::string &path) {
 		       detectContentType(path) +
 		       "\r\n"
 		       "Content-Length: " +
-		       string_utils::to_string<int>(content.size()) + "\r\n\r\n" + content;
+		       su::to_string<int>(content.size()) + "\r\n\r\n" + content;
 	}
 }
 

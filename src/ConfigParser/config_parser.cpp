@@ -102,10 +102,10 @@ namespace ConfigParsing {
 				continue;
 
 			if (isBlockStart(clean)) {
-				std::string trimmed = string_utils::rtrim(clean.substr(0, clean.size() - 1));
+				std::string trimmed = su::rtrim(clean.substr(0, clean.size() - 1));
 				std::vector<std::string> tokens = tokenize(trimmed);
 				if (tokens.empty()) {
-					logger.logWithPrefix(Logger::ERROR, "Configuration file", "Empty block at line " + string_utils::to_string(line_nb));
+					logger.logWithPrefix(Logger::ERROR, "Configuration file", "Empty block at line " + su::to_string(line_nb));
 					return false;
 				}
 				ConfigNode block;
@@ -125,10 +125,10 @@ namespace ConfigParsing {
 			}
 
 			if (isDirective(clean)) {
-				std::string trimmed = string_utils::rtrim(clean.substr(0, clean.size() - 1)); // remove ;
+				std::string trimmed = su::rtrim(clean.substr(0, clean.size() - 1)); // remove ;
 				std::vector<std::string> tokens = tokenize(trimmed);
 				if (tokens.empty()) {
-					logger.logWithPrefix(Logger::ERROR, "Configuration file", "Empty directive at line " + string_utils::to_string(line_nb));
+					logger.logWithPrefix(Logger::ERROR, "Configuration file", "Empty directive at line " + su::to_string(line_nb));
 					return false;
 				}
 				ConfigNode directive;
@@ -140,7 +140,7 @@ namespace ConfigParsing {
 			}
 
 			logger.logWithPrefix(Logger::ERROR, "Configuration file", 
-				"Unexpected line at " + string_utils::to_string(line_nb) + ": " + clean);
+				"Unexpected line at " + su::to_string(line_nb) + ": " + clean);
 			return false;
 		}
 
@@ -153,19 +153,19 @@ namespace ConfigParsing {
 	std::string preProcess(const std::string& line) {
 		size_t hashpos = line.find('#');
 		std::string newline = (hashpos != std::string::npos) ? line.substr(0, hashpos) : line;
-		return (string_utils::trim(newline));
+		return (su::trim(newline));
 	}
 
 	//////////////////////////////////////////////
 	// isUtil
 	bool isBlockStart(const std::string& line) {
-		return (string_utils::ends_with(line, "{"));
+		return (su::ends_with(line, "{"));
 	}
 	bool isBlockEnd(const std::string& line) {
 		return (line == "}") ;
 	}
 	bool isDirective(const std::string& line) {
-		return (string_utils::ends_with(line, ";"));
+		return (su::ends_with(line, ";"));
 	}
 
 
