@@ -6,7 +6,7 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/27 11:49:38 by jalombar          #+#    #+#             */
-/*   Updated: 2025/06/27 16:11:56 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/07/01 12:09:10 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -45,8 +45,8 @@ std::string get_interpreter(std::string &path) {
 
 bool handle_CGI_request(ClientRequest &request) {
     // 1. Determine script path and interpreter
-    std::string scriptPath = "www" + request.uri;
-    std::string interpreter = get_interpreter(request.uri); // "/usr/bin/php"
+    std::string script_path = "www" + request.path;
+    std::string interpreter = get_interpreter(request.path); // "/usr/bin/php"
 	if (interpreter.empty())
 		return (false);
     
@@ -65,12 +65,13 @@ bool handle_CGI_request(ClientRequest &request) {
         // Child process
         dup2(input_pipe[0], STDIN_FILENO);
         dup2(output_pipe[1], STDOUT_FILENO);
-        close(input_pipe[1]);
-        close(output_pipe[0]);
-        
-        char* argv[] = {(char*)interpreter.c_str(), (char*)scriptPath.c_str(), NULL};
-        execve(interpreter.c_str(), argv, envp);
-        exit(1);
+		close(input_pipe[1]);
+		close(output_pipe[0]);
+
+		char* argv[] = {(char*)interpreter.c_str(), (char*)script_path.c_str(), NULL};
+		execve(interpreter.c_str(), argv, envp);
+		env.free_envp(envp);
+		exit(1);
     }
     
     // 5. Parent process - send POST data if any
@@ -81,7 +82,7 @@ bool handle_CGI_request(ClientRequest &request) {
     if (!request.body.empty()) {
         write(input_pipe[1], request.body.c_str(), request.body.length());
     }
-    close(input_pipe[1]);
+	close(input_pipe[1]);
     
     // 6. Read response from CGI script
     std::string response;

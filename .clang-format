@@ -2,15 +2,8 @@ BasedOnStyle: LLVM
 IndentWidth: 4
 UseTab: ForIndentation
 TabWidth: 4
-<<<<<<< parsing_request
-DerivePointerAlignment: false
-PointerAlignment: Right
-InsertNewlineAtEOF: true
-KeepEmptyLinesAtEOF: true
-=======
 ColumnLimit: 100
 DerivePointerAlignment: false
 PointerAlignment: Right
 InsertNewlineAtEOF: true
 KeepEmptyLinesAtEOF: true
->>>>>>> main
