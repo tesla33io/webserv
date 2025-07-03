@@ -6,14 +6,14 @@
 #    By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2025/07/01 08:40:33 by jalombar          #+#    #+#              #
-#    Updated: 2025/07/01 08:41:11 by jalombar         ###   ########.fr        #
+#    Updated: 2025/07/03 11:29:22 by jalombar         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
 CC = c++   
 FLAGS = -Wall -Werror -Wextra
 98 = -std=c++98
-SRCS = tester.cpp ../rcgi.cpp
+SRCS = tester.cpp ../cgi.cpp
 HEADER = ../cgi.hpp
 NAME = tester
 
