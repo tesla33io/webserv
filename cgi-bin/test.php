@@ -1,4 +1,4 @@
-#!/usr/bin/php
+#!/usr/bin/php-cgi
 <?php
 // Debug info: dump the superglobals safely
 var_dump($_SERVER['QUERY_STRING']);
