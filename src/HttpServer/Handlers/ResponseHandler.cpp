@@ -1,22 +1,24 @@
+#include "RequestParser/request_parser.hpp"
 #include "src/HttpServer/HttpServer.hpp"
 #include "src/Utils/StringUtils.hpp"
-#include <algorithm>
 
-std::string WebServer::handleGetRequest(const std::string &path) {
-	_lggr.debug("Requested path: " + path);
-	std::string content = getFileContent(path);
+ssize_t WebServer::sendResponse(const int clfd, const Response &resp) {
+	// TODO: some checks if the arguments are fine to work with
+	// TODO: make sure that Response has all required headers set up correctly (e.g. Content-Type, Content-Length, etc).
+	std::string raw_response = resp.toString();
+	return send(clfd, raw_response.c_str(), raw_response.length(), 0);
+}
+
+WebServer::Response WebServer::handleGetRequest(const ClientRequest &req) {
+	_lggr.debug("Requested path: " + req.uri);
+	std::string content = getFileContent(_root_path + req.uri);
 
 	if (content.empty()) {
-		_lggr.error("[Resp] File not found: " + path);
-		return generateErrorResponse(404);
+		_lggr.error("[Resp] File not found: " + req.uri);
+		return Response::notFound();
 	} else {
 		// TODO: Implement proper content-type detection
-		return "HTTP/1.1 200 OK\r\n"
-		       "Content-Type: " +
-		       detectContentType(path) +
-		       "\r\n"
-		       "Content-Length: " +
-		       su::to_string<int>(content.size()) + "\r\n\r\n" + content;
+		return Response(200, content);
 	}
 }
 
@@ -30,64 +32,3 @@ std::string WebServer::detectContentType(const std::string &path) {
 	}
 }
 
-std::string WebServer::generateErrorResponse(int errorCode) {
-	// Static map of error codes to messages
-	static std::map<int, std::string> errorMessages;
-
-	// Populate the map only once
-	if (errorMessages.empty()) {
-		errorMessages[400] = "Bad Request";
-		errorMessages[401] = "Unauthorized";
-		errorMessages[403] = "Forbidden";
-		errorMessages[404] = "Not Found";
-		errorMessages[405] = "Method Not Allowed";
-		errorMessages[408] = "Request Timeout";
-		errorMessages[413] = "Content Too Large";
-		errorMessages[500] = "Internal Server Error";
-		errorMessages[501] = "Not Implemented";
-		errorMessages[502] = "Bad Gateway";
-		errorMessages[503] = "Service Unavailable";
-	}
-
-	// Find the error message for the given error code
-	std::string message;
-	std::map<int, std::string>::const_iterator it = errorMessages.find(errorCode);
-	if (it != errorMessages.end()) {
-		message = it->second;
-	} else {
-		message = "Unknown Error";
-	}
-
-	// Create the HTML content
-	std::ostringstream html;
-	html << "<!DOCTYPE html>\n"
-	     << "<html>\n"
-	     << "<head>\n"
-	     << "<title>Error " << errorCode << "</title>\n"
-	     << "<style>\n"
-	     << "@import "
-	        "url('https://fonts.googleapis.com/"
-	        "css2?family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap');\n"
-	     << "body { font-family: \"Space Mono\", monospace; text-align: center; background-color: "
-	        "#f8f9fa; "
-	        "margin: 0; padding: 0; }\n"
-	     << "h1 { color: #ff5555; margin-top: 50px; font-weight: 700; font-style: normal; }\n"
-	     << "p { color: #6c757d; font-size: 18px; }\n"
-	     << "</style>\n"
-	     << "</head>\n"
-	     << "<body>\n"
-	     << "<h1>Error " << errorCode << ": " << message << "</h1>\n"
-	     << "<p>The server encountered an issue and could not complete your request.</p>\n"
-	     << "</body>\n"
-	     << "</html>\n";
-
-	// Create the full HTTP response
-	std::ostringstream response;
-	response << "HTTP/1.1 " << errorCode << " " << message << "\r\n"
-	         << "Content-Type: text/html\r\n"
-	         << "Content-Length: " << html.str().length() << "\r\n"
-	         << "Connection: close\r\n\r\n"
-	         << html.str();
-
-	return response.str();
-}

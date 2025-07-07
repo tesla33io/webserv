@@ -38,8 +38,7 @@ void WebServer::handleClientData(int client_fd) {
 					    "Reached max content length for fd: " + su::to_string(client_fd) +
 					    ", " + su::to_string(bytes_read) + "/" +
 					    su::to_string(_max_content_length));
-					std::string response = generateErrorResponse(413);
-					send(client_fd, response.c_str(), response.size(), 0);
+					sendResponse(client_fd, Response(413)); // TODO: some tests of this part
 					closeConnection(client_fd);
 					return;
 				}
@@ -48,7 +47,7 @@ void WebServer::handleClientData(int client_fd) {
 				if (_connections.find(client_fd) != _connections.end()) {
 					conn->buffer.clear();
 					conn->request_count++;
-					updateConnectionActivity(client_fd);
+					conn->updateActivity();
 					continue;
 				} else {
 					_lggr.debug("Client fd: " + su::to_string(client_fd) +
@@ -83,34 +82,24 @@ void WebServer::processRequest(int client_fd, const std::string &raw_req) {
 	req.clfd = client_fd;
 	if (!RequestParsingUtils::parse_request(raw_req, req)) {
 		_lggr.error("Parsing of the request failed.");
-		std::string response = generateErrorResponse(400);
-		send(client_fd, response.c_str(), response.size(), 0);
+		sendResponse(client_fd, Response::badRequest());
 		closeConnection(client_fd);
 		return;
 	}
 
-	// Send a simple HTTP response
-	sendResponse(req);
-}
-
-bool WebServer::isCompleteRequest(const std::string &request) {
-	// Simple check for HTTP request completion
-	// Look for double CRLF which indicates end of headers
-	return request.find("\r\n\r\n") != std::string::npos;
-}
-
-void WebServer::sendResponse(const ClientRequest &req) {
 	std::string response;
 	bool keep_alive = shouldKeepAlive(req);
 
 	if (req.method == GET) {
-		response = handleGetRequest(_root_path + req.uri);
+		// TODO: do some check if handleGetRequest did not encounter any issues
+		sendResponse(client_fd, handleGetRequest(req));
 	} else if (req.method == POST || req.method == DELETE_) {
-		response = generateErrorResponse(501);
+		sendResponse(client_fd, Response(501));
 	} else {
-		response = generateErrorResponse(405);
+		sendResponse(client_fd, Response::methodNotAllowed());
 	}
 
+	// TODO!: use new & awesome Response struct instead of all this shit
 	// keep-alive shenanigans
 	if (keep_alive) {
 		// Insert keep-alive headers before the final \r\n\r\n
@@ -145,5 +134,12 @@ void WebServer::sendResponse(const ClientRequest &req) {
 		updateConnectionActivity(req.clfd);
 		_lggr.debug("Keeping connection alive for fd: " + su::to_string(req.clfd));
 	}
+}
+
+bool WebServer::isCompleteRequest(const std::string &request) {
+	// Simple check for HTTP request completion
+	// Look for double CRLF which indicates end of headers
+	// TODO: make it not simple, but a proper check
+	return request.find("\r\n\r\n") != std::string::npos;
 }
 

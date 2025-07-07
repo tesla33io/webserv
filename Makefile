@@ -37,6 +37,7 @@ SRC_DIR			:= ./
 SRC_FILES		+= src/HttpServer/HttpServer.cpp
 SRC_FILES		+= src/HttpServer/Connection.cpp
 SRC_FILES		+= src/HttpServer/Request.cpp
+SRC_FILES		+= src/HttpServer/Structs.cpp
 SRC_FILES		+= src/HttpServer/Handlers/FileHandler.cpp
 SRC_FILES		+= src/HttpServer/Handlers/ResponseHandler.cpp
 SRC_FILES		+= src/RequestParser/request_parser.cpp

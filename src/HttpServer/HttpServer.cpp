@@ -10,9 +10,9 @@
 bool WebServer::_running;
 static bool interrupted = false;
 
-WebServer::WebServer(int p)
-    : _server_fd(-1), _epoll_fd(-1), _port(p), _backlog(SOMAXCONN),
-      _lggr("ws_"+su::to_string(p)+".log", Logger::DEBUG, true) {
+WebServer::WebServer(int port)
+    : _server_fd(-1), _epoll_fd(-1), _port(port), _backlog(SOMAXCONN),
+      _lggr("ws_" + su::to_string(port) + ".log", Logger::DEBUG, true) {
 	_lggr.info("An instance of the Webserver was created.");
 }
 

@@ -75,7 +75,7 @@ void WebServer::cleanupExpiredConnections() {
 	     it != _connections.end(); ++it) {
 
 		ConnectionInfo *conn = it->second;
-		if (isConnectionExpired(conn)) {
+		if (conn->isExpired(time(NULL), CONNECTION_TO)) {
 			_conn_to_close.push_back(conn->clfd);
 			_lggr.info("Connection expired for fd: " + su::to_string(conn->clfd));
 		}
@@ -97,9 +97,7 @@ void WebServer::handleConnectionTimeout(int client_fd) {
 	if (it != _connections.end()) {
 		ConnectionInfo *conn = it->second;
 
-		// Send timeout response if connection is still active
-		std::string timeout_response = generateErrorResponse(408);
-		send(client_fd, timeout_response.c_str(), timeout_response.size(), 0);
+		sendResponse(client_fd, Response(408));
 
 		_lggr.info("Connection timed out for fd: " + su::to_string(client_fd) +
 		           " (idle for " + su::to_string(getCurrentTime() - conn->last_activity) +
@@ -110,6 +108,7 @@ void WebServer::handleConnectionTimeout(int client_fd) {
 }
 
 bool WebServer::shouldKeepAlive(const ClientRequest &req) {
+	// TODO: check if this could be improved using new & awesome Response struct
 	std::map<int, ConnectionInfo *>::iterator it = _connections.find(req.clfd);
 	if (it == _connections.end()) {
 		return false;

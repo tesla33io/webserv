@@ -16,33 +16,33 @@
 #include <netdb.h>
 #include <netinet/in.h>
 #include <signal.h>
+#include <sstream>
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <vector>
 
-struct Request {
-	std::string method;
-	std::string path;
-	int clfd;
-};
-	
 #define KEEP_ALIVE_TO 5 // seconds
 #define MAX_KEEP_ALIVE_REQS 100
 #define MAX_EVENTS 4096
 
+#ifndef uint16_t
+#define uint16_t unsigned short
+#endif // uint16_t
+
 class WebServer {
 
   public:
-	WebServer(int p);
+	WebServer(int port);
 	~WebServer();
 
 	bool initialize();
 	void run();
 
 	static bool _running;
-	// Connection state tracking structure
+
+  private:
 	struct ConnectionInfo {
 		int clfd;
 		time_t last_activity;
@@ -50,25 +50,57 @@ class WebServer {
 		bool keep_alive;
 		int request_count;
 
-		ConnectionInfo(int socket_fd)
-		    : clfd(socket_fd), last_activity(time(NULL)), keep_alive(false), request_count(0) {}
+		ConnectionInfo(int socket_fd);
+		void updateActivity();
+		bool isExpired(time_t current_time, int timeout) const;
 	};
 
-  private:
+	struct Response {
+		std::string version;                        // HTTP/1.1
+		uint16_t status_code;                       // e.g. 200
+		std::string reason_phrase;                  // e.g. OK
+		std::map<std::string, std::string> headers; // e.g. Content-Type: text/html
+		std::string body;                           // e.g. <h1>Hello world!</h1>
+
+		Response();
+		explicit Response(uint16_t code);
+		Response(uint16_t code, const std::string &response_body);
+
+		inline void setStatus(uint16_t code);
+		inline void setHeader(const std::string &name, const std::string &value);
+		inline void setContentType(const std::string &ctype);
+		inline void setContentLength(size_t length);
+		std::string toString() const;
+
+		// Factory methods for common responses
+		static Response ok(const std::string &body = "");
+		static Response notFound();
+		static Response internalServerError();
+		static Response badRequest();
+		static Response methodNotAllowed();
+
+	  private:
+		std::string getReasonPhrase(uint16_t code) const;
+		void initFromStatusCode(uint16_t code);
+	};
+
 	int _server_fd;
 	int _epoll_fd;
 	int _port;
 	int _backlog;
 	ssize_t _max_content_length;
-	std::map<int, ConnectionInfo *> _connections;
-	std::vector<int> _conn_to_close;
 	std::string _root_path;
 
-	static const int CONNECTION_TO = 30; // seconds
+	static const int CONNECTION_TO = 30;   // seconds
 	static const int CLEANUP_INTERVAL = 5; // seconds
 	static const int BUFFER_SIZE = 4096 * 3;
 
 	Logger _lggr;
+	static std::map<uint16_t, std::string> err_messages;
+
+	// Connection management arguments
+	std::map<int, ConnectionInfo *> _connections;
+	std::vector<int> _conn_to_close;
 	time_t _last_cleanup;
 
 	// Connection management methods
@@ -84,24 +116,29 @@ class WebServer {
 	void handleClientData(int client_fd);
 	bool isCompleteRequest(const std::string &request);
 	void processRequest(int client_fd, const std::string &raw_req);
-	void sendResponse(const ClientRequest &req);
+	ssize_t sendResponse(const int clfd, const Response &resp);
 	std::string handleGetRequest(const std::string &path);
 
+	// HTTP request handlers
+	Response handleGetRequest(const ClientRequest &req);
+	Response handlePostRequest(const ClientRequest &req);   // TODO: Implement
+	Response handleDeleteRequest(const ClientRequest &req); // TODO: Implement
+
+	// File serving methods
+	std::string getFileContent(std::string path);
+	std::string detectContentType(const std::string &path);
+	// bool isValidPath(const std::string &path) const; -- TODO: maybe Implement
+
+	// Error handling
+	Response createErrorResponse(uint16_t code) const; // TODO: Implement
+
 	// Utility methods
+	static void initErrMessages();
 	bool setNonBlocking(int fd);
 	time_t getCurrentTime() const;
 	bool isConnectionExpired(const ConnectionInfo *conn) const;
 	void logConnectionStats();
 	void cleanup();
-
-  public:
-	// Handlers
-	std::string getFileContent(std::string path);
-
-  private:
-	// Handlers
-	std::string detectContentType(const std::string &path);
-	std::string generateErrorResponse(int errorCode);
 };
 
 #endif // HTTPSERVER_HPP
