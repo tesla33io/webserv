@@ -125,21 +125,23 @@ bool WebServer::shouldKeepAlive(const ClientRequest &req) {
 	// Check for Connection: close header
 	std::map<std::string, std::string>::const_iterator header_it = req.headers.find("connection");
 	if (header_it != req.headers.end()) {
+		_lggr.debug(" 123123 Found connection header for fd: " + su::to_string(req.clfd));
 		std::string connection_value = header_it->second;
-		// Convert to lowercase for comparison
 		std::transform(connection_value.begin(), connection_value.end(), connection_value.begin(),
 		               ::tolower);
 
 		if (connection_value == "close") {
+			_lggr.debug("Closing connection for fd: " + su::to_string(req.clfd));
 			return false;
 		}
 		if (connection_value == "keep-alive") {
+			_lggr.debug("Keeping connection for fd: " + su::to_string(req.clfd) + " alive");
 			return true;
 		}
 	}
 
 	// Default keep-alive behavior for HTTP/1.1
-	return req.version == "HTTP/1.1";
+	return req.version == "HTTP/1.1" || req.version == "HTTP/1.0";
 }
 
 void WebServer::closeConnection(int client_fd) {
