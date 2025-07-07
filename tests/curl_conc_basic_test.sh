@@ -19,7 +19,7 @@ TARGET="$1"
 ENDPOINT="http://${SERVER_HOST}:${SERVER_PORT}/${TARGET}"
 NUM_REQUESTS=$2
 TIMEOUT=5
-REQUEST_METHOD=$4 #:-GET} - to exclude get in the future
+REQUEST_METHOD=${4:-GET} # studpid me
 CONTENT_LENGTH=${3:-0}
 
 echo $CONTENT_LENGTH
