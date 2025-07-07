@@ -12,7 +12,7 @@ static bool interrupted = false;
 
 WebServer::WebServer(int p)
     : _server_fd(-1), _epoll_fd(-1), _port(p), _backlog(SOMAXCONN),
-      _lggr("webserver.log", Logger::DEBUG, true) {
+      _lggr("ws_"+su::to_string(p)+".log", Logger::DEBUG, true) {
 	_lggr.info("An instance of the Webserver was created.");
 }
 
