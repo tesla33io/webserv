@@ -1,0 +1,35 @@
+http {
+	
+	server {
+		listen      8080;
+		server_name first.com;
+		host 127.0.0.1;
+	
+		location /images/ {
+			root ./img;
+		}
+
+		location / {
+			autoindex on;
+			root        ./html;
+			index       index.html;
+		}
+	}
+
+	server {
+		listen      8081;
+		server_name second;
+		host 127.0.0.1;
+		index       index.html;
+
+		location /images/ {
+			root ./img;
+			allow_methods GET POST;
+		}
+
+		location / {
+			autoindex on;
+		}
+	}
+
+}
