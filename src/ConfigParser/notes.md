@@ -12,60 +12,55 @@ mail		    For mail protocols (SMTP, IMAP, POP3) (not used in webserv)
 (global)	  Directives like worker_processes, pid, etc. that are outside any block
 
 Parsing: 
-AST parsing to be more extensive
-Directives list: we create an array with the valid directives we handle. If a 
-directive is not recognized -> error. Need to check which are relevant.
-File locations: we check the existence of the files. Error if not exist
+AST parsing with line check (error message will be printed with the line number)
+Then parsed into a ServerConfig struct for easy acces to infos.
 
 
-Edge cases (not handled): 
- - Multi-line values: Some directives (e.g., log_format) allow multi-line values. 
-   -> probably not needed 
- - Include directive:
-   include can pull in other files. -> probably not needed
- - Semicolons inside quotes, Escaped characters
+to do:
+- directive validation
+- set up the DEFAULT VALUES 
+- tests (subject: You must provide configuration files and default files to test
+  and demonstrate that every feature works during the evaluation)
+- accept different config struct 
+- handle the ~ etc as second arg for locations (location = /status , location ~* \.(gif))
 
- DEFAULT VALUES - handling where?
- CHUNK thing - to research
-
-
-////////////////////////////////////////////////////////////////////////////////
-// SUBJECT:
-
-You must provide configuration files and default files to test and demonstrate that
-every feature works during the evaluation.
-
-In the configuration file, you should be able to:
-• Choose the port and host of each ’server’.
-• Set up the server_names or not.
-• The first server for a host:port will be the default for this host:port (meaning it
-will respond to all requests that do not belong to another server).
-• Set up default error pages.
-• Set the maximum allowed size for client request bodies.
-• Set up routes with one or multiple of the following rules/configurations (routes
-won’t be using regexp):
-  ◦ Define a list of accepted HTTP methods for the route.
-  ◦ Define an HTTP redirect.
-  ◦ Define a directory or file where the requested file should be located (e.g.,
-    if url /kapouet is rooted to /tmp/www, url /kapouet/pouic/toto/pouet is
-    /tmp/www/pouic/toto/pouet).
-  ◦ Enable or disable directory listing.
-  ◦ Set a default file to serve when the request is for a directory.
-  ◦ Execute CGI based on certain file extension (for example .php).
-  ◦ Make it work with POST and GET methods.
-  ◦ Allow the route to accept uploaded files and configure where they should be
-    saved.
+TESTS : to compare with NGINX (docker run) :
+// docker run --rm -v $(pwd)/mini.conf:/etc/nginx/nginx.conf:ro nginx nginx -t
 
 
-∗ Do you wonder what a CGI is?
-∗ Because you won’t call the CGI directly, use the full path as PATH_INFO.
-∗ Just remember that, for chunked requests, your server needs to unchunk
-them, the CGI will expect EOF as the end of the body.
-∗ The same applies to the output of the CGI. If no content_length is
-returned from the CGI, EOF will mark the end of the returned data.
-∗ Your program should call the CGI with the file requested as the first
-argument.
-∗ The CGI should be run in the correct directory for relative path file access.
-∗ Your server should support at least one CGI (php-CGI, Python, and so
-forth).
+
+/*//////////////////////////////////////////////////////////////////////////////
+// NGINX ERROR MESSAGES
+
+[emerg] unexpected "}" in /etc/nginx/nginx.conf:45
+→ You closed a ConfigNode that wasn’t open.
+
+[emerg] unexpected end of file, expecting "}" in /etc/nginx/nginx.conf:67
+→ You forgot to close a ConfigNode (e.g., server { with no matching }).
+
+[emerg] invalid number of arguments in "listen" directive in /etc/nginx/nginx.conf:20
+→ The directive was given too many or too few arguments.
+
+[emerg] directive "server" is not terminated by ";" in /etc/nginx/nginx.conf:21
+→ You forgot the semicolon at the end of a directive.
+
+[emerg] "listen" directive is not allowed here in /etc/nginx/nginx.conf:13
+→ You probably put listen outside of a server ConfigNode.
+
+[emerg] duplicate "listen" directive in /etc/nginx/nginx.conf:25
+→ You defined listen more than once in a server ConfigNode without using default_server, etc.
+
+[emerg] a duplicate default server for 0.0.0.0:80 in /etc/nginx/nginx.conf:35
+→ You have more than one default_server for the same address/port.
+
+[emerg] open() "/etc/nginx/mime.types" failed (2: No such file or directory)
+→ You referenced a file that doesn’t exist (e.g., with include).
+
+[emerg] unknown directive "slurp" in /etc/nginx/nginx.conf:12
+→ You used a directive that NGINX doesn’t recognize (typo or unsupported module).
+
+[emerg] invalid port in "listen" directive in /etc/nginx/nginx.conf:16
+→ You gave a non-numeric or invalid port.
+
+/*/////////////////////////////////////////////////////////////////////////////*
 
