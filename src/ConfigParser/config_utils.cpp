@@ -86,8 +86,7 @@ namespace ConfigParsing {
 				os << loc.index[i] << (i + 1 < loc.index.size() ? ", " : "");
 			os << "\n";
 		}
-		if (loc.autoindex)  // default is false, so only print if true
-			os << "    Autoindex: on\n";
+		os << "    Autoindex: on\n";
 		if (!loc.allow_methods.empty()) {
 			os << "    Allowed methods: ";
 			for (size_t i = 0; i < loc.allow_methods.size(); ++i)
@@ -109,17 +108,14 @@ namespace ConfigParsing {
 			for (std::map<int, std::string>::const_iterator it = loc.error_pages.begin(); it != loc.error_pages.end(); ++it)
 				os << "      " << it->first << " -> " << it->second << "\n";
 		}
-		if (loc.client_max_body_size != 0)
-			os << "    Client max body size: " << loc.client_max_body_size << "\n";
+		os << "    Client max body size: " << loc.client_max_body_size << "\n";
 	}
 	void print_server_config(const ServerConfig &server, std::ostream &os) {
 		os << "Server on " << server.host << ":" << server.port << "\n";
-		if (!server.server_names.empty()) {
-			os << "  Server names: ";
-			for (size_t i = 0; i < server.server_names.size(); ++i)
-				os << server.server_names[i] << (i + 1 < server.server_names.size() ? ", " : "");
-			os << "\n";
-		}
+		os << "  Server names: ";
+		for (size_t i = 0; i < server.server_names.size(); ++i)
+			os << server.server_names[i] << (i + 1 < server.server_names.size() ? ", " : "");
+		os << "\n";
 		for (size_t i = 0; i < server.locations.size(); ++i)
 			print_location_config(server.locations[i], os);
 		os << "-------------------------------------------\n";
