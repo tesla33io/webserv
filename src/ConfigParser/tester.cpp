@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/22 15:58:38 by htharrau          #+#    #+#             */
-/*   Updated: 2025/06/23 19:48:13 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/06/25 13:46:00 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,16 +16,16 @@
 
 int main(int argc, char **argv) {
 
-	Logger logger("config.log", Logger::DEBUG, true);
-	ConfigNode config;
-	
+	Logger logger("Configuration file", Logger::DEBUG, true);
 	if (argc != 2)
 		return (1);
-		
-	if (!ConfigParsing::parser(argv[1], config))
+
+	ConfigNode config;
+	if (!ConfigParsing::tree_parser(argv[1], config, logger))
 		return (1);
+	std::vector<ServerConfig> servers;
+	ConfigParsing::struct_parser(config, servers, logger);
 
-	ConfigParsing::pretty_print(config, "", true);
-
+	return (0);
 }
 
