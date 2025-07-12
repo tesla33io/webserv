@@ -122,7 +122,7 @@ namespace ConfigParsing {
 				loc.return_url = general_dir.return_url;
 			if (loc.root.empty())
 				loc.root = general_dir.root;		
-			if (loc.autoindex == 0)
+			if (!loc.autoindex)
 				loc.autoindex = general_dir.autoindex;
 			if (loc.index.empty())
 				loc.index = general_dir.index;				
