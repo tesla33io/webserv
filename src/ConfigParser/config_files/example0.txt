@@ -1,54 +1,56 @@
-http {
-	
-	server {
-		listen      8080;
-		server_name first.com;
-		host 127.0.0.1;
-		error_page 404 /custom_404.html;
-		error_page 500  /err500.html;
-
-	
-		location /images/ {
-			root ./img;
-			error_page 500 502 503 504 /custom_50x.html;
-		}
-
-		location / {
-			autoindex on;
-			root        ./html;
-			index       index.html;
-		}
-	}
-
-	server {
-		listen      8081;
-		server_name second;
-		index       index.html;
-
-		location /images/ {
-			root ./img;
-			allow_methods GET POST;
-		}
-
-		location / {
-			autoindex on;
-		}
-	}
 
 
-	server {
-		listen      8081;
-					root ./img;
-		index       index.html;
+http {   
+	server {        
+		listen 127.0.0.1:8080;
+        server_name first.com second.com;
+        error_page  404 /custom_404.html;
+        error_page  500 /err500.html;
 
-		location /images/ {
-			root ./img;
-			allow_methods GET POST;
-		}
+        location /images/ {
+            root ./img;
+            error_page 500 502 503 504 /custom_50x.html;
+        }
 
-		location / {
-			autoindex on;
-		}
-	}
+        location / {
+            root ./html;
+            index index.html;
+            autoindex on;
+        }
+    }
 
+    server {
+        listen 8081;
+        server_name second;
+
+        location /images/ {
+            root ./img;
+            limit_except GET POST {
+            #     deny all;
+            }
+        }
+
+        location / {
+            root ./html;
+            index index.html;
+            autoindex on;
+        }
+    }
+
+    server {
+        listen :80;
+
+        location /images/ {
+            root ./img;
+            # limit_except GET POST {
+            #     deny all;
+            # }
+        }
+
+        location / {
+            root ./html;
+            index index.html;
+            autoindex on;
+        }
+    }
 }

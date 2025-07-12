@@ -25,7 +25,7 @@ namespace ConfigParsing {
 		childNode.lineNumber = 0;
 		childNode.name = "main";
 		int line_nb = 0;
-		if (!ConfigParsing::parse_config(confFile, line_nb, childNode, logger)) {
+		if (!ConfigParsing::tree_parser_blocks(confFile, line_nb, childNode, logger)) {
 			logger.logWithPrefix(Logger::ERROR, "Config parsing", "Failed to parse configuration.");
 			return false;
 		}
@@ -38,56 +38,91 @@ namespace ConfigParsing {
 		return true;
 	}
 
-	bool parse_config(std::ifstream &file, int &line_nb, ConfigNode &parent, Logger& logger) {
-		
-		std::string line;
-		while (std::getline(file, line)) {
-			++line_nb;
-			std::string clean = preProcess(line);
+	bool tree_parser_blocks(std::ifstream &file, int& line_nb, ConfigNode& parent, Logger& logger) {
 
+		std::string accumulated_line;
+		std::string line;
+		int statement_start_line = 0;
+
+		while (std::getline(file, line)) {
+
+			++line_nb;
+			std::string clean = preProcess(line); // Remove comments and trim
 			if (clean.empty())
+			continue;
+		
+			if (accumulated_line.empty())
+				statement_start_line = line_nb;
+			if (!accumulated_line.empty()) 
+				accumulated_line += " " + clean;
+			else 
+				accumulated_line = clean;
+
+			bool complete_statement = false;
+			if (accumulated_line[accumulated_line.size() - 1] == ';' 
+				|| accumulated_line[accumulated_line.size() - 1] == '}'
+				|| accumulated_line[accumulated_line.size() - 1] == '{' )
+				complete_statement = true;
+			else
 				continue;
 
-			if (isConfigNodeStart(clean)) {
-				std::string trimmed = su::rtrim(clean.substr(0, clean.size() - 1));
+			std::string statement = accumulated_line;
+			accumulated_line.clear();
+
+			if (isConfigNodeStart(statement)) {
+				std::string trimmed = su::rtrim(statement.substr(0, statement.size() - 1));
 				std::vector<std::string> tokens = tokenize(trimmed);
 				if (tokens.empty()) {
-					logger.logWithPrefix(Logger::ERROR, "Config parsing", "Empty ConfigNode at line " + su::to_string(line_nb));
+					logger.logWithPrefix(Logger::ERROR, "Config parsing", "Empty ConfigNode at line " + su::to_string(statement_start_line));
 					return false;
 				}
 				ConfigNode childNode;
 				childNode.name = tokens[0];
 				childNode.args = std::vector<std::string>(tokens.begin() + 1, tokens.end());
-				childNode.lineNumber = line_nb;
-				if (!ConfigParsing::parse_config(file, line_nb, childNode, logger)) {
+				childNode.lineNumber = statement_start_line;
+				
+				if (!ConfigParsing::validateDirective(childNode, parent, logger))
+					return false;
+				
+				if (!ConfigParsing::tree_parser_blocks(file, line_nb, childNode, logger)) {
 					logger.logWithPrefix(Logger::ERROR, "Config parsing",
-					"Unexpected token or structure at line " + su::to_string(line_nb) + ": " + clean);
+					"Unexpected token or structure at line " + su::to_string(line_nb) + ": " + statement);
 					return false;
 				}
 				parent.children.push_back(childNode);
 				continue;
 			}
 
-			if (isConfigNodeEnd(clean)) {
+			if (isConfigNodeEnd(statement)) {
 				return true;
 			}
 
-			if (isDirective(clean)) {
-				std::string trimmed = su::rtrim(clean.substr(0, clean.size() - 1)); // remove ;
+			if (isDirective(statement)) {
+				std::string trimmed = su::rtrim(statement.substr(0, statement.size() - 1));
 				std::vector<std::string> tokens = tokenize(trimmed);
 				if (tokens.empty()) {
-					logger.logWithPrefix(Logger::ERROR, "Config parsing", "Empty directive at line " + su::to_string(line_nb));
+					logger.logWithPrefix(Logger::ERROR, "Config parsing", "Empty directive at line " + su::to_string(statement_start_line));
 					return false;
 				}
 				ConfigNode directive;
 				directive.name = tokens[0];
 				directive.args = std::vector<std::string>(tokens.begin() + 1, tokens.end());
-				directive.lineNumber = line_nb;
+				directive.lineNumber = statement_start_line;
+				if (!ConfigParsing::validateDirective(directive, parent, logger))
+					return false;
 				parent.children.push_back(directive);
 				continue;
 			}
 
-			logger.logWithPrefix(Logger::ERROR, "Config parsing", "Unexpected line at " + su::to_string(line_nb) + ": " + clean);
+			logger.logWithPrefix(Logger::ERROR, "Config parsing", "Unexpected line at " + su::to_string(statement_start_line) + ": " + statement);
+			return false;
+
+			 
+		}
+
+		if (!accumulated_line.empty()) { // last line no closing statement
+			logger.logWithPrefix(Logger::ERROR, "Config parsing", 
+				"Incomplete statement at line " + su::to_string(statement_start_line) + ": " + accumulated_line);
 			return false;
 		}
 
@@ -97,7 +132,10 @@ namespace ConfigParsing {
 			return false;
 		}
 
+
 		return true;
 	}
 
 }
+
+	
