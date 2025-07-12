@@ -33,7 +33,7 @@ http {
         location / {
             root ./html;
             index index.html;
-            autoindex on;
+            autoindex off;
         }
     }
 
@@ -50,7 +50,6 @@ http {
         location / {
             root ./html;
             index index.html;
-            autoindex on;
         }
     }
 }

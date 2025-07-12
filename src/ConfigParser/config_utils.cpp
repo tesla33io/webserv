@@ -109,7 +109,7 @@ namespace ConfigParsing {
 				os << loc.index[i] << (i + 1 < loc.index.size() ? ", " : "");
 			os << "\n";
 		}
-		os << "    Autoindex: on\n";
+		os << "    Autoindex: " << (loc.autoindex ? "on" : "off") << "\n";
 		if (!loc.limit_except.empty()) {
 			os << "    Allowed methods: ";
 			for (size_t i = 0; i < loc.limit_except.size(); ++i)
