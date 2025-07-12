@@ -16,53 +16,60 @@
 #include <vector>
 #include <map>
 #include <string>
-#include <limits>
 #include <iostream>
 #include <exception>
 #include <fstream>
 #include <sstream>
 
 #include "../Logger/Logger.hpp"
-
-struct Validity {
-	std::string name;
-	std::vector<std::string> contexts;
-	bool isConfigNode;
-	size_t minArgs; 
-	size_t maxArgs; 
-};
+#include "../Utils/StringUtils.hpp"
 
 struct ConfigNode {
 	std::string name;
 	std::vector<std::string> args;
 	std::vector<ConfigNode> children;
 	int lineNumber;
+	void *f;
+};
+
+typedef bool (*ValidFtnPnter)(const ConfigNode&, Logger&);
+
+struct Validity {
+	std::string name;
+	std::vector<std::string> contexts; 
+	bool required;
+	size_t minArgs;
+	size_t maxArgs;
+	ValidFtnPnter validF;
+
+	Validity(std::string n, std::vector<std::string> c, bool req, size_t min, size_t max, bool (*f)(const ConfigNode&, Logger&))
+        : name(n), contexts(c), required(req),  minArgs(min), maxArgs(max), validF(f) {}
 };
 
 struct LocConfig {
 	std::string 				path;
-	std::vector<std::string>	allow_methods;
+	std::string 				root;
+	std::string					return_url;
+	std::string 				alias; 
+	std::vector<std::string>	limit_except;
 	std::vector<std::string>	cgi_ext;
-	std::string 				cgi_path;
 	std::map<int, std::string>	error_pages;
 	size_t 						client_max_body_size ;
-	std::string					return_url;
-	std::string 				root;
-	bool 						autoindex;
+	bool						autoindex;
 	std::vector<std::string>  	index;
-	// std::string 				alias;
-	// bool 					chunked_encoding; // = false  // only needed for streaming
+	bool 						chunked_encoding;
 
 	LocConfig() :	path(""),
-		 			allow_methods(),
+					root(""),
+					return_url(""),
+					alias(""),
+		 			limit_except(),
 		 			cgi_ext(),
-		 			cgi_path(""),
 		 			error_pages(),
 		 			client_max_body_size(0), // DEFAULT = 0 meaning unlimited
-		 			return_url(""),
-		 			root(""),
 		 			autoindex(false),  // DEFAULT = false
-		 			index()
+		 			index(),
+					chunked_encoding(false) // DEFAULT = false
 					{}
 } ; 
    
@@ -73,7 +80,7 @@ struct ServerConfig {
 	std::vector<LocConfig> 		locations;
 
 	ServerConfig() :	host("0.0.0.0"),// additional checks/diff default if duplicate? no implemented
-						port(8080), // = 8080;
+						port(8080), // DEF 8080;
 						server_names() 
 						{}
 } ;
@@ -82,23 +89,32 @@ struct ServerConfig {
 namespace ConfigParsing {
 
 	bool tree_parser(const std::string &filePath, ConfigNode &childNode, Logger &logger);
-	bool parse_config(std::ifstream &file, int &line_nb, ConfigNode &parent, Logger& logger);
+	bool tree_parser_blocks(std::ifstream &file, int &line_nb, ConfigNode &parent, Logger& logger);
 	void struct_parser(const ConfigNode &tree, std::vector<ServerConfig> &servers, Logger &logger);
 	void handle_location(LocConfig &location, const std::vector<ConfigNode> &children);
 	void handle_loc_details(LocConfig &location, const ConfigNode &child);
+	void handle_listen(const ConfigNode& node, std::string& host, int& port);
 	void handle_error_page(std::map<int, std::string>& error_pages, const std::vector<std::string>& args);
 	void inherit_gen_dir(ServerConfig &server, const LocConfig &general_dir);
 	void inherit_error_pages(std::map<int, std::string>& loc_map, const std::map<int, std::string>& general_map);
-
 	std::string preProcess(const std::string& line);
 	std::vector<std::string> tokenize(const std::string& line);
 	bool isConfigNodeStart(const std::string& line);
 	bool isConfigNodeEnd(const std::string& line);
 	bool isDirective(const std::string& line);
+	bool isValidIPv4(const std::string& ip);
 	std::string join_args(const std::vector<std::string>& args);
 	void print_tree_config(const ConfigNode& node, const std::string& prefix, bool isLast, std::ostream &os);
 	void print_location_config(const LocConfig &loc, std::ostream &os);
 	void print_server_config(const ServerConfig &server, std::ostream &os);
+	bool validateListen(const ConfigNode& node, Logger& logger);
+	bool validateError(const ConfigNode& node, Logger& logger);
+	bool validateMaxBody(const ConfigNode& node, Logger& logger);
+	bool validateMethod(const ConfigNode& node, Logger& logger);
+	bool validateAutoIndex(const ConfigNode& node, Logger& logger);
+	bool validateExt(const ConfigNode& node, Logger& logger);
+	bool validateChunk(const ConfigNode& node, Logger& logger);
+	bool validateDirective(ConfigNode& childNode, ConfigNode& parent, Logger& logger);
 
 }
 

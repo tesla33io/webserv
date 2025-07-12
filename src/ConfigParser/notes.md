@@ -17,12 +17,15 @@ Then parsed into a ServerConfig struct for easy acces to infos.
 
 
 to do:
-- directive validation
-- set up the DEFAULT VALUES 
+- directive validation: 
+  -> add the mandatory directive check in parse_struct (required, allow duplicates)
+  -> add path validation?
+  -> check the list of method and CGI extension we wanna accept
+  -> check the use of "", ''
 - tests (subject: You must provide configuration files and default files to test
   and demonstrate that every feature works during the evaluation)
-- accept different config struct 
-- handle the ~ etc as second arg for locations (location = /status , location ~* \.(gif))
+- handle the locations modifiers (location = /status , location ~* \.(gif))
+- change the line approach to a character approach?
 
 TESTS : to compare with NGINX (docker run) :
 // docker run --rm -v $(pwd)/mini.conf:/etc/nginx/nginx.conf:ro nginx nginx -t

@@ -13,7 +13,7 @@
 CC = c++   
 FLAGS = -Wall -Werror -Wextra
 98 = -std=c++98
-SRCS = config_parser.cpp struct_parser.cpp config_utils.cpp tester.cpp 
+SRCS = config_parser.cpp struct_parser.cpp config_utils.cpp valid_directives.cpp tester.cpp 
 HEADER = config_parser.hpp
 NAME = tester
 

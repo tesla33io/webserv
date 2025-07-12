@@ -2,8 +2,7 @@
 http {
 	server {
 	
-		listen 8080;
-		host 127.0.0.1;
+		listen 127.0.0.1:8080;
 		server_name mysite.local www.mysite.local;
 		# client_max_body_size 10M;
 
@@ -11,14 +10,14 @@ http {
 			root /var/www/html;
 			index index.html;
 			autoindex off;
-			allow_methods GET POST;  # no DEL
+			limit_except GET POST;  # no DEL
 			error_page 404 /custom_404.html;
 			error_page 500 502 503 504 /custom_50x.html;
 		}
 
 		location /uploads {
 			root /var/www/uploads;
-			allow_methods POST GET;
+			limit_except POST GET;
 			autoindex on;
 		}
 
@@ -28,9 +27,8 @@ http {
 
 		location /cgi-bin {
 			root /var/www/cgi-bin;
-			allow_methods GET POST;
+			limit_except GET POST;
 			cgi_ext .py;
-			cgi_path /usr/bin/python3;
 			# All *.py files in this location are executed as CGI
 		}
 
@@ -38,7 +36,7 @@ http {
 			root /var/www/images;
 			autoindex on;
 			index index.jpg;
-			allow_methods GET;
+			limit_except GET;
 		}   
 	}
 }

@@ -45,6 +45,29 @@ namespace ConfigParsing {
 		return tokens;
 	}
 
+	// Valid IPv4
+	bool isValidIPv4(const std::string& ip) {
+		std::istringstream iss(ip);
+		std::string token;
+		int count = 0;
+		while (std::getline(iss, token, '.')) { // reads from the stringstream until it hits a '.' character
+			if (++count > 4) 
+				return false;
+			if (token.empty()) 
+				return false;
+			// Check characters are digits 0-255
+			for (size_t i = 0; i < token.length(); ++i) {
+				if (!isdigit(token[i])) 
+					return false;
+			}
+			int num = atoi(token.c_str());
+			if (num < 0 || num > 255) 
+				return false;
+		}
+		return (count == 4);
+	}
+
+
 	// Print function for the tree
 	std::string join_args(const std::vector<std::string>& args) {
 		
@@ -87,16 +110,14 @@ namespace ConfigParsing {
 			os << "\n";
 		}
 		os << "    Autoindex: on\n";
-		if (!loc.allow_methods.empty()) {
+		if (!loc.limit_except.empty()) {
 			os << "    Allowed methods: ";
-			for (size_t i = 0; i < loc.allow_methods.size(); ++i)
-				os << loc.allow_methods[i] << (i + 1 < loc.allow_methods.size() ? ", " : "");
+			for (size_t i = 0; i < loc.limit_except.size(); ++i)
+				os << loc.limit_except[i] << (i + 1 < loc.limit_except.size() ? ", " : "");
 			os << "\n";
 		}
 		if (!loc.return_url.empty())
 			os << "    Return URL: " << loc.return_url << "\n";
-		if (!loc.cgi_path.empty())
-			os << "    CGI path: " << loc.cgi_path << "\n";
 		if (!loc.cgi_ext.empty()) {
 			os << "    CGI extensions: ";
 			for (size_t i = 0; i < loc.cgi_ext.size(); ++i)

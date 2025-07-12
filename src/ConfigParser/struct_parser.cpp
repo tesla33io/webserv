@@ -11,9 +11,8 @@
 /* ************************************************************************** */
 
 #include "config_parser.hpp"
-#include "../Logger/Logger.hpp"
-#include "../Utils/StringUtils.hpp"
-			
+
+	
 namespace ConfigParsing {
 
 	void struct_parser(const ConfigNode &tree, std::vector<ServerConfig> &servers, Logger &logger) {
@@ -28,12 +27,8 @@ namespace ConfigParsing {
 				LocConfig 		general_dir;
 
 				for (std::vector<ConfigNode>::const_iterator child = node->children.begin(); child != node->children.end(); ++child) {
-					if (child->name == "host") 
-						server.host = child->args[0];
-					else if (child->name == "listen") {
-						std::stringstream ss(child->args[0]);
-						ss >> server.port;
-					}
+					if (child->name == "listen")
+						ConfigParsing::handle_listen(*child, server.host, server.port);
 					else if (child->name == "server_name") 
 						server.server_names = child->args;
 					else if (child->name == "location") {
@@ -76,16 +71,14 @@ namespace ConfigParsing {
 			std::stringstream ss(child.args[0]);
 			ss >> location.client_max_body_size;
 		}
-		else if (child.name == "allow_methods") 
-			location.allow_methods = child.args;
+		else if (child.name == "limit_except") 
+			location.limit_except = child.args;
 		else if (child.name == "return") 
 			location.return_url = child.args[0];
 		else if (child.name == "root") 
 			location.root = child.args[0];
 		else if (child.name == "autoindex") 
 			location.autoindex = (child.args[0] == "on");
-		else if (child.name == "cgi_path") 
-			location.cgi_path = child.args[0];
 		else if (child.name == "cgi_ext") 
 			location.cgi_ext = child.args;
 		else if (child.name == "index") 
@@ -101,18 +94,30 @@ namespace ConfigParsing {
 		}
 	}
 
+
+	void handle_listen(const ConfigNode& node, std::string& host, int& port) {
+		std::string value = node.args[0];
+		if (value[0] == ':') 
+			port = std::atoi(value.substr(1).c_str());
+		else if (value.find(':') != std::string::npos) {
+			size_t colonPos = value.find(':');
+			host = value.substr(0, colonPos);
+			port = std::atoi(value.substr(colonPos + 1).c_str());
+		}
+		else 
+			port = std::atoi(value.c_str());
+	}
+
 		
 	void inherit_gen_dir(ServerConfig &server, const LocConfig &general_dir) {
 		for (size_t i = 0; i < server.locations.size(); ++i) {
 			LocConfig &loc = server.locations[i];
-			if (loc.allow_methods.empty())
-				loc.allow_methods = general_dir.allow_methods;
+			if (loc.limit_except.empty())
+				loc.limit_except = general_dir.limit_except;
 			if (loc.cgi_ext.empty())
 				loc.cgi_ext = general_dir.cgi_ext;		
-			if (loc.cgi_path.empty())
-				loc.cgi_path = general_dir.cgi_path;
 			if (loc.client_max_body_size == 0)
-				loc.client_max_body_size = general_dir.client_max_body_size;				
+				loc.client_max_body_size = general_dir.client_max_body_size;
 			if (loc.return_url.empty())
 				loc.return_url = general_dir.return_url;
 			if (loc.root.empty())
@@ -133,5 +138,5 @@ namespace ConfigParsing {
 		}
 	}
 
-	
+
 }
