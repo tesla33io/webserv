@@ -116,8 +116,13 @@ namespace ConfigParsing {
 				os << loc.limit_except[i] << (i + 1 < loc.limit_except.size() ? ", " : "");
 			os << "\n";
 		}
-		if (!loc.return_url.empty())
-			os << "    Return URL: " << loc.return_url << "\n";
+		if (loc.ret_dir.is_set) {
+			os << "    Return directive: ";
+			os << loc.ret_dir.status_code;
+			if (!loc.ret_dir.uri.empty())
+				os << " " << loc.ret_dir.uri;
+			os << "\n";
+		}
 		if (!loc.cgi_ext.empty()) {
 			os << "    CGI extensions: ";
 			for (size_t i = 0; i < loc.cgi_ext.size(); ++i)

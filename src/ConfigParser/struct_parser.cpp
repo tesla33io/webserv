@@ -73,8 +73,8 @@ namespace ConfigParsing {
 		}
 		else if (child.name == "limit_except") 
 			location.limit_except = child.args;
-		else if (child.name == "return") 
-			location.return_url = child.args[0];
+		else if (child.name == "return")
+			handle_return(location, child);
 		else if (child.name == "root") 
 			location.root = child.args[0];
 		else if (child.name == "autoindex") 
@@ -92,6 +92,18 @@ namespace ConfigParsing {
 			int code = std::atoi(args[i].c_str());
 			error_pages[code] = uri;
 		}
+	}
+
+	void handle_return(LocConfig &location, const ConfigNode &node) {
+		std::istringstream ss(node.args[0]);
+		unsigned int code;
+		ss >> code;
+		location.ret_dir.status_code = code;
+		location.ret_dir.is_set = true;
+		if (node.args.size() == 2)
+			location.ret_dir.uri = node.args[1];
+		else
+			location.ret_dir.uri.clear();
 	}
 
 
@@ -118,8 +130,8 @@ namespace ConfigParsing {
 				loc.cgi_ext = general_dir.cgi_ext;		
 			if (loc.client_max_body_size == 0)
 				loc.client_max_body_size = general_dir.client_max_body_size;
-			if (loc.return_url.empty())
-				loc.return_url = general_dir.return_url;
+			if (!loc.ret_dir.is_set && general_dir.ret_dir.is_set)
+				loc.ret_dir = general_dir.ret_dir;
 			if (loc.root.empty())
 				loc.root = general_dir.root;		
 			if (!loc.autoindex)

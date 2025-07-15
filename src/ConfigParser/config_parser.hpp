@@ -37,19 +37,36 @@ typedef bool (*ValidFtnPnter)(const ConfigNode&, Logger&);
 struct Validity {
 	std::string name;
 	std::vector<std::string> contexts; 
-	bool required;
+	bool repeatOK;
 	size_t minArgs;
 	size_t maxArgs;
 	ValidFtnPnter validF;
 
-	Validity(std::string n, std::vector<std::string> c, bool req, size_t min, size_t max, bool (*f)(const ConfigNode&, Logger&))
-        : name(n), contexts(c), required(req),  minArgs(min), maxArgs(max), validF(f) {}
+	Validity(std::string n, std::vector<std::string> c, bool rep, size_t min, size_t max, bool (*f)(const ConfigNode&, Logger&))
+							: 	name(n), 
+								contexts(c), 
+								repeatOK(rep),  
+								minArgs(min), 
+								maxArgs(max), 
+								validF(f) 
+								{}
+};
+
+struct ReturnDir {
+	unsigned int status_code;
+	std::string uri;
+	bool is_set;
+
+	ReturnDir() : status_code(0), 
+						uri(""), 
+						is_set(false) 
+						{}
 };
 
 struct LocConfig {
 	std::string 				path;
 	std::string 				root;
-	std::string					return_url;
+	ReturnDir		 			ret_dir;
 	std::string 				alias; 
 	std::vector<std::string>	limit_except;
 	std::vector<std::string>	cgi_ext;
@@ -61,7 +78,7 @@ struct LocConfig {
 
 	LocConfig() :	path(""),
 					root(""),
-					return_url(""),
+					ret_dir(),
 					alias(""),
 		 			limit_except(),
 		 			cgi_ext(),
@@ -95,6 +112,7 @@ namespace ConfigParsing {
 	void handle_loc_details(LocConfig &location, const ConfigNode &child);
 	void handle_listen(const ConfigNode& node, std::string& host, int& port);
 	void handle_error_page(std::map<int, std::string>& error_pages, const std::vector<std::string>& args);
+	void handle_return(LocConfig &location, const ConfigNode &node);
 	void inherit_gen_dir(ServerConfig &server, const LocConfig &general_dir);
 	void inherit_error_pages(std::map<int, std::string>& loc_map, const std::map<int, std::string>& general_map);
 	std::string preProcess(const std::string& line);
@@ -109,6 +127,7 @@ namespace ConfigParsing {
 	void print_server_config(const ServerConfig &server, std::ostream &os);
 	bool validateListen(const ConfigNode& node, Logger& logger);
 	bool validateError(const ConfigNode& node, Logger& logger);
+	bool validateReturn(const ConfigNode& node, Logger& logger);
 	bool validateMaxBody(const ConfigNode& node, Logger& logger);
 	bool validateMethod(const ConfigNode& node, Logger& logger);
 	bool validateAutoIndex(const ConfigNode& node, Logger& logger);
