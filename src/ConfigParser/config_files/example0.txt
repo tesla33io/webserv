@@ -6,10 +6,11 @@ http {
         server_name first.com second.com;
         error_page  404 /custom_404.html;
         error_page  500 /err500.html;
-
+        return 303 /gggg ;
         location /images/ {
             root ./img;
             error_page 500 502 503 504 /custom_50x.html;
+            return 204 ;
         }
 
         location / {
@@ -38,7 +39,7 @@ http {
     }
 
     server {
-        listen :80;
+        listen 80;
 
         location /images/ {
             root ./img;
@@ -52,4 +53,8 @@ http {
             index index.html;
         }
     }
+}
+
+events{
+
 }

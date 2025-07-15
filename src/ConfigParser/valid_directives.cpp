@@ -39,7 +39,7 @@ void initValidDirectives() {
 	validDirective.push_back(Validity("error_page", make_vec("server", "location"), true, 2, SIZE_MAX, ConfigParsing::validateError));
 	validDirective.push_back(Validity("client_max_body_size", make_vec("server", "location"), false, 1, 1, ConfigParsing::validateMaxBody));
 	validDirective.push_back(Validity("limit_except", std::vector<std::string>(1, "location"), false, 1, 4, ConfigParsing::validateMethod));
-	validDirective.push_back(Validity("return", make_vec("server", "location"), false, 1, 2, NULL));
+	validDirective.push_back(Validity("return", make_vec("server", "location"), false, 1, 2, ConfigParsing::validateReturn));
 	validDirective.push_back(Validity("root", make_vec("server", "location"), false, 1, 1, NULL));
 	validDirective.push_back(Validity("autoindex", make_vec("server", "location"), false, 1, 1, ConfigParsing::validateAutoIndex));
 	validDirective.push_back(Validity("cgi_ext", std::vector<std::string>(1, "location"), false, 1, SIZE_MAX, ConfigParsing::validateExt));
@@ -95,6 +95,28 @@ namespace ConfigParsing {
 			}
 		}
 
+		return true;
+	}
+
+	bool validateReturn(const ConfigNode& node, Logger& logger) {
+		std::istringstream ss(node.args[0]);
+		unsigned int code;
+		if (!(ss >> code) || code < 100 || code > 599) {
+			logger.logWithPrefix(Logger::WARNING, "Configuration file", "Invalid status code in return: " + su::to_string(code));
+			return false;
+		}
+		if (code >= 300 && code < 400) {
+			if (node.args.size() != 2) {
+				logger.logWithPrefix(Logger::WARNING, "Configuration file", "return code " + su::to_string(code) + " must include a URI or URL.");
+				return false;
+			}
+		} 
+		else {
+			if (node.args.size() != 1) {
+				logger.logWithPrefix(Logger::WARNING, "Configuration file", "return code " + su::to_string(code) + " must NOT include a URI or URL.");
+				return false;
+			}
+		}
 		return true;
 	}
 
@@ -176,10 +198,10 @@ namespace ConfigParsing {
 
 
 	bool validateDirective(ConfigNode& childNode, ConfigNode& parent, Logger& logger) {
-		// Initialize valid directives if not already done
-		if (validDirective.empty()) {
+
+		if (validDirective.empty())
 			initValidDirectives();
-		}
+
 
 		for (std::vector<Validity>::const_iterator dir = validDirective.begin(); dir != validDirective.end(); ++dir) {
 			if (childNode.name == dir->name) {
@@ -193,6 +215,18 @@ namespace ConfigParsing {
 				if (!contextOK) {
 					logger.logWithPrefix(Logger::WARNING, "Configuration file", "Directive '" + childNode.name + "' is not allowed in context '" + parent.name + "'.");
 					return false;
+				}
+				if (!dir->repeatOK) {
+					int count = 0;
+					for (size_t i = 0; i < parent.children.size(); ++i) {
+						if (parent.children[i].name == childNode.name) {
+							count++;
+						}
+					}
+					if (count > 1) {
+						logger.logWithPrefix(Logger::WARNING, "Configuration file", "Directive '" + childNode.name + "' cannot be repeated in context '" + parent.name + "'.");
+						return false;
+					}
 				}
 				if (childNode.args.size() < dir->minArgs || childNode.args.size() > dir->maxArgs) {
 					logger.logWithPrefix(Logger::WARNING, "Configuration file", "Directive '" + childNode.name + "' expects between " +
@@ -211,3 +245,4 @@ namespace ConfigParsing {
 	}
 
 }
+
