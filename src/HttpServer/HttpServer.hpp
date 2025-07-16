@@ -41,8 +41,7 @@ class WebServer {
 	void run();
 
 	static bool _running;
-
-  private:
+	// Connection state tracking structure
 	struct ConnectionInfo {
 		int clfd;
 		time_t last_activity;
@@ -89,6 +88,8 @@ class WebServer {
 	int _port;
 	int _backlog;
 	ssize_t _max_content_length;
+	std::map<int, ConnectionInfo *> _connections;
+	std::vector<int> _conn_to_close;
 	std::string _root_path;
 
 	static const int CONNECTION_TO = 30;   // seconds
