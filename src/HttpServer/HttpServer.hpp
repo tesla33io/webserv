@@ -88,8 +88,6 @@ class WebServer {
 	int _port;
 	int _backlog;
 	ssize_t _max_content_length;
-	std::map<int, ConnectionInfo *> _connections;
-	std::vector<int> _conn_to_close;
 	std::string _root_path;
 
 	static const int CONNECTION_TO = 30;   // seconds

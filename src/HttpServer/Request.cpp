@@ -6,16 +6,12 @@
 #include <cstdio>
 #include <string>
 #include <sys/socket.h>
-#include <cstdio>
-#include <string>
-#include <sys/socket.h>
 
 void WebServer::handleClientData(int client_fd) {
 	updateConnectionActivity(client_fd);
 
 	std::map<int, ConnectionInfo *>::iterator conn_it = _connections.find(client_fd);
 	if (conn_it == _connections.end()) {
-		_lggr.error("No connection info found for fd: " + su::to_string(client_fd));
 		_lggr.error("No connection info found for fd: " + su::to_string(client_fd));
 		closeConnection(client_fd);
 		return;
@@ -24,7 +20,6 @@ void WebServer::handleClientData(int client_fd) {
 	ConnectionInfo *conn = conn_it->second;
 	char buffer[BUFFER_SIZE];
 	ssize_t bytes_read;
-	ssize_t total_bytes_read = 0;
 	ssize_t total_bytes_read = 0;
 
 	while (true) {
@@ -36,15 +31,13 @@ void WebServer::handleClientData(int client_fd) {
 		if (bytes_read > 0) {
 			_lggr.logWithPrefix(Logger::DEBUG, "recv loop",
 			                    "Bytes read: " + su::to_string(bytes_read));
-			                    "Bytes read: " + su::to_string(bytes_read));
 			buffer[bytes_read] = '\0';
 			conn->buffer += std::string(buffer);
 			if (isCompleteRequest(conn->buffer)) {
 				if (total_bytes_read > _max_content_length) {
-					_lggr.info(
-					    "Reached max content length for fd: " + su::to_string(client_fd) +
-					    ", " + su::to_string(bytes_read) + "/" +
-					    su::to_string(_max_content_length));
+					_lggr.info("Reached max content length for fd: " + su::to_string(client_fd) +
+					           ", " + su::to_string(bytes_read) + "/" +
+					           su::to_string(_max_content_length));
 					sendResponse(client_fd, Response(413)); // TODO: some tests of this part
 					closeConnection(client_fd);
 					return;
@@ -69,11 +62,9 @@ void WebServer::handleClientData(int client_fd) {
 			return;
 		} else if (bytes_read < 0) {
 			if (errno == EAGAIN || errno == EWOULDBLOCK) { // TODO: this is forbidden
-			if (errno == EAGAIN || errno == EWOULDBLOCK) { // TODO: this is forbidden
 				// No more data
 				break;
 			} else {
-				_lggr.error("recv error for fd " + su::to_string(client_fd) + ": " +
 				_lggr.error("recv error for fd " + su::to_string(client_fd) + ": " +
 				            strerror(errno));
 				closeConnection(client_fd);
@@ -118,10 +109,9 @@ void WebServer::processRequest(int client_fd, const std::string &raw_req) {
 		if (header_end != std::string::npos) {
 			std::string keep_alive_headers = "Connection: keep-alive\r\n"
 			                                 "Keep-Alive: timeout=" +
-			                                 su::to_string(KEEP_ALIVE_TO) + ", max=" +
-			                                 su::to_string(MAX_KEEP_ALIVE_REQS) + "\r\n";
-			                                 su::to_string(KEEP_ALIVE_TO) + ", max=" +
-			                                 su::to_string(MAX_KEEP_ALIVE_REQS) + "\r\n";
+			                                 su::to_string(KEEP_ALIVE_TO) +
+			                                 ", max=" + su::to_string(MAX_KEEP_ALIVE_REQS) + "\r\n";
+			su::to_string(KEEP_ALIVE_TO) + ", max=" + su::to_string(MAX_KEEP_ALIVE_REQS) + "\r\n";
 
 			response.insert(header_end, keep_alive_headers);
 		}
@@ -135,11 +125,8 @@ void WebServer::processRequest(int client_fd, const std::string &raw_req) {
 	ssize_t bytes_sent = send(req.clfd, response.c_str(), response.size(), 0);
 	if (bytes_sent < 0) {
 		_lggr.error("Failed to send response to client (fd: " + su::to_string(req.clfd) +
-		_lggr.error("Failed to send response to client (fd: " + su::to_string(req.clfd) +
 		            ")");
 	} else {
-		_lggr.debug("Sent " + su::to_string(bytes_sent) + " bytes response to fd " +
-		            su::to_string(req.clfd));
 		_lggr.debug("Sent " + su::to_string(bytes_sent) + " bytes response to fd " +
 		            su::to_string(req.clfd));
 	}
@@ -148,7 +135,6 @@ void WebServer::processRequest(int client_fd, const std::string &raw_req) {
 		closeConnection(req.clfd);
 	} else {
 		updateConnectionActivity(req.clfd);
-		_lggr.debug("Keeping connection alive for fd: " + su::to_string(req.clfd));
 		_lggr.debug("Keeping connection alive for fd: " + su::to_string(req.clfd));
 	}
 }
