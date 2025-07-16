@@ -1,47 +1,52 @@
+#include "ConfigParser/config_parser.hpp"
 #include "HttpServer.hpp"
 #include "src/Logger/Logger.hpp"
 #include "src/RequestParser/request_parser.hpp"
 #include "src/Utils/StringUtils.hpp"
 #include <cerrno>
+#include <vector>
 
 void WebServer::handleNewConnection() {
-	while (true) {
-		struct sockaddr_in client_addr;
-		socklen_t client_len = sizeof(client_addr);
+	for (std::vector<ServerConfig>::iterator sc = _have_pending_conn.begin();
+	     sc != _have_pending_conn.end(); ++sc) {
+		while (true) {
+			struct sockaddr_in client_addr;
+			socklen_t client_len = sizeof(client_addr);
 
-		int client_fd = accept(_server_fd, (struct sockaddr *)&client_addr, &client_len);
-		if (client_fd == -1) {
-			if (errno == EAGAIN || errno == EWOULDBLOCK) {
-				// No more pending connections
-				return;
-			} else {
-				_lggr.error("Failed to accept connection");
-				return;
+			int client_fd = accept(sc->server_fd, (struct sockaddr *)&client_addr, &client_len);
+			if (client_fd == -1) {
+				if (errno == EAGAIN || errno == EWOULDBLOCK) {
+					// No more pending connections
+					break;
+				} else {
+					_lggr.error("Failed to accept connection");
+					break;
+				}
 			}
+
+			if (!setNonBlocking(client_fd)) {
+				close(client_fd);
+				continue;
+			}
+
+			struct epoll_event ev;
+			ev.events = EPOLLIN | EPOLLRDHUP | EPOLLERR | EPOLLET;
+			ev.data.fd = client_fd;
+
+			if (epoll_ctl(_epoll_fd, EPOLL_CTL_ADD, client_fd, &ev) == -1) {
+				_lggr.error("Failed to add client socket (fd: " + su::to_string<int>(client_fd) +
+				            ") to epoll");
+				close(client_fd);
+				continue;
+			}
+
+			// Initialize client buffer
+			addConnection(client_fd);
+
+			_lggr.info("New connection from " + std::string(inet_ntoa(client_addr.sin_addr)) + ":" +
+			           su::to_string<unsigned short>(ntohs(client_addr.sin_port)) +
+			           " (fd: " + su::to_string<int>(client_fd) + ")");
 		}
-
-		if (!setNonBlocking(client_fd)) {
-			close(client_fd);
-			continue;
-		}
-
-		struct epoll_event ev;
-		ev.events = EPOLLIN | EPOLLRDHUP | EPOLLERR | EPOLLET;
-		ev.data.fd = client_fd;
-
-		if (epoll_ctl(_epoll_fd, EPOLL_CTL_ADD, client_fd, &ev) == -1) {
-			_lggr.error("Failed to add client socket (fd: " +
-			            su::to_string<int>(client_fd) + ") to epoll");
-			close(client_fd);
-			continue;
-		}
-
-		// Initialize client buffer
-		addConnection(client_fd);
-
-		_lggr.info("New connection from " + std::string(inet_ntoa(client_addr.sin_addr)) + ":" +
-		           su::to_string<unsigned short>(ntohs(client_addr.sin_port)) +
-		           " (fd: " + su::to_string<int>(client_fd) + ")");
 	}
 }
 
@@ -87,8 +92,7 @@ void WebServer::cleanupExpiredConnections() {
 	}
 
 	if (!_conn_to_close.empty()) {
-		_lggr.info("Cleaned up " + su::to_string(_conn_to_close.size()) +
-		           " expired connections");
+		_lggr.info("Cleaned up " + su::to_string(_conn_to_close.size()) + " expired connections");
 	}
 }
 
@@ -99,9 +103,8 @@ void WebServer::handleConnectionTimeout(int client_fd) {
 
 		sendResponse(client_fd, Response(408));
 
-		_lggr.info("Connection timed out for fd: " + su::to_string(client_fd) +
-		           " (idle for " + su::to_string(getCurrentTime() - conn->last_activity) +
-		           " seconds)");
+		_lggr.info("Connection timed out for fd: " + su::to_string(client_fd) + " (idle for " +
+		           su::to_string(getCurrentTime() - conn->last_activity) + " seconds)");
 	}
 
 	closeConnection(client_fd);

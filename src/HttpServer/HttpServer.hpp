@@ -4,6 +4,7 @@
 #include "../Logger/Logger.hpp"
 #include "../RequestParser/request_parser.hpp"
 #include "../Utils/StringUtils.hpp"
+#include "../ConfigParser/config_parser.hpp"
 
 #include <arpa/inet.h>
 #include <climits>
@@ -35,6 +36,8 @@ class WebServer {
 
   public:
 	WebServer(int port);
+	WebServer(std::string &host, int port);
+	WebServer(std::vector<ServerConfig> &confs);
 	~WebServer();
 
 	bool initialize();
@@ -83,12 +86,17 @@ class WebServer {
 		void initFromStatusCode(uint16_t code);
 	};
 
+  private:
+	std::string _host;
 	int _server_fd;
 	int _epoll_fd;
 	int _port;
 	int _backlog;
 	ssize_t _max_content_length;
 	std::string _root_path;
+
+    std::vector<ServerConfig> _confs;
+    std::vector<ServerConfig> _have_pending_conn;
 
 	static const int CONNECTION_TO = 30;   // seconds
 	static const int CLEANUP_INTERVAL = 5; // seconds
