@@ -26,7 +26,6 @@ void WebServer::handleClientData(int client_fd) {
 		errno = 0;
 		bytes_read = recv(client_fd, buffer, sizeof(buffer) - 1, 0);
 		total_bytes_read += bytes_read;
-		total_bytes_read += bytes_read;
 
 		if (bytes_read > 0) {
 			_lggr.logWithPrefix(Logger::DEBUG, "recv loop",
@@ -56,7 +55,6 @@ void WebServer::handleClientData(int client_fd) {
 				}
 			}
 		} else if (bytes_read == 0) {
-			_lggr.info("Client disconnected (fd: " + su::to_string(client_fd) + ")");
 			_lggr.info("Client disconnected (fd: " + su::to_string(client_fd) + ")");
 			closeConnection(client_fd);
 			return;
@@ -111,8 +109,6 @@ void WebServer::processRequest(int client_fd, const std::string &raw_req) {
 			                                 "Keep-Alive: timeout=" +
 			                                 su::to_string(KEEP_ALIVE_TO) +
 			                                 ", max=" + su::to_string(MAX_KEEP_ALIVE_REQS) + "\r\n";
-			su::to_string(KEEP_ALIVE_TO) + ", max=" + su::to_string(MAX_KEEP_ALIVE_REQS) + "\r\n";
-
 			response.insert(header_end, keep_alive_headers);
 		}
 	} else {
@@ -124,8 +120,7 @@ void WebServer::processRequest(int client_fd, const std::string &raw_req) {
 	}
 	ssize_t bytes_sent = send(req.clfd, response.c_str(), response.size(), 0);
 	if (bytes_sent < 0) {
-		_lggr.error("Failed to send response to client (fd: " + su::to_string(req.clfd) +
-		            ")");
+		_lggr.error("Failed to send response to client (fd: " + su::to_string(req.clfd) + ")");
 	} else {
 		_lggr.debug("Sent " + su::to_string(bytes_sent) + " bytes response to fd " +
 		            su::to_string(req.clfd));
