@@ -1,0 +1,20 @@
+#!/usr/bin/php-cgi
+<?php
+header("Content-Type: text/html\n");
+
+// Get the name parameter from GET or POST
+$name = 'Guest';
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $name = isset($_POST['name']) ? htmlspecialchars($_POST['name']) : $name;
+} else {
+    $name = isset($_GET['name']) ? htmlspecialchars($_GET['name']) : $name;
+}
+?>
+
+<!DOCTYPE html>
+<html>
+<body>
+    <h1>Hello, <?php echo $name; ?>!</h1>
+    <p>Nice to meet you.</p>
+</body>
+</html>
