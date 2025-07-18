@@ -6,7 +6,7 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/25 10:33:32 by jalombar          #+#    #+#             */
-/*   Updated: 2025/06/26 10:10:50 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/07/01 10:36:19 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -124,6 +124,14 @@ bool RequestParsingUtils::check_req_line(ClientRequest &request,
 		return (false);
 	}
 	request.uri = decoded_uri;
+	size_t qm = request.uri.find('?');
+	if (qm != std::string::npos) {
+		request.path = request.uri.substr(0, qm);
+		request.query = request.uri.substr(qm + 1);
+	} else {
+		request.path = request.uri;
+		request.query = "";
+	}
 
 	if (!(request.version == "HTTP/1.0" || request.version == "HTTP/1.1")) {
 		logger.logWithPrefix(Logger::WARNING, "HTTP", "Invalid HTTP version");
