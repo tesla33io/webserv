@@ -2,6 +2,7 @@
 #include "src/Logger/Logger.hpp"
 #include "src/RequestParser/request_parser.hpp"
 #include "src/Utils/StringUtils.hpp"
+#include "src/CGI/cgi.hpp"
 #include <cerrno>
 #include <cstdio>
 #include <string>
@@ -92,13 +93,22 @@ void WebServer::processRequest(int client_fd, const std::string &raw_req) {
 	std::string response;
 	bool keep_alive = shouldKeepAlive(req);
 
-	if (req.method == GET) {
-		// TODO: do some check if handleGetRequest did not encounter any issues
-		sendResponse(client_fd, handleGetRequest(req));
-	} else if (req.method == POST || req.method == DELETE_) {
-		sendResponse(client_fd, Response(501));
+	if (req.CGI) {
+		if (!CGIUtils::handle_CGI_request(req, client_fd)) {
+			_lggr.error("Handling the CGI request failed.");
+			sendResponse(client_fd, Response::badRequest());
+			closeConnection(client_fd);
+			return;
+		}
 	} else {
-		sendResponse(client_fd, Response::methodNotAllowed());
+		if (req.method == GET) {
+			// TODO: do some check if handleGetRequest did not encounter any issues
+			sendResponse(client_fd, handleGetRequest(req));
+		} else if (req.method == POST || req.method == DELETE_) {
+			sendResponse(client_fd, Response(501));
+		} else {
+			sendResponse(client_fd, Response::methodNotAllowed());
+		}
 	}
 
 	// TODO!: use new & awesome Response struct instead of all this shit

@@ -6,7 +6,7 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/17 15:32:36 by jalombar          #+#    #+#             */
-/*   Updated: 2025/07/18 11:41:38 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/07/18 16:59:25 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,35 +17,10 @@
 # include "../../includes/types.hpp"
 #include "../Logger/Logger.hpp"
 #include "../Utils/GeneralUtils.hpp"
-# include <iostream>
-# include <sstream>
-# include <string>
-# include <map>
-# include <vector>
-# include <cstdlib>
 
 const size_t MAX_URI_LENGTH = 2048;
 const size_t MAX_HEADER_NAME_LENGTH = 1024;
 const size_t MAX_HEADER_VALUE_LENGTH = 8000;
-
-/* enum RequestMethod { GET, POST, DELETE_ };
-
-struct ClientRequest {
-	// Request line
-	RequestMethod method;
-	std::string uri;
-	std::string version;
-
-	// Headers
-	std::map<std::string, std::string> headers;
-	bool chunked_encoding;
-
-	// Body (optional)
-	std::string body;
-
-	// Client FD
-	int clfd;
-}; */
 
 namespace RequestParsingUtils {
 	bool check_and_trim_line(std::string &line);

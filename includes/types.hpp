@@ -6,7 +6,7 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/27 11:55:56 by jalombar          #+#    #+#             */
-/*   Updated: 2025/07/18 11:42:19 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/07/18 17:00:51 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -34,6 +34,9 @@ struct ClientRequest {
 
 	// Client FD
 	int clfd;
+
+	// CGI request
+	bool CGI;
 };
 
 #endif

@@ -6,7 +6,7 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/01 08:40:30 by jalombar          #+#    #+#             */
-/*   Updated: 2025/07/04 13:28:48 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/07/18 17:33:45 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -66,7 +66,7 @@ void init_requests() {
 int main(void) {
 	init_requests();
 	for (size_t i = 0; i < test_requests.size(); ++i) {
-		CGIUtils::handle_CGI_request(test_requests[i]);
+		CGIUtils::handle_CGI_request(test_requests[i], 0);
 	}
 	return (0);
 }

@@ -6,7 +6,7 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/27 11:49:38 by jalombar          #+#    #+#             */
-/*   Updated: 2025/07/04 13:28:38 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/07/18 17:34:44 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -65,7 +65,7 @@ void print_cgi_response(const std::string &cgi_output) {
 	}
 }
 
-bool CGIUtils::handle_CGI_request(ClientRequest &request) {
+bool CGIUtils::handle_CGI_request(ClientRequest &request, int fd) {
 	Logger logger;
 
 	// 1. Validate and construct script path
@@ -113,7 +113,7 @@ bool CGIUtils::handle_CGI_request(ClientRequest &request) {
 		close(output_pipe[0]);
 		close(output_pipe[1]);
 		env.free_envp(envp);
-		return false;
+		return (false);
 	}
 
 	if (pid == 0) {
