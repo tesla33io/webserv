@@ -6,7 +6,7 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/17 15:32:36 by jalombar          #+#    #+#             */
-/*   Updated: 2025/06/27 14:59:07 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/07/18 11:35:13 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,6 +17,12 @@
 # include "../../includes/types.hpp"
 #include "../Logger/Logger.hpp"
 #include "../utils/utils.hpp"
+# include <iostream>
+# include <sstream>
+# include <string>
+# include <map>
+# include <vector>
+# include <cstdlib>
 
 const size_t MAX_URI_LENGTH = 2048;
 const size_t MAX_HEADER_NAME_LENGTH = 1024;

@@ -1,8 +1,14 @@
 #include "HttpServer.hpp"
-#include "src/Utils/StringUtils.hpp"
+#include "src/Logger/Logger.hpp"
 #include "src/RequestParser/request_parser.hpp"
+#include "src/Utils/StringUtils.hpp"
+#include <cstring>
+#include <netdb.h>
 #include <sys/socket.h>
 #include <unistd.h>
+
+bool WebServer::_running;
+static bool interrupted = false;
 
 WebServer::WebServer(int p)
     : _server_fd(-1), _epoll_fd(-1), _port(p), _backlog(SOMAXCONN),
@@ -11,20 +17,33 @@ WebServer::WebServer(int p)
 }
 
 WebServer::~WebServer() {
-	_lggr.info("Destroying the instance of the Webserver.");
+	_lggr.debug("Destroying the instance of the Webserver.");
 	cleanup();
 }
 
 void sigint_handler(int sig) {
 	(void)sig;
 	WebServer::_running = false;
+	interrupted = true;
+}
+
+// tmp until config parser is done
+static std::string getCurrentWorkingDirectory() {
+	char buffer[PATH_MAX];
+	if (getcwd(buffer, sizeof(buffer)) != NULL) {
+		return std::string(buffer);
+	} else {
+		perror("getcwd failed");
+		return std::string();
+	}
 }
 
 bool WebServer::initialize() {
-	_lggr.debug("Overload SIGINT behaviour\n");
+	_lggr.debug("Overload SIGINT behaviour");
 	signal(SIGINT, &sigint_handler);
-	_lggr.debug("Overload SIGTERM behaviour\n");
+	_lggr.debug("Overload SIGTERM behaviour");
 	signal(SIGTERM, &sigint_handler);
+	interrupted = false;
 
 	// Populate address structs
 	struct addrinfo hints, *res;
@@ -33,22 +52,22 @@ bool WebServer::initialize() {
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_flags = AI_PASSIVE;
 
-	if (getaddrinfo(NULL, string_utils::to_string<int>(_port).c_str(), &hints, &res) != 0) {
-		_lggr.error("Failed to get address info\n");
+	if (getaddrinfo(NULL, su::to_string<int>(_port).c_str(), &hints, &res) != 0) {
+		_lggr.error("Failed to get address info");
 		return false;
 	}
 
 	// Create server socket
 	_server_fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
 	if (_server_fd == -1) {
-		_lggr.error("Failed to create socket\n");
+		_lggr.error("Failed to create socket");
 		return false;
 	}
 
 	// https://stackoverflow.com/questions/14388706/how-do-so-reuseaddr-and-so-reuseport-differ/14388707?newreg=e3fae32d955646afad5169c421fb403a
 	int set_true = 1;
 	if (setsockopt(_server_fd, SOL_SOCKET, SO_REUSEADDR, &set_true, sizeof(set_true)) == -1) {
-		_lggr.error("Failed to set socket options\n");
+		_lggr.error("Failed to set socket options");
 		return false;
 	}
 
@@ -58,237 +77,186 @@ bool WebServer::initialize() {
 	}
 
 	if (bind(_server_fd, res->ai_addr, res->ai_addrlen) == -1) {
-		_lggr.error("Failed to bind socket to port " + string_utils::to_string<int>(_port) + "\n");
+		_lggr.error("Failed to bind socket to port " + su::to_string<int>(_port));
 		return false;
 	}
 
 	// Listen for connections
 	if (listen(_server_fd, _backlog) == -1) {
-		_lggr.error("Failed to listen on socket\n");
+		_lggr.error("Failed to listen on socket");
 		return false;
 	}
 
 	// RTFM! `man 7 epoll`
 	_epoll_fd = epoll_create1(0);
 	if (_epoll_fd == -1) {
-		_lggr.error("Failed to create epoll instance\n");
+		_lggr.error("Failed to create epoll instance");
 		return false;
 	}
 
 	// Add server socket to epoll
 	struct epoll_event ev;
-	ev.events = EPOLLIN | EPOLLET;
+	ev.events = EPOLLIN | EPOLLRDHUP | EPOLLERR | EPOLLET;
 	ev.data.fd = _server_fd;
 
 	if (epoll_ctl(_epoll_fd, EPOLL_CTL_ADD, _server_fd, &ev) == -1) {
-		_lggr.error("Failed to add server socket to epoll\n");
+		_lggr.error("Failed to add server socket to epoll");
 		return false;
 	}
 
-	_lggr.info("Server initialized on port " + string_utils::to_string(_port) + "\n");
+	// Cleanup
+	freeaddrinfo(res);
+
+	_lggr.info("Server initialized on port " + su::to_string(_port));
 	_running = true;
+	_max_content_length = 8192; // TODO: replace with the value from config
+	_root_path = getCurrentWorkingDirectory();
+	if (_root_path.empty()) {
+		_lggr.error("Couldn't get current working dir to proceed further");
+		return false;
+	}
 	return _running;
+}
+
+static std::string describeEpollEvents(uint32_t ev) {
+	std::vector<std::string> bits;
+	if (ev & EPOLLIN)
+		bits.push_back("EPOLLIN");
+	if (ev & EPOLLOUT)
+		bits.push_back("EPOLLOUT");
+	if (ev & EPOLLPRI)
+		bits.push_back("EPOLLPRI");
+	if (ev & EPOLLERR)
+		bits.push_back("EPOLLERR");
+	if (ev & EPOLLHUP)
+		bits.push_back("EPOLLHUP");
+	if (ev & EPOLLRDHUP)
+		bits.push_back("EPOLLRDHUP");
+	if (ev & EPOLLONESHOT)
+		bits.push_back("EPOLLONESHOT");
+	if (ev & EPOLLET)
+		bits.push_back("EPOLLET");
+	if (bits.empty())
+		return "0";
+	std::string s = bits[0];
+	for (size_t i = 1; i < bits.size(); ++i)
+		s += "|" + bits[i];
+	return s;
 }
 
 void WebServer::run() {
 	struct epoll_event events[MAX_EVENTS];
+	_last_cleanup = getCurrentTime();
 
-	_lggr.debug("Server running. Waiting for connections...\n");
+	_lggr.debug("Server running. Waiting for connections...");
 
 	while (_running) {
-		int nfds = epoll_wait(_epoll_fd, events, MAX_EVENTS, -1);
-		if (nfds == -1) {
-			_lggr.error("epoll_wait failed\n");
+		int nfds = epoll_wait(_epoll_fd, events, MAX_EVENTS, 1000);
+		if (nfds == -1 && !interrupted) {
+			_lggr.error("epoll_wait failed: " + std::string(strerror(errno)));
 			break;
+		} else if (nfds == -1 && interrupted) {
+			_lggr.warn("Program interrupted, shutting down...");
+			break;
+		}
+		if (nfds == MAX_EVENTS) {
+			_lggr.warn("Hit MAX_EVENTS limit (" + su::to_string(MAX_EVENTS) +
+			           "), may have more events pending");
 		}
 
 		for (int i = 0; i < nfds; i++) {
+			uint32_t evmask = events[i].events;
+			int fd = events[i].data.fd;
+			_lggr.debug("epoll event on fd=" + su::to_string(fd) + " (" +
+			            describeEpollEvents(evmask) + ")");
 			if (events[i].data.fd == _server_fd) {
 				handleNewConnection();
 			} else {
-				handleClientData(events[i].data.fd);
+				if (_connections.find(events[i].data.fd) != _connections.end()) {
+					handleClientData(events[i].data.fd);
+				} else {
+					_lggr.debug("Ignoring event for unknown fd: " +
+					            su::to_string(events[i].data.fd));
+				}
 			}
+		}
+
+		if (nfds > 0) {
+			_lggr.debug("Processed " + su::to_string(nfds) + " events");
+		}
+
+		cleanupExpiredConnections();
+
+		static time_t last_stats = 0;
+		time_t current_time = getCurrentTime();
+		if (current_time - last_stats >= 30) { // Every 30 seconds
+			logConnectionStats();
+			last_stats = current_time;
 		}
 	}
 }
 
 bool WebServer::setNonBlocking(int fd) {
+	_lggr.debug("Setting fd [" + su::to_string(fd) + "] as non-blocking");
 	int flags = fcntl(fd, F_GETFL, 0);
 	if (flags == -1) {
-		_lggr.error("Failed to get socket flags\n");
+		_lggr.error("Failed to get socket flags");
 		return false;
 	}
 
 	if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1) {
-		_lggr.error("Failed to set socket non-blocking\n");
+		_lggr.error("Failed to set socket non-blocking");
 		return false;
 	}
 
 	return true;
 }
 
-void WebServer::handleNewConnection() {
-	struct sockaddr_in client_addr;
-	socklen_t client_len = sizeof(client_addr);
+inline time_t WebServer::getCurrentTime() const { return time(NULL); }
 
-	int client_fd = accept(_server_fd, (struct sockaddr *)&client_addr, &client_len);
-	if (client_fd == -1) {
-		_lggr.error("Failed to accept connection\n");
-		return;
-	}
+bool WebServer::isConnectionExpired(const ConnectionInfo *conn) const {
+	time_t current_time = getCurrentTime();
+	time_t timeout = conn->keep_alive ? KEEP_ALIVE_TO : CONNECTION_TO;
 
-	if (!setNonBlocking(client_fd)) {
-		close(client_fd);
-		return;
-	}
-
-	struct epoll_event ev;
-	ev.events = EPOLLIN | EPOLLET;
-	ev.data.fd = client_fd;
-
-	if (epoll_ctl(_epoll_fd, EPOLL_CTL_ADD, client_fd, &ev) == -1) {
-		_lggr.error("Failed to add client socket (fd: " + string_utils::to_string<int>(client_fd) +
-		            ") to epoll\n");
-		close(client_fd);
-		return;
-	}
-
-	// Initialize client buffer
-	_client_buffers[client_fd] = "";
-
-	_lggr.info("New connection from " + std::string(inet_ntoa(client_addr.sin_addr)) + ":" +
-	           string_utils::to_string<unsigned short>(ntohs(client_addr.sin_port)) +
-	           " (fd: " + string_utils::to_string<int>(client_fd) + ")\n");
+	return (current_time - conn->last_activity) > timeout;
 }
 
-void WebServer::handleClientData(int client_fd) {
-	char buffer[BUFFER_SIZE];
-	ssize_t bytes_read;
+void WebServer::logConnectionStats() {
+	size_t active_connections = _connections.size();
+	size_t keep_alive_connections = 0;
 
-	while ((bytes_read = recv(client_fd, buffer, sizeof(buffer) - 1, 0)) > 0) {
-		buffer[bytes_read] = '\0';
-		_client_buffers[client_fd] += std::string(buffer);
-
-		if (isCompleteRequest(_client_buffers[client_fd])) {
-			processRequest(client_fd, _client_buffers[client_fd]);
-			_client_buffers[client_fd].clear();
+	for (std::map<int, ConnectionInfo *>::const_iterator it = _connections.begin();
+	     it != _connections.end(); ++it) {
+		if (it->second->keep_alive) {
+			keep_alive_connections++;
 		}
 	}
 
-	if (bytes_read == 0) {
-		_lggr.info("Client disconnected (fd: " + string_utils::to_string(client_fd) + ")\n");
-		closeConnection(client_fd);
-	} else if (bytes_read == -1) {
-		//} else if (bytes_read == -1 && errno != EAGAIN && errno != EWOULDBLOCK) {
-		_lggr.error("Error reading from client (fd: " + string_utils::to_string<int>(client_fd) +
-		            ")\n");
-		closeConnection(client_fd);
-	}
-}
-
-bool WebServer::isCompleteRequest(const std::string &request) {
-	// Simple check for HTTP request completion
-	// Look for double CRLF which indicates end of headers
-	return request.find("\r\n\r\n") != std::string::npos;
-}
-
-void WebServer::processRequest(int client_fd, const std::string &raw_req) {
-	_lggr.info("Processing request from fd " + string_utils::to_string(client_fd) + ":\n");
-	_lggr.debug("--- Request Start ---\n");
-	_lggr.debug(raw_req);
-	_lggr.debug("--- Request End ---\n\n");
-
-	ClientRequest req;
-	req.clfd = client_fd;
-	if (!RequestParsingUtils::parse_request(raw_req, req)) {
-		//
-	}
-
-//	// Extract method and path from first line
-//	size_t first_space = request.find(' ');
-//	size_t second_space = request.find(' ', first_space + 1);
-//	struct Request req;
-//
-//	if (first_space != std::string::npos && second_space != std::string::npos) {
-//		req.method = request.substr(0, first_space);
-//		req.path = request.substr(first_space + 1, second_space - first_space - 1);
-//		req.clfd = client_fd;
-//
-//		_lggr.info("Method: " + req.method + ", Path: " + req.path + "\n");
-//	}
-
-	// Send a simple HTTP response
-	sendResponse(req);
-}
-
-void WebServer::sendResponse(const ClientRequest &req) {
-	bool close_conn = true;
-	std::string response;
-	std::ifstream file;
-
-	if (req.method == GET) {
-		_lggr.debug("Requested path: " + req.uri);
-		file.open(req.uri.c_str(), std::ios::in | std::ios::binary);
-
-		if (!file.is_open()) {
-			_lggr.error("[Resp] File not found: " + req.uri);
-			response = "HTTP/1.1 404 Not Found\r\n"
-			           "Content-Type: text/plain\r\n"
-			           "Content-Length: 13\r\n\r\n"
-			           "404 Not Found";
-		} else {
-			std::stringstream buffer;
-			buffer << file.rdbuf();
-			file.close();
-
-			// TODO: content-type detection
-			std::string fileContent = buffer.str();
-			response = "HTTP/1.1 200 OK\r\n"
-			           "Content-Type: text/plain,text/html\r\n"
-			           "Content-Length: " +
-			           string_utils::to_string<int>(fileContent.size()) + "\r\n\r\n" + fileContent;
-		}
-	} else if (req.method == POST || req.method == DELETE_) {
-		response = "HTTP/1.1 501 Not Implemented\r\n"
-		           "Content-Type: application/json\r\n"
-		           "Content-Length: 42\r\n\r\n"
-		           "{\"status\": 501,\"error\": \"Not Implemented\"}";
-	} else {
-		response = "HTTP/1.1 405 Method Not Allowed\r\n"
-		           "Content-Type: text/plain\r\n"
-		           "Content-Length: 23\r\n\r\n"
-		           "405 Method Not Allowed";
-	}
-
-	ssize_t bytes_sent = send(req.clfd, response.c_str(), response.size(), 0);
-	if (bytes_sent < 0) {
-		_lggr.error("Failed to send response to client (fd: " + string_utils::to_string(req.clfd) +
-		            ")");
-	} else {
-		_lggr.debug("Sent " + string_utils::to_string(bytes_sent) + " bytes response to fd " +
-		            string_utils::to_string(req.clfd));
-	}
-
-	// TODO: handle headers such as `keep-alive` connection
-
-	if (close_conn) {
-		closeConnection(req.clfd);
-	}
-}
-
-void WebServer::closeConnection(int client_fd) {
-	epoll_ctl(_epoll_fd, EPOLL_CTL_DEL, client_fd, NULL);
-	close(client_fd);
-	_client_buffers.erase(client_fd);
+	_lggr.info("Connection Stats - Active: " + su::to_string(active_connections) +
+	           ", Keep-Alive: " + su::to_string(keep_alive_connections));
 }
 
 void WebServer::cleanup() {
+	_lggr.debug("Performing server cleanup...");
+
+	for (std::map<int, ConnectionInfo *>::iterator it = _connections.begin();
+	     it != _connections.end(); ++it) {
+		close(it->first);
+		delete it->second;
+	}
+	_connections.clear();
+
 	if (_server_fd != -1) {
 		close(_server_fd);
+		_server_fd = -1;
 	}
+
 	if (_epoll_fd != -1) {
 		close(_epoll_fd);
+		_epoll_fd = -1;
 	}
+
+	_lggr.info("Server cleanup completed");
 }
 
 int main(int argc, char *argv[]) {

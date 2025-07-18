@@ -11,7 +11,6 @@
 /* ************************************************************************** */
 
 #include "../Logger/Logger.hpp"
-#include "../utils/utils.hpp"
 #include "request_parser.hpp"
 
 /* Utils */

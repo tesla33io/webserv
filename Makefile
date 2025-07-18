@@ -25,7 +25,7 @@ CXXFLAGS		:= -Wall -Werror -Wextra -std=c++98 -pedantic
 LDLIBS			:=
 
 #Include directories
-INCLUDES		:= -I./
+INCLUDES		:= -I./ -I./src
 
 #Target executable
 TARGET			:= webserv
@@ -34,16 +34,15 @@ TARGET			:= webserv
 SRC_DIR			:= ./
 
 #Source files
-#SRC_FILES		+= src/main.cpp
-
-# Logger source files
 SRC_FILES		+= src/HttpServer/HttpServer.cpp
+SRC_FILES		+= src/HttpServer/Connection.cpp
+SRC_FILES		+= src/HttpServer/Request.cpp
+SRC_FILES		+= src/HttpServer/Handlers/FileHandler.cpp
+SRC_FILES		+= src/HttpServer/Handlers/ResponseHandler.cpp
 SRC_FILES		+= src/RequestParser/request_parser.cpp
 SRC_FILES		+= src/RequestParser/request_line.cpp
 SRC_FILES		+= src/RequestParser/headers.cpp
 SRC_FILES		+= src/RequestParser/body.cpp
-SRC_FILES		+= src/utils/utils.cpp
-#SRC_FILES		+= src/Logger/Logger.cpp
 
 #Object files directory
 OBJ_DIR			:= obj/
@@ -55,7 +54,7 @@ OBJ_FILES		:= $(patsubst %.cpp, $(OBJ_DIR)%.o, $(SRC_FILES))
 DEP_DIR			:= dep/
 
 #Dependency files
-DEPENDS			:= $(patsubst %.o, $(DEP_DIR)%.d, $(OBJ_FILES))
+DEPENDS			:= $(patsubst %.cpp, $(DEP_DIR)%.d, $(SRC_FILES))
 -include $(DEPENDS)
 
 
@@ -78,7 +77,8 @@ TOUCH			:= /bin/touch
 ############################
 
 ifeq ($(DEBUG), 1)
-	CXXFLAGS	+= -g3 -O0
+	CXXFLAGS	+= -fsanitize=address,undefined -D_GLIBCXX_DEBUG
+	#CXXFLAGS	+= -g3 -O0
 endif
 
 
@@ -88,12 +88,14 @@ endif
 
 .DEFAULT_GOAL	:= all
 
-all: $(TARGET) ## Build this project
+all: ## Build this project
+	$(MAKE) -j $(TARGET)
 
 #Compilation rule for object files
 $(OBJ_DIR)%.o: $(SRC_DIR)%.cpp
-	@$(MKDIR) $(@D)
-	$(CXX) $(CXXFLAGS) -MMD -MF $(patsubst %.o, %.d, $@) $(INCLUDES) -c $< -o $@
+	@$(MKDIR) $(dir $@)
+	@$(MKDIR) $(dir $(patsubst $(OBJ_DIR)%.o, $(DEP_DIR)%.d, $@))
+	$(CXX) $(CXXFLAGS) -MMD -MP -MF $(patsubst $(OBJ_DIR)%.o, $(DEP_DIR)%.d, $@) $(INCLUDES) -c $< -o $@
 
 #Rule for linking the target executable
 $(TARGET): $(OBJ_FILES)
@@ -114,6 +116,9 @@ fclean: clean ## Restore project to initial state
 	$(RM) $(TARGET)
 
 re: fclean all ## Rebuild project
+
+todo: ## Print todo's from source files
+	find . -type f \( -name "*.cpp" -o -name "*.hpp" \) -print | grep -v ".venv" | xargs grep --color -Hn "// *TODO"
 
 help: ## Show help info
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | \

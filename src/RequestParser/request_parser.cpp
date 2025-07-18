@@ -6,11 +6,13 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/17 15:43:17 by jalombar          #+#    #+#             */
-/*   Updated: 2025/06/27 14:59:10 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/07/18 11:27:37 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "request_parser.hpp"
+#include "../Logger/Logger.hpp"
+#include "../Utils/StringUtils.hpp"
 
 /* Utils */
 const char *RequestParsingUtils::find_header(ClientRequest &request,
@@ -83,15 +85,15 @@ bool RequestParsingUtils::parse_trailing_headers(std::istringstream &stream,
 			}
 		}
 		// Check for valid header to be in trailing
-		if (GeneralUtils::to_lower(name) == "te" ||
-		    GeneralUtils::to_lower(name) == "connection") {
+		if (su::to_lower(name) == "te" ||
+		    su::to_lower(name) == "connection") {
 			logger.logWithPrefix(Logger::WARNING, "HTTP",
 			                     "Invalid headers to be in trailing");
 			return (false);
 		}
 		if (!check_header(name, value, request))
 			return (false);
-		request.headers[GeneralUtils::to_lower(name)] = value;
+		request.headers[su::to_lower(name)] = value;
 	}
 	return (true);
 }
