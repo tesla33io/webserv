@@ -1,26 +1,31 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   cgi.hpp                                            :+:      :+:    :+:   */
+/*   GeneralUtils.hpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/06/27 14:09:28 by jalombar          #+#    #+#             */
-/*   Updated: 2025/07/18 11:42:44 by jalombar         ###   ########.fr       */
+/*   Created: 2025/06/19 14:45:55 by jalombar          #+#    #+#             */
+/*   Updated: 2025/07/18 11:44:57 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#ifndef CGI_HPP
-#define CGI_HPP
+#ifndef UTILS_HPP
+#define UTILS_HPP
 
-#include "../../includes/types.hpp"
-#include "../../includes/webserv.hpp"
-#include "../Logger/Logger.hpp"
+# include "../../includes/webserv.hpp"
 
-namespace CGIUtils {
-std::string select_method(RequestMethod &method);
-std::string get_interpreter(std::string &path);
-bool handle_CGI_request(ClientRequest &request);
-} // namespace CGIUtils
+namespace GeneralUtils {
+	inline std::string to_upper(std::string &s) {
+		for (size_t i = 0; i < s.length(); ++i)
+			s[i] = std::toupper(s[i]);
+		return (s);
+	}
+	inline std::string to_lower(std::string &s) {
+		for (size_t i = 0; i < s.length(); ++i)
+			s[i] = std::tolower(s[i]);
+		return (s);
+	}
+} // namespace GeneralUtils
 
 #endif

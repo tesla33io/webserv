@@ -6,7 +6,7 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/17 15:32:36 by jalombar          #+#    #+#             */
-/*   Updated: 2025/07/18 11:35:13 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/07/18 11:41:38 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,7 +16,7 @@
 # include "../../includes/webserv.hpp"
 # include "../../includes/types.hpp"
 #include "../Logger/Logger.hpp"
-#include "../utils/utils.hpp"
+#include "../Utils/GeneralUtils.hpp"
 # include <iostream>
 # include <sstream>
 # include <string>
