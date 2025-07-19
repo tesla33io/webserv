@@ -2,9 +2,12 @@
 #include "HttpServer.hpp"
 #include "src/Logger/Logger.hpp"
 #include "src/RequestParser/request_parser.hpp"
+#include "src/Utils/ArgumentParser.hpp"
 #include "src/Utils/StringUtils.hpp"
 #include <cstring>
+#include <exception>
 #include <netdb.h>
+#include <string>
 #include <sys/socket.h>
 #include <unistd.h>
 #include <vector>
@@ -30,6 +33,12 @@ WebServer::WebServer(std::vector<ServerConfig> &confs)
 	_lggr.info("An instance of the Webserver was created.");
 }
 
+WebServer::WebServer(std::vector<ServerConfig> &confs, std::string &prefix_path)
+    : _host("127.0.0.1"), _server_fd(-1), _epoll_fd(-1), _port(0), _backlog(SOMAXCONN),
+      _root_prefix_path(prefix_path), _confs(confs), _lggr("ws.log", Logger::DEBUG, true) {
+	_lggr.info("An instance of the Webserver was created.");
+}
+
 WebServer::~WebServer() {
 	_lggr.debug("Destroying the instance of the Webserver.");
 	cleanup();
@@ -39,17 +48,6 @@ void sigint_handler(int sig) {
 	(void)sig;
 	WebServer::_running = false;
 	interrupted = true;
-}
-
-// tmp until config parser is done
-static std::string getCurrentWorkingDirectory() {
-	char buffer[PATH_MAX];
-	if (getcwd(buffer, sizeof(buffer)) != NULL) {
-		return std::string(buffer);
-	} else {
-		perror("getcwd failed");
-		return std::string();
-	}
 }
 
 bool WebServer::initialize() {
@@ -135,11 +133,6 @@ bool WebServer::initialize() {
 
 	_running = true;
 	_max_content_length = 8192; // TODO: replace with the value from config
-	_root_path = getCurrentWorkingDirectory();
-	if (_root_path.empty()) {
-		_lggr.error("Couldn't get current working dir to proceed further");
-		return false;
-	}
 	return _running;
 }
 
@@ -296,46 +289,51 @@ void WebServer::cleanup() {
 	_lggr.info("Server cleanup completed");
 }
 
-int main(int argc, char *argv[]) {
-	Logger lgger("config_prasing", Logger::INFO, true);
+static std::string getCurrentWorkingDirectory() {
+	char buffer[PATH_MAX];
+	if (getcwd(buffer, sizeof(buffer)) != NULL) {
+		return std::string(buffer);
+	} else {
+		perror("getcwd failed");
+		return std::string();
+	}
+}
 
-	if (argc != 2) {
-		std::cerr << "TODO: write a nice error message with usage instructions here <<<"
-		          << std::endl;
+int main(int argc, char *argv[]) {
+	ArgumentParser ap;
+	ServerArgs args;
+	try {
+		args = ap.parseArgs(argc, argv);
+		if (args.show_help) {
+			ap.printUsage(argv[0]);
+			return 0;
+		}
+		if (args.show_version) {
+			std::cout << __WEBSERV_VERSION__ << std::endl;
+			return 0;
+		}
+		if (args.prefix_path.empty()) {
+			args.prefix_path = getCurrentWorkingDirectory();
+		}
+	} catch (const std::exception &e) {
+		std::cerr << "Error: " << e.what() << std::endl;
+		std::cerr << "Use --help for usage information." << std::endl;
 		return 1;
 	}
+	Logger lgger("config_prasing.log", Logger::INFO, true);
 
 	ConfigNode conf;
-	if (!ConfigParsing::tree_parser(argv[1], conf, lgger)) {
-		std::cerr << "TODO: also nice error message here..." << std::endl;
+	if (!ConfigParsing::tree_parser(args.config_file, conf, lgger)) {
+		std::cerr << "Error occured during parsing of the config file." << std::endl;
 		return 1;
 	}
 
 	std::vector<ServerConfig> servers;
 	ConfigParsing::struct_parser(conf, servers, lgger);
-	WebServer Wserver(servers);
+	WebServer Wserver(servers, args.prefix_path);
 
 	Wserver.initialize();
 	Wserver.run();
-
-	// int port = 8080;
-
-	// if (argc > 1) {
-	//	port = atoi(argv[1]);
-	//	if (port <= 0 || port > 65535) {
-	//		std::cerr << "Invalid port number. Using default port 8080.\n";
-	//		port = 8080;
-	//	}
-	// }
-
-	// WebServer server(port);
-
-	// if (!server.initialize()) {
-	//	std::cerr << "Failed to initialize server\n";
-	//	return 1;
-	// }
-
-	// server.run();
 
 	return 0;
 }

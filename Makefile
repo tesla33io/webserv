@@ -40,6 +40,7 @@ SRC_FILES		+= src/HttpServer/Request.cpp
 SRC_FILES		+= src/HttpServer/Structs.cpp
 SRC_FILES		+= src/HttpServer/Handlers/FileHandler.cpp
 SRC_FILES		+= src/HttpServer/Handlers/ResponseHandler.cpp
+SRC_FILES		+= src/HttpServer/Handlers/LocationMatch.cpp
 
 SRC_FILES		+= src/RequestParser/request_parser.cpp
 SRC_FILES		+= src/RequestParser/request_line.cpp
@@ -84,9 +85,12 @@ TOUCH			:= /bin/touch
 ###### DEBUG SETTINGS ######
 ############################
 
-ifeq ($(DEBUG), 1)
-	CXXFLAGS	+= -fsanitize=address,undefined -D_GLIBCXX_DEBUG
-	#CXXFLAGS	+= -g3 -O0
+ifeq ($(FSANITIZE), 1)
+	CXXFLAGS	+= -O0 -fsanitize=address,undefined -D_GLIBCXX_DEBUG
+endif
+
+ifeq ($(GDB), 1)
+	CXXFLAGS	+=  -O0 -ggdb3
 endif
 
 

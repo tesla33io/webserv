@@ -18,6 +18,7 @@
 #include <netinet/in.h>
 #include <signal.h>
 #include <sstream>
+#include <string>
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -32,12 +33,15 @@
 #define uint16_t unsigned short
 #endif // uint16_t
 
+#define __WEBSERV_VERSION__ "whateverX 0.whatever.7 -- made with <3 at 42 Berlin"
+
 class WebServer {
 
   public:
 	WebServer(int port);
 	WebServer(std::string &host, int port);
 	WebServer(std::vector<ServerConfig> &confs);
+	WebServer(std::vector<ServerConfig> &confs, std::string &prefix_path);
 	~WebServer();
 
 	bool initialize();
@@ -93,7 +97,7 @@ class WebServer {
 	int _port;
 	int _backlog;
 	ssize_t _max_content_length;
-	std::string _root_path;
+	std::string _root_prefix_path;
 
     std::vector<ServerConfig> _confs;
     std::vector<ServerConfig> _have_pending_conn;
@@ -127,7 +131,7 @@ class WebServer {
 	std::string handleGetRequest(const std::string &path);
 
 	// HTTP request handlers
-	Response handleGetRequest(const ClientRequest &req);
+	Response handleGetRequest(ClientRequest &req);
 	Response handlePostRequest(const ClientRequest &req);   // TODO: Implement
 	Response handleDeleteRequest(const ClientRequest &req); // TODO: Implement
 
@@ -147,5 +151,11 @@ class WebServer {
 	void logConnectionStats();
 	void cleanup();
 };
+
+// Utility functions
+
+LocConfig *findBestMatch(const std::string &uri, std::vector<LocConfig> &locations);
+bool isDirectory(const char *path);
+bool isRegularFile(const char *path);
 
 #endif // HTTPSERVER_HPP

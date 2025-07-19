@@ -86,7 +86,6 @@ void WebServer::processRequest(int client_fd, const std::string &raw_req) {
 		closeConnection(client_fd);
 		return;
 	}
-
 	std::string response;
 	bool keep_alive = shouldKeepAlive(req);
 
