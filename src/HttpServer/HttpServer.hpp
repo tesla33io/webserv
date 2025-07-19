@@ -1,10 +1,10 @@
 #ifndef HTTPSERVER_HPP
 #define HTTPSERVER_HPP
 
+#include "../ConfigParser/config_parser.hpp"
 #include "../Logger/Logger.hpp"
 #include "../RequestParser/request_parser.hpp"
 #include "../Utils/StringUtils.hpp"
-#include "../ConfigParser/config_parser.hpp"
 
 #include <arpa/inet.h>
 #include <climits>
@@ -96,11 +96,10 @@ class WebServer {
 	int _epoll_fd;
 	int _port;
 	int _backlog;
-	ssize_t _max_content_length;
 	std::string _root_prefix_path;
 
-    std::vector<ServerConfig> _confs;
-    std::vector<ServerConfig> _have_pending_conn;
+	std::vector<ServerConfig> _confs;
+	std::vector<ServerConfig> _have_pending_conn;
 
 	static const int CONNECTION_TO = 30;   // seconds
 	static const int CLEANUP_INTERVAL = 5; // seconds
@@ -113,6 +112,21 @@ class WebServer {
 	std::map<int, ConnectionInfo *> _connections;
 	std::vector<int> _conn_to_close;
 	time_t _last_cleanup;
+
+	// Initialization
+    bool setupSignalHandlers();
+    bool createEpollInstance();
+    bool resolveAddress(const ServerConfig &config, struct addrinfo **result);
+    bool createAndConfigureSocket(ServerConfig &config, const struct addrinfo *addr_info);
+    bool setSocketOptions(int socket_fd, const std::string &host, const int port);
+    bool setNonBlocking(int fd);
+    bool bindAndListen(const ServerConfig &config, const struct addrinfo *addr_info);
+    bool addToEpoll(int socket_fd, const std::string &host, const int port);
+	bool initializeSingleServer(ServerConfig &config);
+
+    // Main loop
+    void processEpollEvents(const struct epoll_event* events, int event_count);
+    void handleClientEvent(int fd);
 
 	// Connection management methods
 	void handleNewConnection();
@@ -144,8 +158,10 @@ class WebServer {
 	Response createErrorResponse(uint16_t code) const; // TODO: Implement
 
 	// Utility methods
+    
+    bool isServerSocket(int fd) const;
+    void findPendingConnections(int fd);
 	static void initErrMessages();
-	bool setNonBlocking(int fd);
 	time_t getCurrentTime() const;
 	bool isConnectionExpired(const ConnectionInfo *conn) const;
 	void logConnectionStats();

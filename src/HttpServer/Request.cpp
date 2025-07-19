@@ -33,10 +33,10 @@ void WebServer::handleClientData(int client_fd) {
 			buffer[bytes_read] = '\0';
 			conn->buffer += std::string(buffer);
 			if (isCompleteRequest(conn->buffer)) {
-				if (total_bytes_read > _max_content_length) {
+				if (total_bytes_read > 4096) {
 					_lggr.info("Reached max content length for fd: " + su::to_string(client_fd) +
 					           ", " + su::to_string(bytes_read) + "/" +
-					           su::to_string(_max_content_length));
+					           su::to_string(4096));
 					sendResponse(client_fd, Response(413)); // TODO: some tests of this part
 					closeConnection(client_fd);
 					return;
