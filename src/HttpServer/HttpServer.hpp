@@ -8,6 +8,7 @@
 
 #include <arpa/inet.h>
 #include <climits>
+#include <cstddef>
 #include <cstdio>
 #include <cstring>
 #include <fcntl.h>
@@ -53,12 +54,29 @@ class WebServer {
 		int clfd;
 		time_t last_activity;
 		std::string buffer;
+		bool chunked;
 		bool keep_alive;
 		int request_count;
+
+		// Chunked transfer state
+		enum ChunkedState {
+			READING_HEADERS,
+			READING_CHUNK,
+			READING_CHUNK_TRAILER,
+			READING_FINAL_TRAILER,
+			CHUNK_COMPLETE
+		};
+
+		ChunkedState chunk_state;
+		size_t expected_chunk_size;
+		size_t current_chunk_read;
+		std::string decoded_body; // Accumulated decoded chunks
 
 		ConnectionInfo(int socket_fd);
 		void updateActivity();
 		bool isExpired(time_t current_time, int timeout) const;
+		void resetChunkedState();
+		std::string toString();
 	};
 
 	struct Response {
@@ -79,6 +97,7 @@ class WebServer {
 		std::string toString() const;
 
 		// Factory methods for common responses
+		static Response continue_();
 		static Response ok(const std::string &body = "");
 		static Response notFound();
 		static Response internalServerError();
@@ -114,19 +133,19 @@ class WebServer {
 	time_t _last_cleanup;
 
 	// Initialization
-    bool setupSignalHandlers();
-    bool createEpollInstance();
-    bool resolveAddress(const ServerConfig &config, struct addrinfo **result);
-    bool createAndConfigureSocket(ServerConfig &config, const struct addrinfo *addr_info);
-    bool setSocketOptions(int socket_fd, const std::string &host, const int port);
-    bool setNonBlocking(int fd);
-    bool bindAndListen(const ServerConfig &config, const struct addrinfo *addr_info);
-    bool addToEpoll(int socket_fd, const std::string &host, const int port);
+	bool setupSignalHandlers();
+	bool createEpollInstance();
+	bool resolveAddress(const ServerConfig &config, struct addrinfo **result);
+	bool createAndConfigureSocket(ServerConfig &config, const struct addrinfo *addr_info);
+	bool setSocketOptions(int socket_fd, const std::string &host, const int port);
+	bool setNonBlocking(int fd);
+	bool bindAndListen(const ServerConfig &config, const struct addrinfo *addr_info);
+	bool addToEpoll(int socket_fd, const std::string &host, const int port);
 	bool initializeSingleServer(ServerConfig &config);
 
-    // Main loop
-    void processEpollEvents(const struct epoll_event* events, int event_count);
-    void handleClientEvent(int fd);
+	// Main loop
+	void processEpollEvents(const struct epoll_event *events, int event_count);
+	void handleClientEvent(int fd);
 
 	// Connection management methods
 	void handleNewConnection();
@@ -139,8 +158,15 @@ class WebServer {
 
 	// Request processing methods
 	void handleClientData(int client_fd);
-	bool isCompleteRequest(const std::string &request);
-	void processRequest(int client_fd, const std::string &raw_req);
+	ssize_t receiveData(int client_fd, char *buffer, size_t buffer_size);
+	bool processReceivedData(int client_fd, ConnectionInfo *conn, const char *buffer,
+	                         ssize_t bytes_read, ssize_t total_bytes_read);
+    void handleClientDisconnection(int client_fd);
+	void handleRequestTooLarge(int client_fd, ssize_t bytes_read);
+    bool handleCompleteRequest(int client_fd, ConnectionInfo* conn);
+	bool isCompleteRequest(ConnectionInfo *conn);
+	void processRequest(int client_fd, ConnectionInfo *conn);
+    bool parseRequest(ConnectionInfo* conn, ClientRequest& req);
 	ssize_t sendResponse(const int clfd, const Response &resp);
 	std::string handleGetRequest(const std::string &path);
 
@@ -158,9 +184,9 @@ class WebServer {
 	Response createErrorResponse(uint16_t code) const; // TODO: Implement
 
 	// Utility methods
-    
-    bool isServerSocket(int fd) const;
-    void findPendingConnections(int fd);
+	ConnectionInfo *getConnectionInfo(int client_fd);
+	bool isServerSocket(int fd) const;
+	void findPendingConnections(int fd);
 	static void initErrMessages();
 	time_t getCurrentTime() const;
 	bool isConnectionExpired(const ConnectionInfo *conn) const;

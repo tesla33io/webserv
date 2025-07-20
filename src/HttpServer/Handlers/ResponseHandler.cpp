@@ -9,6 +9,8 @@ ssize_t WebServer::sendResponse(const int clfd, const Response &resp) {
 	// TODO: some checks if the arguments are fine to work with
 	// TODO: make sure that Response has all required headers set up correctly (e.g. Content-Type,
 	// Content-Length, etc).
+	_lggr.debug("Sending a response [" + su::to_string(resp.status_code) + "] back to fd " +
+	            su::to_string(clfd));
 	std::string raw_response = resp.toString();
 	return send(clfd, raw_response.c_str(), raw_response.length(), 0);
 }
@@ -24,8 +26,6 @@ WebServer::Response WebServer::handleGetRequest(ClientRequest &req) {
 
 	ServerConfig *req_host = NULL;
 	for (std::vector<ServerConfig>::iterator it = _confs.begin(); it != _confs.end(); ++it) {
-		std::cerr << "Checking: " << it->host << ":" << su::to_string(it->port);
-		std::cerr << " against: " << host << ":" << port << std::endl;
 		// TODO: handle check for servers with 0.0.0.0 host (should ignore host in this case?)
 		if (((it->host != "0.0.0.0" && it->host == host) || it->host == "0.0.0.0") &&
 		    it->port == std::atoi(port.c_str())) {
@@ -60,6 +60,7 @@ WebServer::Response WebServer::handleGetRequest(ClientRequest &req) {
 	if (req.uri == match->path && isDirectory(full_uri.c_str())) {
 		// Use index directive
 		full_uri += match->index[0]; // TODO: figure out whta to do when there are many index's
+		                             // TODO: check if it's dir
 	}
 
 	std::string content = getFileContent(full_uri);

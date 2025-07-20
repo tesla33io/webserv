@@ -63,6 +63,60 @@ WebServer::~WebServer() {
 	cleanup();
 }
 
+bool WebServer::initialize() {
+	if (!setupSignalHandlers()) {
+		return false;
+	}
+
+	if (_confs.empty()) {
+		_lggr.error("No server configurations provided. Cannot initialize WebServer");
+		return false;
+	}
+
+	if (!createEpollInstance()) {
+		return false;
+	}
+
+	for (std::vector<ServerConfig>::iterator it = _confs.begin(); it != _confs.end(); ++it) {
+		if (!initializeSingleServer(*it)) {
+			return false;
+		}
+	}
+
+	_running = true;
+	return true;
+}
+
+void WebServer::run() {
+	struct epoll_event events[MAX_EVENTS];
+	_last_cleanup = getCurrentTime();
+
+	_lggr.debug("Server running. Waiting for connections...");
+
+	while (_running) {
+		int event_count = epoll_wait(_epoll_fd, events, MAX_EVENTS, 1000);
+
+		if (event_count == -1 && !interrupted) {
+			_lggr.error("epoll_wait failed: " + std::string(strerror(errno)));
+			break;
+		} else if (event_count == -1 && interrupted) {
+			_lggr.warn("Program interrupted, shutting down...");
+			break;
+		}
+
+		if (event_count > 0) {
+			processEpollEvents(events, event_count);
+			_lggr.debug("Processed " + su::to_string(event_count) + " events");
+			if (event_count == MAX_EVENTS) {
+				_lggr.warn("Hit MAX_EVENTS limit (" + su::to_string(MAX_EVENTS) +
+				           "), may have more events pending");
+			}
+		}
+
+		cleanupExpiredConnections();
+	}
+}
+
 void sigint_handler(int sig) {
 	(void)sig;
 	WebServer::_running = false;
@@ -218,30 +272,6 @@ bool WebServer::initializeSingleServer(ServerConfig &config) {
 	return true;
 }
 
-bool WebServer::initialize() {
-	if (!setupSignalHandlers()) {
-		return false;
-	}
-
-	if (_confs.empty()) {
-		_lggr.error("No server configurations provided. Cannot initialize WebServer");
-		return false;
-	}
-
-	if (!createEpollInstance()) {
-		return false;
-	}
-
-	for (std::vector<ServerConfig>::iterator it = _confs.begin(); it != _confs.end(); ++it) {
-		if (!initializeSingleServer(*it)) {
-			return false;
-		}
-	}
-
-	_running = true;
-	return true;
-}
-
 static std::string describeEpollEvents(uint32_t ev) {
 	std::vector<std::string> event_names;
 
@@ -314,36 +344,6 @@ void WebServer::handleClientEvent(int fd) {
 		handleClientData(fd);
 	} else {
 		_lggr.debug("Ignoring event for unknown fd: " + su::to_string(fd));
-	}
-}
-
-void WebServer::run() {
-	struct epoll_event events[MAX_EVENTS];
-	_last_cleanup = getCurrentTime();
-
-	_lggr.debug("Server running. Waiting for connections...");
-
-	while (_running) {
-		int event_count = epoll_wait(_epoll_fd, events, MAX_EVENTS, 1000);
-
-		if (event_count == -1 && !interrupted) {
-			_lggr.error("epoll_wait failed: " + std::string(strerror(errno)));
-			break;
-		} else if (event_count == -1 && interrupted) {
-			_lggr.warn("Program interrupted, shutting down...");
-			break;
-		}
-
-		if (event_count > 0) {
-			processEpollEvents(events, event_count);
-			_lggr.debug("Processed " + su::to_string(event_count) + " events");
-			if (event_count == MAX_EVENTS) {
-				_lggr.warn("Hit MAX_EVENTS limit (" + su::to_string(MAX_EVENTS) +
-				           "), may have more events pending");
-			}
-		}
-
-		cleanupExpiredConnections();
 	}
 }
 

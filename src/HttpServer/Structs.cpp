@@ -1,9 +1,19 @@
 #include "src/HttpServer/HttpServer.hpp"
+#include <ctime>
+#include <string>
 
 //// ConnectionInfo ////
 
 WebServer::ConnectionInfo::ConnectionInfo(int socket_fd)
-    : clfd(socket_fd), last_activity(time(NULL)), keep_alive(false), request_count(0) {}
+    : clfd(socket_fd),
+      chunked(false),
+      keep_alive(false),
+      request_count(0),
+      chunk_state(READING_HEADERS),
+      expected_chunk_size(0),
+      current_chunk_read(0) {
+	updateActivity();
+}
 
 void WebServer::ConnectionInfo::updateActivity() { last_activity = time(NULL); }
 
@@ -11,15 +21,77 @@ bool WebServer::ConnectionInfo::isExpired(time_t current_time, int timeout) cons
 	return (current_time - last_activity) > timeout;
 }
 
+void WebServer::ConnectionInfo::resetChunkedState() {
+	chunk_state = READING_HEADERS;
+	expected_chunk_size = 0;
+	current_chunk_read = 0;
+	decoded_body.clear();
+	chunked = false;
+}
+
+std::string chunkedStateToString(WebServer::ConnectionInfo::ChunkedState state) {
+	switch (state) {
+	case WebServer::ConnectionInfo::READING_HEADERS:
+		return "READING_HEADERS";
+	case WebServer::ConnectionInfo::READING_CHUNK:
+		return "READING_CHUNK";
+	case WebServer::ConnectionInfo::READING_CHUNK_TRAILER:
+		return "READING_CHUNK_TRAILER";
+	case WebServer::ConnectionInfo::READING_FINAL_TRAILER:
+		return "READING_FINAL_TRAILER";
+	case WebServer::ConnectionInfo::CHUNK_COMPLETE:
+		return "CHUNK_COMPLETE";
+	default:
+		return "UNKNOWN_STATE";
+	}
+}
+
+std::string WebServer::ConnectionInfo::toString() {
+	std::ostringstream oss;
+
+	oss << "Connection{\n";
+	oss << "  clfd: " << clfd << "\n";
+
+	char time_buf[26];
+	// TODO: do we need thread-safety??
+#if defined(_MSC_VER)
+	ctime_s(time_buf, sizeof(time_buf), &last_activity);
+#else
+	ctime_r(&last_activity, time_buf);
+#endif
+	// ctime_r includes a newline at the end; remove it
+	time_buf[24] = '\0';
+	oss << "  last_activity: " << time_buf << "\n";
+
+	oss << "  buffer: \"" << buffer << "\"\n";
+	oss << "  chunked: " << (chunked ? "true" : "false") << "\n";
+	oss << "  keep_alive: " << (keep_alive ? "true" : "false") << "\n";
+	oss << "  request_count: " << request_count << "\n";
+	oss << "  chunk_state: " << chunkedStateToString(chunk_state) << "\n";
+	oss << "  expected_chunk_size: " << expected_chunk_size << "\n";
+	oss << "  current_chunk_read: " << current_chunk_read << "\n";
+	oss << "  decoded_body: \"" << decoded_body << "\"\n";
+	oss << "}";
+
+	return oss.str();
+}
+
 //// Response ////
 
-WebServer::Response::Response() : version("HTTP/1.1"), status_code(200), reason_phrase("OK") {}
-WebServer::Response::Response(uint16_t code) : version("HTTP/1.1"), status_code(code) {
+WebServer::Response::Response()
+    : version("HTTP/1.1"),
+      status_code(200),
+      reason_phrase("OK") {}
+WebServer::Response::Response(uint16_t code)
+    : version("HTTP/1.1"),
+      status_code(code) {
 	initFromStatusCode(code);
 }
 
 WebServer::Response::Response(uint16_t code, const std::string &response_body)
-    : version("HTTP/1.1"), status_code(code), body(response_body) {
+    : version("HTTP/1.1"),
+      status_code(code),
+      body(response_body) {
 	initFromStatusCode(code);
 	setContentLength(body.length());
 }
@@ -53,6 +125,8 @@ std::string WebServer::Response::toString() const {
 	return response_stream.str();
 }
 
+WebServer::Response WebServer::Response::continue_() { return Response(100); }
+
 WebServer::Response WebServer::Response::ok(const std::string &body) { return Response(200, body); }
 
 WebServer::Response WebServer::Response::notFound() {
@@ -81,6 +155,8 @@ WebServer::Response WebServer::Response::methodNotAllowed() {
 
 std::string WebServer::Response::getReasonPhrase(uint16_t code) const {
 	switch (code) {
+	case 100:
+		return "Continue";
 	case 200:
 		return "OK";
 	case 201:
