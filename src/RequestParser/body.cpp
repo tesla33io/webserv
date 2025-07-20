@@ -11,6 +11,7 @@
 /* ************************************************************************** */
 
 #include "../Logger/Logger.hpp"
+#include "../Utils/StringUtils.hpp"
 #include "request_parser.hpp"
 
 bool RequestParsingUtils::check_and_trim_line(std::string &line) {
@@ -29,8 +30,7 @@ bool RequestParsingUtils::check_and_trim_line(std::string &line) {
 	return (true);
 }
 
-bool RequestParsingUtils::chunked_encoding(std::istringstream &stream,
-                                           ClientRequest &request) {
+bool RequestParsingUtils::chunked_encoding(std::istringstream &stream, ClientRequest &request) {
 	Logger logger;
 	std::string line;
 	while (std::getline(stream, line)) {
@@ -39,21 +39,18 @@ bool RequestParsingUtils::chunked_encoding(std::istringstream &stream,
 		std::istringstream chunk_length_stream(line);
 		int chunk_length;
 		if (!(chunk_length_stream >> chunk_length) || chunk_length < 0) {
-			logger.logWithPrefix(Logger::WARNING, "HTTP",
-			                     "Invalid chunk length value");
+			logger.logWithPrefix(Logger::WARNING, "HTTP", "Invalid chunk length value");
 			return (false);
 		}
 		// Find final chunk
 		if (chunk_length == 0) {
 			if (!std::getline(stream, line)) {
-				logger.logWithPrefix(Logger::WARNING, "HTTP",
-				                     "Invalid chunked encoding");
+				logger.logWithPrefix(Logger::WARNING, "HTTP", "Invalid chunked encoding");
 			}
 			if (!check_and_trim_line(line))
 				return (false);
 			if (!line.empty()) {
-				logger.logWithPrefix(Logger::WARNING, "HTTP",
-				                     "Missing end of chunked body");
+				logger.logWithPrefix(Logger::WARNING, "HTTP", "Missing end of chunked body");
 				return (false);
 			}
 			return (true);
@@ -61,8 +58,7 @@ bool RequestParsingUtils::chunked_encoding(std::istringstream &stream,
 
 		// Parse chunk line
 		if (!std::getline(stream, line)) {
-			logger.logWithPrefix(Logger::WARNING, "HTTP",
-			                     "Invalid chunked encoding");
+			logger.logWithPrefix(Logger::WARNING, "HTTP", "Invalid chunked encoding");
 			return (false);
 		}
 		std::istringstream chunk_stream(line);
@@ -72,8 +68,8 @@ bool RequestParsingUtils::chunked_encoding(std::istringstream &stream,
 		std::streamsize actually_read = chunk_stream.gcount();
 		if (actually_read != chunk_length) {
 			std::ostringstream msg;
-			msg << "Chunk length mismatch: expected " << chunk_length
-			    << " bytes, but read " << actually_read << " bytes";
+			msg << "Chunk length mismatch: expected " << chunk_length << " bytes, but read "
+			    << actually_read << " bytes";
 			logger.logWithPrefix(Logger::WARNING, "HTTP", msg.str());
 			return (false);
 		}
@@ -83,21 +79,20 @@ bool RequestParsingUtils::chunked_encoding(std::istringstream &stream,
 	return (false);
 }
 
-bool RequestParsingUtils::parse_body(std::istringstream &stream,
-                                     ClientRequest &request) {
+bool RequestParsingUtils::parse_body(std::istringstream &stream, ClientRequest &request) {
 	Logger logger;
-	logger.logWithPrefix(Logger::INFO, "HTTP", "Parsing message body");
+	logger.logWithPrefix(Logger::DEBUG, "HTTP", "Parsing message body");
 
-	if (request.chunked_encoding)
-		return (chunked_encoding(stream, request));
+	// TODO: \/\/\/\/
+	// if (request.chunked_encoding)
+	//	return (chunked_encoding(stream, request));
 
 	const char *content_length_value = find_header(request, "content-length");
 
 	// Enforce Content-Length for POST even if body is empty
 	if (!content_length_value) {
-		if (request.method == POST) {
-			logger.logWithPrefix(Logger::WARNING, "HTTP",
-			                     "Missing Content-Length for POST");
+		if (request.method == "POST") {
+			logger.logWithPrefix(Logger::WARNING, "HTTP", "Missing Content-Length for POST");
 			return (false);
 		}
 
@@ -105,8 +100,7 @@ bool RequestParsingUtils::parse_body(std::istringstream &stream,
 		std::streampos start = stream.tellg();
 		char probe;
 		if (stream.get(probe)) {
-			logger.logWithPrefix(Logger::WARNING, "HTTP",
-			                     "Request has body but no Content-Length");
+			logger.logWithPrefix(Logger::WARNING, "HTTP", "Request has body but no Content-Length");
 			return (false);
 		}
 		// Rewind and accept
@@ -127,10 +121,9 @@ bool RequestParsingUtils::parse_body(std::istringstream &stream,
 	stream.read(&body[0], content_length);
 	std::streamsize actually_read = stream.gcount();
 	if (actually_read != content_length) {
-		std::ostringstream msg;
-		msg << "Body length mismatch: expected " << content_length
-		    << " bytes, but read " << actually_read << " bytes";
-		logger.logWithPrefix(Logger::WARNING, "HTTP", msg.str());
+		logger.logWithPrefix(Logger::WARNING, "HTTP",
+		                     "Body length mismatch: expected " + su::to_string(content_length) +
+		                         " bytes, but read " + su::to_string(actually_read) + " bytes");
 		return (false);
 	}
 	request.body = body;

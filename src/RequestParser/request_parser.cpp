@@ -10,15 +10,14 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "request_parser.hpp"
 #include "../Logger/Logger.hpp"
 #include "../Utils/StringUtils.hpp"
+#include "includes/types.hpp"
+#include "request_parser.hpp"
 
 /* Utils */
-const char *RequestParsingUtils::find_header(ClientRequest &request,
-                                             const std::string &header) {
-	std::map<std::string, std::string>::iterator it =
-	    request.headers.find(header);
+const char *RequestParsingUtils::find_header(ClientRequest &request, const std::string &header) {
+	std::map<std::string, std::string>::iterator it = request.headers.find(header);
 	if (it == request.headers.end())
 		return (NULL);
 	return (it->second.c_str());
@@ -32,8 +31,8 @@ std::string RequestParsingUtils::trim_side(const std::string &s, int type) {
 			result.erase(0, 1);
 	}
 	if (type == 2 || type == 3) {
-		while (!result.empty() && (result[result.size() - 1] == ' ' ||
-		                           result[result.size() - 1] == '\t'))
+		while (!result.empty() &&
+		       (result[result.size() - 1] == ' ' || result[result.size() - 1] == '\t'))
 			result.erase(result.size() - 1);
 	}
 	return (result);
@@ -56,8 +55,7 @@ bool RequestParsingUtils::parse_trailing_headers(std::istringstream &stream,
 
 		size_t colon = line.find(':');
 		if (colon == std::string::npos) {
-			logger.logWithPrefix(Logger::WARNING, "HTTP",
-			                     "Invalid trailing header");
+			logger.logWithPrefix(Logger::WARNING, "HTTP", "Invalid trailing header");
 			return (false);
 		}
 		std::string name = trim_side(line.substr(0, colon), 1);
@@ -68,10 +66,8 @@ bool RequestParsingUtils::parse_trailing_headers(std::istringstream &stream,
 			return (false);
 		}
 		// Check for spaces in header name (invalid according to HTTP spec)
-		if (name.find(' ') != std::string::npos ||
-		    name.find('\t') != std::string::npos) {
-			logger.logWithPrefix(Logger::WARNING, "HTTP",
-			                     "Invalid header name (contains spaces)");
+		if (name.find(' ') != std::string::npos || name.find('\t') != std::string::npos) {
+			logger.logWithPrefix(Logger::WARNING, "HTTP", "Invalid header name (contains spaces)");
 			return (false);
 		}
 		// Check for valid header name characters
@@ -79,16 +75,13 @@ bool RequestParsingUtils::parse_trailing_headers(std::istringstream &stream,
 			char c = name[i];
 			if (!std::isalnum(c) && c != '-' && c != '_') {
 				logger.logWithPrefix(Logger::WARNING, "HTTP",
-				                     "Invalid character in header name: " +
-				                         name);
+				                     "Invalid character in header name: " + name);
 				return (false);
 			}
 		}
 		// Check for valid header to be in trailing
-		if (su::to_lower(name) == "te" ||
-		    su::to_lower(name) == "connection") {
-			logger.logWithPrefix(Logger::WARNING, "HTTP",
-			                     "Invalid headers to be in trailing");
+		if (su::to_lower(name) == "te" || su::to_lower(name) == "connection") {
+			logger.logWithPrefix(Logger::WARNING, "HTTP", "Invalid headers to be in trailing");
 			return (false);
 		}
 		if (!check_header(name, value, request))
@@ -99,8 +92,7 @@ bool RequestParsingUtils::parse_trailing_headers(std::istringstream &stream,
 }
 
 /* Parser */
-bool RequestParsingUtils::parse_request(const std::string &raw_request,
-                                        ClientRequest &request) {
+bool RequestParsingUtils::parse_request(const std::string &raw_request, ClientRequest &request) {
 	Logger logger;
 	if (raw_request.empty()) {
 		logger.logWithPrefix(Logger::WARNING, "HTTP", "No request received");
@@ -130,4 +122,32 @@ bool RequestParsingUtils::parse_request(const std::string &raw_request,
 
 	logger.logWithPrefix(Logger::INFO, "HTTP", "Request parsing completed");
 	return (true);
+}
+
+std::string ClientRequest::toString() {
+	std::ostringstream oss;
+
+	oss << "Method: " << method << "\n";
+	oss << "URI: " << uri << "\n";
+	oss << "Path: " << path << "\n";
+	oss << "Query: " << query << "\n";
+	oss << "Version: " << version << "\n";
+
+	oss << "Headers:\n";
+	std::map<std::string, std::string>::const_iterator it;
+	for (it = headers.begin(); it != headers.end(); ++it) {
+		oss << "  " << it->first << ": " << it->second << "\n";
+	}
+
+	oss << "Chunked Encoding: " << (chunked_encoding ? "true" : "false") << "\n";
+
+	if (!body.empty()) {
+		oss << "Body:\n" << body << "\n";
+	} else {
+		oss << "Body: <empty>\n";
+	}
+
+	oss << "Client FD: " << clfd << "\n";
+
+	return oss.str();
 }

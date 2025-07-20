@@ -14,23 +14,24 @@
 #include "request_parser.hpp"
 
 /* Utils */
-bool RequestParsingUtils::assign_method(std::string &method,
-                                        ClientRequest &request) {
-	if (method == "GET")
-		request.method = GET;
-	else if (method == "POST")
-		request.method = POST;
-	else if (method == "DELETE")
-		request.method = DELETE_;
-	else
-		return (false);
-	return (true);
+bool RequestParsingUtils::assign_method(std::string &method, ClientRequest &request) {
+	// TODO: do not preforme method check in the req parsing
+	request.method = method;
+	return true;
+	// if (method == "GET")
+	// 	request.method = GET;
+	// else if (method == "POST")
+	// 	request.method = POST;
+	// else if (method == "DELETE")
+	// 	request.method = DELETE_;
+	// else
+	// 	return (false);
+	// return (true);
 }
 
 /* URI checks */
 static bool is_hex_digit(char ch) {
-	return (std::isdigit(ch) || (ch >= 'A' && ch <= 'F') ||
-	        (ch >= 'a' && ch <= 'f'));
+	return (std::isdigit(ch) || (ch >= 'A' && ch <= 'F') || (ch >= 'a' && ch <= 'f'));
 }
 
 static int hex_value(char ch) {
@@ -75,8 +76,8 @@ bool decode_and_validate_uri(const std::string &uri, std::string &decoded) {
 
 			// Disallow unescaped control characters, DEL, space, quotes,
 			// backslash
-			if (uch <= 0x1F || uch == 0x7F || uch == ' ' || uch == '"' ||
-			    uch == '\'' || uch == '\\')
+			if (uch <= 0x1F || uch == 0x7F || uch == ' ' || uch == '"' || uch == '\'' ||
+			    uch == '\\')
 				return (false);
 
 			// Disallow non-ASCII
@@ -91,21 +92,17 @@ bool decode_and_validate_uri(const std::string &uri, std::string &decoded) {
 }
 
 /* Checks */
-bool RequestParsingUtils::check_req_line(ClientRequest &request,
-                                         std::string &method) {
+bool RequestParsingUtils::check_req_line(ClientRequest &request, std::string &method) {
 	Logger logger;
 
 	if (method.empty() || request.uri.empty() || request.version.empty()) {
-		logger.logWithPrefix(Logger::WARNING, "HTTP",
-		                     "Empty component in request line");
+		logger.logWithPrefix(Logger::WARNING, "HTTP", "Empty component in request line");
 		return (false);
 	}
 
-	if (method.find(' ') != std::string::npos ||
-	    request.uri.find(' ') != std::string::npos ||
+	if (method.find(' ') != std::string::npos || request.uri.find(' ') != std::string::npos ||
 	    request.version.find(' ') != std::string::npos) {
-		logger.logWithPrefix(Logger::WARNING, "HTTP",
-		                     "Extra spaces in request line");
+		logger.logWithPrefix(Logger::WARNING, "HTTP", "Extra spaces in request line");
 		return (false);
 	}
 
@@ -133,7 +130,7 @@ bool RequestParsingUtils::check_req_line(ClientRequest &request,
 		request.query = "";
 	}
 
-	if (!(request.version == "HTTP/1.0" || request.version == "HTTP/1.1")) {
+	if (request.version != "HTTP/1.1") {
 		logger.logWithPrefix(Logger::WARNING, "HTTP", "Invalid HTTP version");
 		return (false);
 	}
@@ -142,16 +139,14 @@ bool RequestParsingUtils::check_req_line(ClientRequest &request,
 }
 
 /* Parsing */
-bool RequestParsingUtils::parse_req_line(std::istringstream &stream,
-                                         ClientRequest &request) {
+bool RequestParsingUtils::parse_req_line(std::istringstream &stream, ClientRequest &request) {
 	Logger logger;
 	std::string line;
 	std::string method;
-	logger.logWithPrefix(Logger::INFO, "HTTP", "Parsing request line");
+	logger.logWithPrefix(Logger::DEBUG, "HTTP", "Parsing request line");
 
 	if (!std::getline(stream, line)) {
-		logger.logWithPrefix(Logger::WARNING, "HTTP",
-		                     "No request line present");
+		logger.logWithPrefix(Logger::WARNING, "HTTP", "No request line present");
 		return (false);
 	}
 
@@ -163,15 +158,13 @@ bool RequestParsingUtils::parse_req_line(std::istringstream &stream,
 	// Check for proper format: exactly one space between each component
 	size_t first_space = trimmed_line.find(' ');
 	if (first_space == std::string::npos) {
-		logger.logWithPrefix(Logger::WARNING, "HTTP",
-		                     "Request line missing spaces");
+		logger.logWithPrefix(Logger::WARNING, "HTTP", "Request line missing spaces");
 		return (false);
 	}
 
 	size_t second_space = trimmed_line.find(' ', first_space + 1);
 	if (second_space == std::string::npos) {
-		logger.logWithPrefix(Logger::WARNING, "HTTP",
-		                     "Invalid request line format");
+		logger.logWithPrefix(Logger::WARNING, "HTTP", "Invalid request line format");
 		return (false);
 	}
 
@@ -184,15 +177,13 @@ bool RequestParsingUtils::parse_req_line(std::istringstream &stream,
 
 	// Check for trailing spaces or extra spaces after version
 	if (trimmed_line.find(' ', second_space + 1) != std::string::npos) {
-		logger.logWithPrefix(Logger::WARNING, "HTTP",
-		                     "Extra spaces after HTTP version");
+		logger.logWithPrefix(Logger::WARNING, "HTTP", "Extra spaces after HTTP version");
 		return (false);
 	}
 
 	// Manual parsing to ensure exactly one space between components
 	method = trimmed_line.substr(0, first_space);
-	request.uri =
-	    trimmed_line.substr(first_space + 1, second_space - first_space - 1);
+	request.uri = trimmed_line.substr(first_space + 1, second_space - first_space - 1);
 	request.version = trimmed_line.substr(second_space + 1);
 
 	return (RequestParsingUtils::check_req_line(request, method));
