@@ -129,6 +129,9 @@ fclean: clean ## Restore project to initial state
 
 re: fclean all ## Rebuild project
 
+run: $(TARGET) ## Run webserv with base1.conf and prefix set to tests/conf/html
+	./$(TARGET) --prefix-path=$(PWD)/tests/conf/html tests/conf/base1.conf
+
 todo: ## Print todo's from source files
 	find . -type f \( -name "*.cpp" -o -name "*.hpp" \) -print | grep -v ".venv" | xargs grep --color -Hn "// *TODO"
 
