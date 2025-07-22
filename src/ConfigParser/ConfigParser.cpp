@@ -1,45 +1,41 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   config_parser.cpp                                  :+:      :+:    :+:   */
+/*   ConfigParser.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/06/21 14:53:37 by htharrau          #+#    #+#             */
-/*   Updated: 2025/06/25 13:31:08 by htharrau         ###   ########.fr       */
+/*   Created: 2025/07/22 00:45:53 by htharrau          #+#    #+#             */
+/*   Updated: 2025/07/22 11:28:33 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "../Logger/Logger.hpp"
-#include "../Utils/StringUtils.hpp"
-#include "config_parser.hpp"
+#include "ConfigParser.hpp"
 
-namespace ConfigParsing {
 
-bool tree_parser(const std::string &filePath, ConfigNode &childNode, Logger &logger) {
+bool ConfigParser::parseTree(const std::string &filePath, ConfigNode &childNode) {
 	std::ifstream confFile(filePath.c_str());
 	if (!confFile.is_open()) {
-		logger.logWithPrefix(Logger::WARNING, "Config parsing", "Could not open file: " + filePath);
+		logg_.logWithPrefix(Logger::WARNING, "CONFIG", "Could not open file: " + filePath);
 		return false;
 	}
-	childNode.lineNumber = 0;
-	childNode.name = "main";
+	childNode.line_ = 0;
+	childNode.name_ = "main";
 	int line_nb = 0;
-	if (!ConfigParsing::tree_parser_blocks(confFile, line_nb, childNode, logger)) {
-		logger.logWithPrefix(Logger::ERROR, "Config parsing", "Failed to parse configuration.");
+	if (!parseTreeBlocks(confFile, line_nb, childNode)) {
+		logg_.logWithPrefix(Logger::ERROR, "CONFIG", "Failed to parse configuration.");
 		return false;
 	}
 
-	logger.logWithPrefix(Logger::INFO, "Config parsing",
-	                     "Configuration tree successfully created.");
-	logger.logWithPrefix(Logger::DEBUG, "Config parsing", "Dumping server tree");
+	logg_.logWithPrefix(Logger::INFO, "CONFIG", "Configuration tree successfully created.");
+	logg_.logWithPrefix(Logger::DEBUG, "CONFIG", "Dumping server tree:");
 	std::ostringstream oss;
-	ConfigParsing::print_tree_config(childNode, "", true, oss);
-	logger.logWithPrefix(Logger::DEBUG, "Config parsing", oss.str());
+	ConfigParser::printTree(childNode, "", true, oss);
+	logg_.logWithPrefix(Logger::DEBUG, "CONFIG", oss.str());
 	return true;
 }
 
-bool tree_parser_blocks(std::ifstream &file, int &line_nb, ConfigNode &parent, Logger &logger) {
+bool ConfigParser::parseTreeBlocks(std::ifstream &file, int &line_nb, ConfigNode &parent) {
 
 	std::string accumulated_line;
 	std::string line;
@@ -48,7 +44,7 @@ bool tree_parser_blocks(std::ifstream &file, int &line_nb, ConfigNode &parent, L
 	while (std::getline(file, line)) {
 
 		++line_nb;
-		std::string clean = preProcess(line); // Remove comments and trim
+		std::string clean = ConfigParser::preProcess(line); // Remove comments and trim
 		if (clean.empty())
 			continue;
 
@@ -71,78 +67,75 @@ bool tree_parser_blocks(std::ifstream &file, int &line_nb, ConfigNode &parent, L
 		std::string statement = accumulated_line;
 		accumulated_line.clear();
 
-		if (isConfigNodeStart(statement)) {
+		if (ConfigParser::isBlockStart(statement)) {
 			std::string trimmed = su::rtrim(statement.substr(0, statement.size() - 1));
-			std::vector<std::string> tokens = tokenize(trimmed);
+			std::vector<std::string> tokens = ConfigParser::tokenize(trimmed);
 			if (tokens.empty()) {
-				logger.logWithPrefix(Logger::ERROR, "Config parsing",
+				logg_.logWithPrefix(Logger::ERROR, "CONFIG",
 				                     "Empty ConfigNode at line " +
 				                         su::to_string(statement_start_line));
 				return false;
 			}
 			ConfigNode childNode;
-			childNode.name = tokens[0];
-			childNode.args = std::vector<std::string>(tokens.begin() + 1, tokens.end());
-			childNode.lineNumber = statement_start_line;
+			childNode.name_ = tokens[0];
+			childNode.args_ = std::vector<std::string>(tokens.begin() + 1, tokens.end());
+			childNode.line_ = statement_start_line;
 
-			if (!ConfigParsing::validateDirective(childNode, parent, logger))
+			if (!ConfigParser::validateDirective(childNode, parent))
 				return false;
 
-			if (!ConfigParsing::tree_parser_blocks(file, line_nb, childNode, logger)) {
-				logger.logWithPrefix(Logger::ERROR, "Config parsing",
+			if (!parseTreeBlocks(file, line_nb, childNode)) {
+				logg_.logWithPrefix(Logger::ERROR, "CONFIG",
 				                     "Unexpected token or structure at line " +
 				                         su::to_string(line_nb) + ": " + statement);
 				return false;
 			}
-			parent.children.push_back(childNode);
+			parent.children_.push_back(childNode);
 			continue;
 		}
 
-		if (isConfigNodeEnd(statement)) {
+		if (ConfigParser::isBlockEnd(statement)) {
 			return true;
 		}
 
-		if (isDirective(statement)) {
+		if (ConfigParser::isDirective(statement)) {
 			std::string trimmed = su::rtrim(statement.substr(0, statement.size() - 1));
-			std::vector<std::string> tokens = tokenize(trimmed);
+			std::vector<std::string> tokens = ConfigParser::tokenize(trimmed);
 			if (tokens.empty()) {
-				logger.logWithPrefix(Logger::ERROR, "Config parsing",
+				logg_.logWithPrefix(Logger::ERROR, "CONFIG",
 				                     "Empty directive at line " +
 				                         su::to_string(statement_start_line));
 				return false;
 			}
 			ConfigNode directive;
-			directive.name = tokens[0];
-			directive.args = std::vector<std::string>(tokens.begin() + 1, tokens.end());
-			directive.lineNumber = statement_start_line;
-			if (!ConfigParsing::validateDirective(directive, parent, logger))
+			directive.name_ = tokens[0];
+			directive.args_ = std::vector<std::string>(tokens.begin() + 1, tokens.end());
+			directive.line_ = statement_start_line;
+			if (!ConfigParser::validateDirective(directive, parent))
 				return false;
-			parent.children.push_back(directive);
+			parent.children_.push_back(directive);
 			continue;
 		}
 
-		logger.logWithPrefix(Logger::ERROR, "Config parsing",
+		logg_.logWithPrefix(Logger::ERROR, "CONFIG",
 		                     "Unexpected line at " + su::to_string(statement_start_line) + ": " +
 		                         statement);
 		return false;
 	}
 
 	if (!accumulated_line.empty()) { // last line no closing statement
-		logger.logWithPrefix(Logger::ERROR, "Config parsing",
+		logg_.logWithPrefix(Logger::ERROR, "CONFIG",
 		                     "Incomplete statement at line " + su::to_string(statement_start_line) +
 		                         ": " + accumulated_line);
 		return false;
 	}
 
-	if (parent.name != "main") {
-		logger.logWithPrefix(Logger::ERROR, "Config parsing",
+	if (parent.name_ != "main") {
+		logg_.logWithPrefix(Logger::ERROR, "CONFIG",
 		                     "Unexpected end of file: missing closing bracket for block `" +
-		                         parent.name + "`");
+		                         parent.name_ + "`");
 		return false;
 	}
 
 	return true;
 }
-
-} // namespace ConfigParsing
-

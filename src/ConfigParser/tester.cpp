@@ -10,22 +10,22 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "config_parser.hpp"
+#include "ConfigParser.hpp"
 #include "../Logger/Logger.hpp"
 
 
 int main(int argc, char **argv) {
 
-	Logger logger("Configuration file", Logger::DEBUG, true);
 	if (argc != 2)
 		return (1);
 
-	ConfigNode config;
-	if (!ConfigParsing::tree_parser(argv[1], config, logger))
+	ConfigNode tree;
+	ConfigParser configparser;
+	if (!configparser.parseTree(argv[1], tree))
 		return (1);
+
 	std::vector<ServerConfig> servers;
-	ConfigParsing::struct_parser(config, servers, logger);
+	configparser.convertTreeToStruct(tree, servers);
 
 	return (0);
 }
-

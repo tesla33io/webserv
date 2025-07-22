@@ -29,10 +29,10 @@ TARGET			:= tester
 SRC_DIR			:= ./
 
 #Source files
-SRC_FILES		+= config_parser.cpp
-SRC_FILES		+= struct_parser.cpp
-SRC_FILES		+= config_utils.cpp
-SRC_FILES		+= valid_directives.cpp
+SRC_FILES		+= ConfigParser.cpp
+SRC_FILES		+= ServerStructure.cpp
+SRC_FILES		+= ConfigHelper.cpp
+SRC_FILES		+= ValidDirective.cpp
 SRC_FILES		+= tester.cpp
 
 #Object files directory

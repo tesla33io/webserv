@@ -1,7 +1,6 @@
 http  {
 	server {
 		listen 8080;
-		server_name example.com www.example.com;
 		error_page 404 /404.html;
 		client_max_body_size 500;
 		root /var/www/example;
