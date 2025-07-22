@@ -6,16 +6,17 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/27 14:09:28 by jalombar          #+#    #+#             */
-/*   Updated: 2025/07/18 17:33:26 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/07/22 14:01:05 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #ifndef CGI_HPP
 #define CGI_HPP
 
-#include "../../includes/types.hpp"
-#include "../../includes/webserv.hpp"
-#include "../Logger/Logger.hpp"
+# include "../../includes/types.hpp"
+# include "../../includes/webserv.hpp"
+# include "../Logger/Logger.hpp"
+# include "../HttpServer/HttpServer.hpp"
 
 namespace CGIUtils {
 std::string select_method(RequestMethod &method);

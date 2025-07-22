@@ -6,7 +6,7 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/27 11:49:38 by jalombar          #+#    #+#             */
-/*   Updated: 2025/07/18 17:34:44 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/07/22 15:04:08 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -65,7 +65,34 @@ void print_cgi_response(const std::string &cgi_output) {
 	}
 }
 
-bool CGIUtils::handle_CGI_request(ClientRequest &request, int fd) {
+std::string extract_type(std::string &cgi_resp) {
+	std::string type;
+	std::istringstream ss(cgi_resp);
+	std::string line;
+	std::getline(ss, line);
+	std::string key = "Content-type: ";
+	size_t start = line.find(key);
+	if (start != std::string::npos)
+		type = line.substr(start);
+	else
+		type = "text/html";
+	return (type);
+}
+
+void send_cgi_response(std::string &cgi_output, int clfd) {
+	std::string type = extract_type(cgi_output);
+	WebServer::Response resp;
+	resp.setStatus(200);
+	resp.version = "HTTP/1.1";
+	resp.setContentType(extract_type(cgi_output));
+	resp.setContentLength(cgi_output.length());
+	size_t header_end = cgi_output.find("\n\n");
+	resp.body = cgi_output.substr(header_end);
+	std::string raw_response = resp.toString();
+	send(clfd, raw_response.c_str(), raw_response.length(), 0);
+}
+
+bool CGIUtils::handle_CGI_request(ClientRequest &request, int clfd) {
 	Logger logger;
 
 	// 1. Validate and construct script path
@@ -75,7 +102,7 @@ bool CGIUtils::handle_CGI_request(ClientRequest &request, int fd) {
 	}
 
 	std::string script_path = std::string(std::getenv("PWD")) + "/" + request.path;
-	std::string interpreter = get_interpreter(request.path);
+	std::string interpreter = get_interpreter(script_path);
 	if (interpreter.empty()) {
 		return false;
 	}
@@ -118,9 +145,8 @@ bool CGIUtils::handle_CGI_request(ClientRequest &request, int fd) {
 
 	if (pid == 0) {
 		// Child process
-		if (dup2(input_pipe[0], STDIN_FILENO) == -1 || dup2(output_pipe[1], STDOUT_FILENO) == -1) {
-			_exit(1); // Use _exit in child to avoid cleanup issues
-		}
+		if (dup2(input_pipe[0], STDIN_FILENO) == -1 || dup2(output_pipe[1], STDOUT_FILENO) == -1)
+			exit(1);
 
 		// Close unused pipe ends
 		close(input_pipe[1]);
@@ -131,9 +157,7 @@ bool CGIUtils::handle_CGI_request(ClientRequest &request, int fd) {
 		// Execute the CGI script
 		char *argv[] = {(char *)interpreter.c_str(), (char *)script_path.c_str(), NULL};
 		execve(interpreter.c_str(), argv, envp);
-
-		// If execve fails, exit
-		_exit(1);
+		exit(1);
 	}
 
 	// 5. Parent process - close unused pipe ends first
@@ -160,12 +184,13 @@ bool CGIUtils::handle_CGI_request(ClientRequest &request, int fd) {
 	close(input_pipe[1]);
 
 	// 7. Read response from CGI script
-	std::string response;
+	std::string cgi_output;
 	char buffer[4096];
 	ssize_t bytes_read;
 
+	
 	while ((bytes_read = read(output_pipe[0], buffer, sizeof(buffer))) > 0) {
-		response.append(buffer, bytes_read);
+		cgi_output.append(buffer, bytes_read);
 	}
 
 	if (bytes_read == -1) {
@@ -190,10 +215,11 @@ bool CGIUtils::handle_CGI_request(ClientRequest &request, int fd) {
 	}
 
 	// 9. Send response to client
-	print_cgi_response(response);
-	// sendHTTPResponse(response);
+	//print_cgi_response(cgi_resp);
+	send_cgi_response(cgi_output, clfd);
 
 	// 10. Clean up
 	close(output_pipe[0]);
 	return (true);
 }
+

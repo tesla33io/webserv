@@ -6,7 +6,7 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/25 10:33:32 by jalombar          #+#    #+#             */
-/*   Updated: 2025/07/18 17:30:23 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/07/22 11:05:01 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -133,7 +133,7 @@ bool RequestParsingUtils::check_req_line(ClientRequest &request,
 		request.query = "";
 	}
 
-	if (!strncmp(request.path.c_str(), "cgi-bin", 7))
+	if (request.path.find("cgi-bin") != std::string::npos)
 		request.CGI = true;
 
 	if (!(request.version == "HTTP/1.0" || request.version == "HTTP/1.1")) {

@@ -6,7 +6,7 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/19 14:47:40 by jalombar          #+#    #+#             */
-/*   Updated: 2025/07/18 17:30:16 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/07/22 14:04:03 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,5 +26,7 @@
 # include <cstdlib>      // for exit
 # include <cstdio>       // for perror
 # include <cstring>      // for strncmp
+# include <sys/socket.h> // for send
+//# include <stdint.h>     // for uint16_t
 
 #endif
