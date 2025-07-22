@@ -68,10 +68,10 @@ class WebServer {
 		explicit Response(uint16_t code);
 		Response(uint16_t code, const std::string &response_body);
 
-		inline void setStatus(uint16_t code);
-		inline void setHeader(const std::string &name, const std::string &value);
-		inline void setContentType(const std::string &ctype);
-		inline void setContentLength(size_t length);
+		void setStatus(uint16_t code);
+		void setHeader(const std::string &name, const std::string &value);
+		void setContentType(const std::string &ctype);
+		void setContentLength(size_t length);
 		std::string toString() const;
 
 		// Factory methods for common responses

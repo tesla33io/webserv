@@ -14,7 +14,7 @@ http {
         }
 
         location / {
-            root ./www;
+            root ./html;
             index index.html;
             autoindex on;
         }
