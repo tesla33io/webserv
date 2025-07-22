@@ -222,6 +222,9 @@ void WebServer::Response::initFromStatusCode(uint16_t code) {
 			     << "<h1>Error " << code << ": " << reason_phrase << "</h1>\n"
 			     << "<p>The server encountered an issue and could not complete your "
 			        "request.</p>\n"
+			     << "<a href=\"https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status/"
+			     << code << "\" target=\"_blank\" rel=\"noopener noreferrer\">MDN Web Docs - "
+			     << code << "</a>"
 			     << "</body>\n"
 			     << "</html>\n";
 			body = html.str();
