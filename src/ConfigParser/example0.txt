@@ -7,10 +7,10 @@ http {
         error_page  500 /err500.html;
         error_page 500 502 503 504 /custom_50x.html;
 
-        location /images/ {
-            root ./img;
+        location /images {
+            root /img;
             return 303 /gggg ;
-            return 204 ;
+
         }
 
         location / {

@@ -1,14 +1,3 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   ServerStructure.cpp                                :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/07/22 12:16:27 by htharrau          #+#    #+#             */
-/*   Updated: 2025/07/22 18:48:44 by htharrau         ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
 
 #include "ConfigParser.hpp"
 
@@ -44,7 +33,23 @@ void ConfigParser::convertTreeToStruct(const ConfigNode &tree, std::vector<Serve
 					handleForInherit(*child, forInheritance);
 			}
 
+			// Check for duplicate host:port combination - skip (we still accept the configuration file)
+			// if (isDuplicateServer(servers, server)) {
+			// 	logg_.logWithPrefix(Logger::ERROR, "Configuration file", 
+			// 		"Duplicate server configuration for " + server.host + ":" + su::to_string(server.port));
+			// 	continue;
+			// }
+			
+			// create default location "/" if no locations exist
+			if (server.locations.empty()) {
+				LocConfig defaultLocation;
+				defaultLocation.path = "/";
+				server.locations.push_back(defaultLocation);
+			}
+			
 			inheritGeneralConfig(server, forInheritance);
+
+			sortLocations(server.locations);
 
 			logg_.logWithPrefix(Logger::INFO, "Config parsing", 
 				"Parsed server block on " + server.host + ":" + su::to_string(server.port) + 
@@ -88,8 +93,26 @@ void ConfigParser::handleErrorPage(const ConfigNode &node, ServerConfig &server)
 
 // MAX BODY SIZE
 void ConfigParser::handleBodySize(const ConfigNode &node, ServerConfig &server) {
-	std::stringstream ss(node.args_[0]);
-	ss >> server.client_max_body_size;
+
+	// megabits or giga
+	int factor = 1;
+	char last = node.args_[0][node.args_[0].size() - 1];
+	if (std::tolower(last) == 'k')
+		factor = 1000;
+	else if (std::tolower(last) == 'm')
+		factor = 1000000;
+	else if (std::tolower(last) == 'g')
+		factor = 1000000000;
+		
+	std::string maxBody = node.args_[0];
+	if (factor > 1)
+		maxBody = su::rtrim(maxBody.substr(0, maxBody.size() - 1));
+
+	std::istringstream iss(maxBody);
+	unsigned int maxBodyFactor;
+	iss >> maxBodyFactor;
+	server.client_max_body_size = maxBodyFactor * factor;
+
 }
 
 
@@ -100,7 +123,9 @@ void ConfigParser::handleForInherit(const ConfigNode &node, LocConfig &location)
 	else if (node.name_ == "allowed_methods") 
 		location.allowed_methods = node.args_;
 	else if (node.name_ == "upload_path") 
-			location.upload_path = node.args_[0];
+		location.upload_path = node.args_[0];
+	else if (node.name_ == "index") 
+		location.index = node.args_[0];
 	else if (node.name_ == "cgi_ext") 
 		handleCGI(node, location);
 	else if (node.name_ == "autoindex")
@@ -114,9 +139,14 @@ void ConfigParser::inheritGeneralConfig(ServerConfig& server, const LocConfig& f
 	for (size_t i = 0; i < server.locations.size(); ++i) {
 		
 		LocConfig& loc = server.locations[i];
-		// Inherit root if location doesn't have root or alias
-		if (loc.root.empty() && loc.alias.empty())
-			loc.root = forInheritance.root;
+
+		// If location has alias, don't inherit root and clear rrot
+		if (!loc.alias.empty()) 
+			loc.root.clear();
+		else {
+			if (loc.root.empty())
+				loc.root = forInheritance.root;
+		}
 		// Inherit methods if location doesn't specify any
 		if (loc.allowed_methods.empty())
 			loc.allowed_methods = forInheritance.allowed_methods;
@@ -129,6 +159,9 @@ void ConfigParser::inheritGeneralConfig(ServerConfig& server, const LocConfig& f
 		// Inherit auto index value if not specified
 		if (!loc.autoindex && forInheritance.autoindex)
 			loc.autoindex = forInheritance.autoindex;
+		// Inherit index
+		if (loc.index.empty())
+			loc.index = forInheritance.index;
 	}
 }
 
@@ -177,7 +210,24 @@ void ConfigParser::handleCGI(const ConfigNode &node, LocConfig &location) {
 	}
 }
 
+// Sort locations by path length (longest first for proper nginx-style matching)
+void ConfigParser::sortLocations(std::vector<LocConfig>& locations) {
+	std::sort(locations.begin(), locations.end(), compareLocationPaths);
+}
 
+// Comparator function for sorting locations
+bool ConfigParser::compareLocationPaths(const LocConfig& a, const LocConfig& b) {
+	if (a.path.length() != b.path.length()) 
+		return a.path.length() > b.path.length();
+	return a.path < b.path;
+}
 
-
-
+// duplicate host:server ?
+bool ConfigParser::isDuplicateServer(const std::vector<ServerConfig>& servers, const ServerConfig& newServer) {
+	for (std::vector<ServerConfig>::const_iterator it = servers.begin(); it != servers.end(); ++it) {
+		if (it->host == newServer.host && it->port == newServer.port) {
+			return true;
+		}
+	}
+	return false;
+}

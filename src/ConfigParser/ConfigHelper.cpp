@@ -1,19 +1,5 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   ConfigHelper.cpp                                   :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/07/22 10:14:17 by htharrau          #+#    #+#             */
-/*   Updated: 2025/07/22 17:54:33 by htharrau         ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
-
 
 #include "ConfigParser.hpp"
-
-///////////////////////////
 
 // Remove comments and trim
 std::string ConfigParser::preProcess(const std::string& line) const {
@@ -45,7 +31,7 @@ std::vector<std::string> ConfigParser::tokenize(const std::string& line) const {
 
 
 // Valid IPv4
-bool ConfigParser::isValidIPv4(const std::string& ip) const {
+bool ConfigParser::isValidIPv4(const std::string& ip) {
 	std::istringstream iss(ip);
 	std::string token;
 	int count = 0;
@@ -66,6 +52,40 @@ bool ConfigParser::isValidIPv4(const std::string& ip) const {
 	return (count == 4);
 }
 
+// valid uri: starts with /, pas de guillemets or ..
+bool ConfigParser::isValidUri(const std::string& uri) {
+	if (uri[0] != '/')
+		return false;
+	if (uri.find('"') != std::string::npos)
+		return false;
+	if (uri.find("..") != std::string::npos)
+		return false;
+	return true;
+}
+
+// valid uri: starts with https:// or http:// - pas de guillemets or ..
+bool ConfigParser::isValidUrl(const std::string& url) {
+
+	if (url.find("http://") == 0 || url.find("https://") == 0) {
+		if (url.find('"') != std::string::npos)
+			return false;
+		if (url.find("..") != std::string::npos)
+			return false;
+		return true;
+	}
+	return false;
+}
+
+// valid uri + pas de . + pas de slash at the end
+bool ConfigParser::isValidPath(const std::string& path) {
+	if (!isValidUri(path))
+		return false;
+	if (path.find(".") != std::string::npos)
+		return false;
+	if (path[path.size() - 1] == '/')
+		return false;
+	return true;
+}
 
 // for multi-context directives (e.g. "server", "location")
 std::vector<std::string> ConfigParser::makeVector(const std::string& a, const std::string& b) const{
@@ -120,9 +140,6 @@ void ConfigParser::printServers(const std::vector<ServerConfig>& servers, std::o
 }
 void ConfigParser::printLocationConfig(const LocConfig &loc, std::ostream &os) const {
 	os << "  Location: " << loc.path;
-	if (loc.exact_match) {
-		os << " (exact match)";
-	}
 	os << "\n";
 	
 	if (!loc.root.empty())
@@ -132,10 +149,7 @@ void ConfigParser::printLocationConfig(const LocConfig &loc, std::ostream &os) c
 		os << "    Alias: " << loc.alias << "\n";
 	
 	if (!loc.index.empty()) {
-		os << "    Index: ";
-		for (size_t i = 0; i < loc.index.size(); ++i)
-			os << loc.index[i] << (i + 1 < loc.index.size() ? ", " : "");
-		os << "\n";
+		os << "    Index: " << loc.index << "\n";
 	}
 	
 	os << "    Autoindex: " << (loc.autoindex ? "on" : "off") << "\n";
@@ -176,7 +190,6 @@ void ConfigParser::printServerConfig(const ServerConfig &server, std::ostream &o
 	}
 	
 	if (!server.locations.empty()) {
-		os << "  Locations:\n";
 		for (size_t i = 0; i < server.locations.size(); ++i) {
 			printLocationConfig(server.locations[i], os);  // Pass the ostream along
 			if (i < server.locations.size() - 1) {

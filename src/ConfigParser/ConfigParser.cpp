@@ -1,19 +1,23 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   ConfigParser.cpp                                   :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/07/22 00:45:53 by htharrau          #+#    #+#             */
-/*   Updated: 2025/07/22 11:28:33 by htharrau         ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
 
 #include "ConfigParser.hpp"
 
 
+bool ConfigParser::loadConfig(const std::string& filePath, std::vector<ServerConfig>& servers) {
+
+	ConfigNode tree;
+	ConfigParser configparser;
+
+	if (!configparser.parseTree(filePath, tree))
+		return false;
+
+	configparser.convertTreeToStruct(tree, servers);
+
+	return true;
+}
+
+
 bool ConfigParser::parseTree(const std::string &filePath, ConfigNode &childNode) {
+	
 	std::ifstream confFile(filePath.c_str());
 	if (!confFile.is_open()) {
 		logg_.logWithPrefix(Logger::WARNING, "CONFIG", "Could not open file: " + filePath);
@@ -76,10 +80,8 @@ bool ConfigParser::parseTreeBlocks(std::ifstream &file, int &line_nb, ConfigNode
 				                         su::to_string(statement_start_line));
 				return false;
 			}
-			ConfigNode childNode;
-			childNode.name_ = tokens[0];
-			childNode.args_ = std::vector<std::string>(tokens.begin() + 1, tokens.end());
-			childNode.line_ = statement_start_line;
+			ConfigNode childNode(tokens[0], std::vector<std::string>(tokens.begin() + 1, tokens.end()),
+					statement_start_line);
 
 			if (!ConfigParser::validateDirective(childNode, parent))
 				return false;
@@ -107,10 +109,8 @@ bool ConfigParser::parseTreeBlocks(std::ifstream &file, int &line_nb, ConfigNode
 				                         su::to_string(statement_start_line));
 				return false;
 			}
-			ConfigNode directive;
-			directive.name_ = tokens[0];
-			directive.args_ = std::vector<std::string>(tokens.begin() + 1, tokens.end());
-			directive.line_ = statement_start_line;
+			ConfigNode directive (tokens[0], std::vector<std::string>(tokens.begin() + 1, tokens.end()),
+					statement_start_line);
 			if (!ConfigParser::validateDirective(directive, parent))
 				return false;
 			parent.children_.push_back(directive);
@@ -132,8 +132,8 @@ bool ConfigParser::parseTreeBlocks(std::ifstream &file, int &line_nb, ConfigNode
 
 	if (parent.name_ != "main") {
 		logg_.logWithPrefix(Logger::ERROR, "CONFIG",
-		                     "Unexpected end of file: missing closing bracket for block `" +
-		                         parent.name_ + "`");
+		                     "Unexpected end of file: missing closing bracket for block '" +
+		                         parent.name_ + "'");
 		return false;
 	}
 
