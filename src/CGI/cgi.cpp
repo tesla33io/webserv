@@ -6,7 +6,7 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/27 11:49:38 by jalombar          #+#    #+#             */
-/*   Updated: 2025/07/22 15:04:08 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/07/24 14:33:43 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -92,6 +92,10 @@ void send_cgi_response(std::string &cgi_output, int clfd) {
 	send(clfd, raw_response.c_str(), raw_response.length(), 0);
 }
 
+bool handle_GET_request(ClientRequest &request, int clfd) {
+	
+}
+
 bool CGIUtils::handle_CGI_request(ClientRequest &request, int clfd) {
 	Logger logger;
 
@@ -168,17 +172,20 @@ bool CGIUtils::handle_CGI_request(ClientRequest &request, int clfd) {
 	env.free_envp(envp);
 
 	// 6. Send POST data if any
-	if (!request.body.empty()) {
-		size_t total_written = 0;
-		while (total_written < request.body.size()) {
-			ssize_t written = write(input_pipe[1], request.body.c_str() + total_written,
+	if (request.method == POST) {
+		logger.logWithPrefix(Logger::INFO, "CGI", "Handling POST request");
+		if (!request.body.empty()) {
+			size_t total_written = 0;
+			while (total_written < request.body.size()) {
+				ssize_t written = write(input_pipe[1], request.body.c_str() + total_written,
 			                        request.body.size() - total_written);
-			if (written <= 0) {
-				logger.logWithPrefix(Logger::WARNING, "CGI",
+				if (written <= 0) {
+					logger.logWithPrefix(Logger::WARNING, "CGI",
 				                     "Failed to write request body to CGI script");
-				return (false);
-			};
-			total_written += written;
+					return (false);
+				};
+				total_written += written;
+			}
 		}
 	}
 	close(input_pipe[1]);
