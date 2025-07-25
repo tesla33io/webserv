@@ -1,7 +1,7 @@
 #!/usr/bin/php-cgi
-
 <?php
-$upload_dir = "./uploads/";
+
+$upload_dir = "../../www/uploads/";
 $deleted = false;
 $error_message = '';
 

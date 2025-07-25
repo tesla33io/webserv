@@ -1,7 +1,7 @@
 #!/usr/bin/php-cgi
-
 <?php
-$upload_dir = "./uploads/";
+
+$upload_dir = "../../www/uploads/";
 
 // Create upload directory if it doesn't exist
 if (!is_dir($upload_dir)) {
@@ -33,7 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
         // Handle duplicate filenames
         $target_path = $upload_dir . $filename;
         if (file_exists($target_path)) {
-            $filename = time() . '_' . $filename;
+            $filename = $filename . '_' . time();
             $target_path = $upload_dir . $filename;
         }
         
@@ -130,12 +130,11 @@ function formatFileSize($bytes) {
             <p class="subtitle">Choose a file to upload to the server.</p>
             
             <form method="POST" enctype="multipart/form-data" style="margin: 2rem 0;">
-                <div style="margin-bottom: 1rem;">
-                    <input type="file" name="file" required 
-                           style="padding: 0.5rem; border: 2px solid #ddd; border-radius: 8px; background: white; font-size: 1rem;">
-                </div>
-                <button type="submit" class="button" style="margin-right: 1rem;">Upload File</button>
-            </form>
+				<div style="display: flex; gap: 1rem; align-items: center;">
+					<input type="file" name="file" required style="flex-grow: 1; padding: 12px 18px; border: 2px solid #e2e8f0; border-radius: 14px; background: white; font-size: 0.95rem; font-family: inherit;">
+					<button type="submit" class="button" style="margin-top: 0; height: fit-content;">Upload File</button>
+				</div>
+			</form>
         <?php endif; ?>
 
         <?php
@@ -152,18 +151,18 @@ function formatFileSize($bytes) {
         
         if (!empty($existing_files)): ?>
             <div style="margin-top: 3rem; padding-top: 2rem; border-top: 1px solid rgba(255,255,255,0.2);">
-                <h2 style="color: white; margin-bottom: 1.5rem; text-align: center;">Files in Upload Directory</h2>
+                <h2 style="color: #64748b; margin-bottom: 1.5rem; text-align: center;">Files in Upload Directory</h2>
                 <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
                     <?php foreach ($existing_files as $file): 
                         $file_ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
                         $file_path = $upload_dir . $file;
                         $file_size = file_exists($file_path) ? filesize($file_path) : 0;
+                        $display_name = strlen($file) > 15 ? substr($file, 0, 12) . '...' : $file;
                     ?>
                         <div style="position: relative; text-align: center; padding: 1rem; background: rgba(255,255,255,0.1); border-radius: 12px; backdrop-filter: blur(10px);">
                             <form method="POST" action="delete.php" style="position: absolute; top: 8px; right: 8px; margin: 0;">
                                 <input type="hidden" name="filename" value="<?php echo htmlspecialchars($file); ?>">
                                 <button type="submit" 
-                                        onclick="return confirm('Are you sure you want to delete <?php echo htmlspecialchars($file); ?>?')"
                                         style="background: rgba(255,0,0,0.7); color: white; border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: bold;">
                                     ×
                                 </button>
