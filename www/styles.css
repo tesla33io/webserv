@@ -217,3 +217,14 @@ body::before {
         max-width: 300px;
     }
 }
+
+.form-inline {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.form-inline .file-upload {
+    flex-grow: 1;
+    min-width: 200px;
+}

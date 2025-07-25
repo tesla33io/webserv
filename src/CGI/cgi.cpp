@@ -6,7 +6,7 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/27 11:49:38 by jalombar          #+#    #+#             */
-/*   Updated: 2025/07/24 14:33:43 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/07/25 11:09:07 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -90,10 +90,6 @@ void send_cgi_response(std::string &cgi_output, int clfd) {
 	resp.body = cgi_output.substr(header_end);
 	std::string raw_response = resp.toString();
 	send(clfd, raw_response.c_str(), raw_response.length(), 0);
-}
-
-bool handle_GET_request(ClientRequest &request, int clfd) {
-	
 }
 
 bool CGIUtils::handle_CGI_request(ClientRequest &request, int clfd) {
@@ -222,7 +218,7 @@ bool CGIUtils::handle_CGI_request(ClientRequest &request, int clfd) {
 	}
 
 	// 9. Send response to client
-	//print_cgi_response(cgi_resp);
+	print_cgi_response(cgi_output);
 	send_cgi_response(cgi_output, clfd);
 
 	// 10. Clean up
