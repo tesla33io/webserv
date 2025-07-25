@@ -10,7 +10,7 @@ WebServer::ConnectionInfo::ConnectionInfo(int socket_fd)
       keep_alive(false),
       request_count(0),
       chunk_state(READING_HEADERS),
-      expected_chunk_size(0),
+      current_chunk_size(0),
       current_chunk_read(0) {
 	updateActivity();
 }
@@ -23,21 +23,23 @@ bool WebServer::ConnectionInfo::isExpired(time_t current_time, int timeout) cons
 
 void WebServer::ConnectionInfo::resetChunkedState() {
 	chunk_state = READING_HEADERS;
-	expected_chunk_size = 0;
+	chunk_buffer.clear();
+	current_chunk_size = 0;
 	current_chunk_read = 0;
-	decoded_body.clear();
 	chunked = false;
 }
 
-std::string chunkedStateToString(WebServer::ConnectionInfo::ChunkedState state) {
+std::string chunkedStateToString(WebServer::ConnectionInfo::ChunkState state) {
 	switch (state) {
 	case WebServer::ConnectionInfo::READING_HEADERS:
 		return "READING_HEADERS";
-	case WebServer::ConnectionInfo::READING_CHUNK:
-		return "READING_CHUNK";
+	case WebServer::ConnectionInfo::READING_CHUNK_SIZE:
+		return "READING_CHUNK_SIZE";
+	case WebServer::ConnectionInfo::READING_CHUNK_DATA:
+		return "READING_CHUNK_DATA";
 	case WebServer::ConnectionInfo::READING_CHUNK_TRAILER:
 		return "READING_CHUNK_TRAILER";
-	case WebServer::ConnectionInfo::READING_FINAL_TRAILER:
+	case WebServer::ConnectionInfo::READING_TRAILER:
 		return "READING_FINAL_TRAILER";
 	case WebServer::ConnectionInfo::CHUNK_COMPLETE:
 		return "CHUNK_COMPLETE";
@@ -68,9 +70,9 @@ std::string WebServer::ConnectionInfo::toString() {
 	oss << "  keep_alive: " << (keep_alive ? "true" : "false") << "\n";
 	oss << "  request_count: " << request_count << "\n";
 	oss << "  chunk_state: " << chunkedStateToString(chunk_state) << "\n";
-	oss << "  expected_chunk_size: " << expected_chunk_size << "\n";
+	oss << "  current_chunk_size: " << current_chunk_size << "\n";
 	oss << "  current_chunk_read: " << current_chunk_read << "\n";
-	oss << "  decoded_body: \"" << decoded_body << "\"\n";
+	oss << "  chunk_buffer: \"" << chunk_buffer << "\"\n";
 	oss << "}";
 
 	return oss.str();

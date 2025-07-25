@@ -59,18 +59,19 @@ class WebServer {
 		int request_count;
 
 		// Chunked transfer state
-		enum ChunkedState {
+		enum ChunkState {
 			READING_HEADERS,
-			READING_CHUNK,
+			READING_CHUNK_SIZE,
+			READING_CHUNK_DATA,
 			READING_CHUNK_TRAILER,
-			READING_FINAL_TRAILER,
+			READING_TRAILER,
 			CHUNK_COMPLETE
 		};
 
-		ChunkedState chunk_state;
-		size_t expected_chunk_size;
-		size_t current_chunk_read;
-		std::string decoded_body; // Accumulated decoded chunks
+		ChunkState chunk_state;
+		std::string chunk_buffer;  // Accumulates partial chunk data
+		size_t current_chunk_size; // Size of current chunk being read
+		size_t current_chunk_read; // Bytes read of current chunk
 
 		ConnectionInfo(int socket_fd);
 		void updateActivity();
@@ -161,12 +162,12 @@ class WebServer {
 	ssize_t receiveData(int client_fd, char *buffer, size_t buffer_size);
 	bool processReceivedData(int client_fd, ConnectionInfo *conn, const char *buffer,
 	                         ssize_t bytes_read, ssize_t total_bytes_read);
-    void handleClientDisconnection(int client_fd);
+	void handleClientDisconnection(int client_fd);
 	void handleRequestTooLarge(int client_fd, ssize_t bytes_read);
-    bool handleCompleteRequest(int client_fd, ConnectionInfo* conn);
+	bool handleCompleteRequest(int client_fd, ConnectionInfo *conn);
 	bool isCompleteRequest(ConnectionInfo *conn);
 	void processRequest(int client_fd, ConnectionInfo *conn);
-    bool parseRequest(ConnectionInfo* conn, ClientRequest& req);
+	bool parseRequest(ConnectionInfo *conn, ClientRequest &req);
 	ssize_t sendResponse(const int clfd, const Response &resp);
 	std::string handleGetRequest(const std::string &path);
 
