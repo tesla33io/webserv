@@ -9,52 +9,39 @@
 void WebServer::handleNewConnection() {
 	for (std::vector<ServerConfig>::iterator sc = _have_pending_conn.begin();
 	     sc != _have_pending_conn.end(); ++sc) {
-		while (true) {
-			struct sockaddr_in client_addr;
-			socklen_t client_len = sizeof(client_addr);
+		struct sockaddr_in client_addr;
+		socklen_t client_len = sizeof(client_addr);
 
-			int client_fd = accept(sc->server_fd, (struct sockaddr *)&client_addr, &client_len);
-			if (client_fd == -1) {
-				if (errno == EAGAIN || errno == EWOULDBLOCK) {
-					// No more pending connections
-					break;
-				} else {
-					_lggr.error("Failed to accept connection");
-					break;
-				}
-			}
-
-			if (!setNonBlocking(client_fd)) {
-				close(client_fd);
-				continue;
-			}
-
-			struct epoll_event ev;
-			ev.events = EPOLLIN | EPOLLRDHUP | EPOLLERR | EPOLLET;
-			ev.data.fd = client_fd;
-
-			if (epoll_ctl(_epoll_fd, EPOLL_CTL_ADD, client_fd, &ev) == -1) {
-				_lggr.error("Failed to add client socket (fd: " + su::to_string<int>(client_fd) +
-				            ") to epoll");
-				close(client_fd);
-				continue;
-			}
-
-			// Initialize client buffer
-			addConnection(client_fd);
-
-			_lggr.info("New connection from " + std::string(inet_ntoa(client_addr.sin_addr)) + ":" +
-			           su::to_string<unsigned short>(ntohs(client_addr.sin_port)) +
-			           " (fd: " + su::to_string<int>(client_fd) + ")");
+		int client_fd = accept(sc->server_fd, (struct sockaddr *)&client_addr, &client_len);
+		if (client_fd == -1) {
+			// TODO: handle this
 		}
+
+		if (!setNonBlocking(client_fd)) {
+			close(client_fd);
+			continue;
+		}
+
+		// TODO: save original host and port of requested server
+		// TODO: error checks
+		ConnectionInfo *conn = addConnection(client_fd);
+
+		if (!epollManage(EPOLL_CTL_ADD, client_fd, EPOLLIN)) {
+			closeConnection(conn);
+		}
+
+		_lggr.info("New connection from " + std::string(inet_ntoa(client_addr.sin_addr)) + ":" +
+		           su::to_string<unsigned short>(ntohs(client_addr.sin_port)) +
+		           " (fd: " + su::to_string<int>(client_fd) + ")");
 	}
 }
 
-void WebServer::addConnection(int client_fd) {
+WebServer::ConnectionInfo *WebServer::addConnection(int client_fd) {
 	ConnectionInfo *conn = new ConnectionInfo(client_fd);
 	_connections[client_fd] = conn;
 
 	_lggr.debug("Added connection tracking for fd: " + su::to_string(client_fd));
+	return conn;
 }
 
 void WebServer::updateConnectionActivity(int client_fd) {
@@ -105,9 +92,9 @@ void WebServer::handleConnectionTimeout(int client_fd) {
 
 		_lggr.info("Connection timed out for fd: " + su::to_string(client_fd) + " (idle for " +
 		           su::to_string(getCurrentTime() - conn->last_activity) + " seconds)");
+		closeConnection(conn);
+		// TODO: potential problems in case clfd not in connections for some reason
 	}
-
-	closeConnection(client_fd);
 }
 
 bool WebServer::shouldKeepAlive(const ClientRequest &req) {
@@ -146,21 +133,20 @@ bool WebServer::shouldKeepAlive(const ClientRequest &req) {
 	return req.version == "HTTP/1.1" || req.version == "HTTP/1.0";
 }
 
-void WebServer::closeConnection(int client_fd) {
-	_lggr.debug("Closing connection for fd: " + su::to_string(client_fd));
+void WebServer::closeConnection(ConnectionInfo *conn) {
+	if (!conn)
+		return;
+	_lggr.debug("Closing connection for fd: " + su::to_string(conn->clfd));
 
-	epoll_ctl(_epoll_fd, EPOLL_CTL_DEL, client_fd, NULL);
-	close(client_fd);
+	epoll_ctl(_epoll_fd, EPOLL_CTL_DEL, conn->clfd, NULL);
+	close(conn->clfd);
 
-	std::map<int, ConnectionInfo *>::iterator it = _connections.find(client_fd);
+	std::map<int, ConnectionInfo *>::iterator it = _connections.find(conn->clfd);
 	if (it != _connections.end()) {
-		if (it != _connections.end()) {
-			ConnectionInfo *info = it->second;
-			_connections.erase(it);
-			delete info;
-		}
+		_connections.erase(conn->clfd);
 	}
+	delete conn;
 
-	_lggr.debug("Connection cleanup completed for fd: " + su::to_string(client_fd));
+	_lggr.debug("Connection cleanup completed for fd: " + su::to_string(conn->clfd));
 }
 

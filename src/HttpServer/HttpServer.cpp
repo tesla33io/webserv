@@ -15,6 +15,8 @@
 bool WebServer::_running;
 static bool interrupted = false;
 
+static std::string describeEpollEvents(uint32_t ev);
+
 WebServer::WebServer(int port)
     : _host("127.0.0.1"),
       _server_fd(-1),
@@ -186,7 +188,9 @@ bool WebServer::createAndConfigureSocket(ServerConfig &config, const struct addr
 	return true;
 }
 
+// https://stackoverflow.com/questions/14388706/how-do-so-reuseaddr-and-so-reuseport-differ
 bool WebServer::setSocketOptions(int socket_fd, const std::string &host, const int port) {
+	return true; // disable non-blocking for now
 	int reuse_addr = 1;
 	if (setsockopt(socket_fd, SOL_SOCKET, SO_REUSEADDR, &reuse_addr, sizeof(reuse_addr)) == -1) {
 		_lggr.logWithPrefix(Logger::ERROR, host + ":" + su::to_string<int>(port),
@@ -229,16 +233,25 @@ bool WebServer::bindAndListen(const ServerConfig &config, const struct addrinfo 
 	return true;
 }
 
-bool WebServer::addToEpoll(int socket_fd, const std::string &host, const int port) {
+bool WebServer::epollManage(int op, int socket_fd, uint32_t events) {
 	struct epoll_event ev;
-	ev.events = EPOLLIN | EPOLLRDHUP | EPOLLERR | EPOLLET;
+	ev.events = events;
 	ev.data.fd = socket_fd;
 
-	if (epoll_ctl(_epoll_fd, EPOLL_CTL_ADD, socket_fd, &ev) == -1) {
-		_lggr.logWithPrefix(Logger::ERROR, host + ":" + su::to_string<int>(port),
-		                    "Failed to add server socket to epoll");
+	if (epoll_ctl(_epoll_fd, op, socket_fd, &ev) == -1) {
+		_lggr.error("Tried to " +
+		            std::string(op == EPOLL_CTL_ADD   ? "add "
+		                        : op == EPOLL_CTL_MOD ? "modify "
+		                                              : "delete ") +
+		            "fd: " + su::to_string(socket_fd) + " (" + describeEpollEvents(events) +
+		            "), but encountered an error");
 		return false;
 	}
+	_lggr.error("Fd: " + su::to_string(socket_fd) +
+	            std::string(op == EPOLL_CTL_ADD   ? " added to epoll instance with mask "
+	                        : op == EPOLL_CTL_MOD ? " modified with new mask "
+	                                              : " deleted from epoll instance.") +
+	            std::string(op == EPOLL_CTL_DEL ? "" : "(" + describeEpollEvents(events) + ")"));
 
 	return true;
 }
@@ -260,7 +273,7 @@ bool WebServer::initializeSingleServer(ServerConfig &config) {
 		return false;
 	}
 
-	if (!addToEpoll(config.server_fd, config.host, config.port)) {
+	if (!epollManage(EPOLL_CTL_ADD, config.server_fd, EPOLLIN)) {
 		freeaddrinfo(addr_info);
 		return false;
 	}

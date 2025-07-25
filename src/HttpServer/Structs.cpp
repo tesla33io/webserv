@@ -9,9 +9,7 @@ WebServer::ConnectionInfo::ConnectionInfo(int socket_fd)
       chunked(false),
       keep_alive(false),
       request_count(0),
-      chunk_state(READING_HEADERS),
-      current_chunk_size(0),
-      current_chunk_read(0) {
+      state(READING_HEADERS) {
 	updateActivity();
 }
 
@@ -22,14 +20,11 @@ bool WebServer::ConnectionInfo::isExpired(time_t current_time, int timeout) cons
 }
 
 void WebServer::ConnectionInfo::resetChunkedState() {
-	chunk_state = READING_HEADERS;
-	chunk_buffer.clear();
-	current_chunk_size = 0;
-	current_chunk_read = 0;
+	state = READING_HEADERS;
 	chunked = false;
 }
 
-std::string chunkedStateToString(WebServer::ConnectionInfo::ChunkState state) {
+std::string stateToString(WebServer::ConnectionInfo::State state) {
 	switch (state) {
 	case WebServer::ConnectionInfo::READING_HEADERS:
 		return "READING_HEADERS";
@@ -51,8 +46,8 @@ std::string chunkedStateToString(WebServer::ConnectionInfo::ChunkState state) {
 std::string WebServer::ConnectionInfo::toString() {
 	std::ostringstream oss;
 
-	oss << "Connection{\n";
-	oss << "  clfd: " << clfd << "\n";
+	oss << "Connection{";
+	oss << "clfd: " << clfd << ", ";
 
 	char time_buf[26];
 	// TODO: do we need thread-safety??
@@ -63,17 +58,13 @@ std::string WebServer::ConnectionInfo::toString() {
 #endif
 	// ctime_r includes a newline at the end; remove it
 	time_buf[24] = '\0';
-	oss << "  last_activity: " << time_buf << "\n";
 
-	oss << "  buffer: \"" << buffer << "\"\n";
-	oss << "  chunked: " << (chunked ? "true" : "false") << "\n";
-	oss << "  keep_alive: " << (keep_alive ? "true" : "false") << "\n";
-	oss << "  request_count: " << request_count << "\n";
-	oss << "  chunk_state: " << chunkedStateToString(chunk_state) << "\n";
-	oss << "  current_chunk_size: " << current_chunk_size << "\n";
-	oss << "  current_chunk_read: " << current_chunk_read << "\n";
-	oss << "  chunk_buffer: \"" << chunk_buffer << "\"\n";
-	oss << "}";
+	oss << "last_activity: " << time_buf << ", ";
+	oss << "buffer: \"" << buffer << "\", ";
+	oss << "chunked: " << (chunked ? "true" : "false") << ", ";
+	oss << "keep_alive: " << (keep_alive ? "true" : "false") << ", ";
+	oss << "request_count: " << request_count << ", ";
+	oss << "chunk_state: " << stateToString(state) << "}";
 
 	return oss.str();
 }

@@ -52,6 +52,8 @@ class WebServer {
 	// Connection state tracking structure
 	struct ConnectionInfo {
 		int clfd;
+		std::string host;
+		int port; // TODO: get this done
 		time_t last_activity;
 		std::string buffer;
 		bool chunked;
@@ -59,8 +61,11 @@ class WebServer {
 		int request_count;
 
 		// Chunked transfer state
-		enum ChunkState {
+		enum State {
 			READING_HEADERS,
+			REQUEST_COMPLETE,
+
+			// chunked stuff
 			READING_CHUNK_SIZE,
 			READING_CHUNK_DATA,
 			READING_CHUNK_TRAILER,
@@ -68,10 +73,7 @@ class WebServer {
 			CHUNK_COMPLETE
 		};
 
-		ChunkState chunk_state;
-		std::string chunk_buffer;  // Accumulates partial chunk data
-		size_t current_chunk_size; // Size of current chunk being read
-		size_t current_chunk_read; // Bytes read of current chunk
+		State state;
 
 		ConnectionInfo(int socket_fd);
 		void updateActivity();
@@ -141,7 +143,7 @@ class WebServer {
 	bool setSocketOptions(int socket_fd, const std::string &host, const int port);
 	bool setNonBlocking(int fd);
 	bool bindAndListen(const ServerConfig &config, const struct addrinfo *addr_info);
-	bool addToEpoll(int socket_fd, const std::string &host, const int port);
+	bool epollManage(int op, int socket_fd, uint32_t events);
 	bool initializeSingleServer(ServerConfig &config);
 
 	// Main loop
@@ -150,10 +152,10 @@ class WebServer {
 
 	// Connection management methods
 	void handleNewConnection();
-	void addConnection(int client_fd);
+	ConnectionInfo *addConnection(int client_fd);
 	void updateConnectionActivity(int client_fd);
 	void cleanupExpiredConnections();
-	void closeConnection(int client_fd);
+	void closeConnection(ConnectionInfo *conn);
 	bool shouldKeepAlive(const ClientRequest &req);
 	void handleConnectionTimeout(int client_fd);
 
@@ -162,8 +164,8 @@ class WebServer {
 	ssize_t receiveData(int client_fd, char *buffer, size_t buffer_size);
 	bool processReceivedData(int client_fd, ConnectionInfo *conn, const char *buffer,
 	                         ssize_t bytes_read, ssize_t total_bytes_read);
-	void handleClientDisconnection(int client_fd);
-	void handleRequestTooLarge(int client_fd, ssize_t bytes_read);
+	void handleClientDisconnection(ConnectionInfo *conn);
+	void handleRequestTooLarge(ConnectionInfo *conn, ssize_t bytes_read);
 	bool handleCompleteRequest(int client_fd, ConnectionInfo *conn);
 	bool isCompleteRequest(ConnectionInfo *conn);
 	void processRequest(int client_fd, ConnectionInfo *conn);

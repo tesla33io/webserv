@@ -5,11 +5,14 @@
 #include <cerrno>
 #include <cstddef>
 #include <cstdio>
+#include <cstdlib>
+#include <netdb.h>
 #include <sstream>
 #include <string>
 #include <sys/socket.h>
 
 void WebServer::handleClientData(int client_fd) {
+	_lggr.debug("Updated last activity for FD " + su::to_string(client_fd));
 	updateConnectionActivity(client_fd);
 
 	ConnectionInfo *conn = getConnectionInfo(client_fd);
@@ -19,6 +22,7 @@ void WebServer::handleClientData(int client_fd) {
 	char buffer[BUFFER_SIZE];
 	ssize_t total_bytes_read = 0;
 
+	_lggr.debug("Starting recieving loop");
 	while (true) {
 		errno = 0;
 		ssize_t bytes_read = receiveData(client_fd, buffer, sizeof(buffer) - 1);
@@ -30,7 +34,7 @@ void WebServer::handleClientData(int client_fd) {
 				return;
 			}
 		} else if (bytes_read == 0) {
-			handleClientDisconnection(client_fd);
+			handleClientDisconnection(conn);
 			return;
 		} else if (bytes_read < 0) {
 			if (errno == EAGAIN || errno == EWOULDBLOCK) { // TODO: this is forbidden
@@ -39,7 +43,7 @@ void WebServer::handleClientData(int client_fd) {
 			} else {
 				_lggr.error("recv error for fd " + su::to_string(client_fd) + ": " +
 				            strerror(errno));
-				closeConnection(client_fd);
+				closeConnection(conn);
 				return;
 			}
 		}
@@ -63,36 +67,10 @@ bool WebServer::processReceivedData(int client_fd, ConnectionInfo *conn, const c
 	conn->buffer += std::string(buffer);
 	_lggr.debug("FD " + su::to_string(client_fd) + "\n" + conn->toString());
 
-	if (conn->chunked && conn->chunk_state != ConnectionInfo::READING_HEADERS &&
-	    conn->chunk_state != ConnectionInfo::CHUNK_COMPLETE) {
-		_lggr.debug("Recieving chunk");
-		std::istringstream chunkStream(buffer);
-		std::string line;
-		while (std::getline(chunkStream, line)) {
-			char *endptr = 0;
-			long chunkSize = std::strtol(line.c_str(), &endptr, 16);
-			if (chunkSize == 0) {
-				// TODO: EOF
-				conn->chunk_state = ConnectionInfo::CHUNK_COMPLETE;
-				break;
-			}
-
-			char *decodeBuffer = new char[chunkSize + 2];       // \r\n
-			chunkStream.read(decodeBuffer, chunkSize + 2);      // including \r\n
-			conn->decoded_body.append(decodeBuffer, chunkSize); // excluding \r\n
-			delete[] decodeBuffer;
-		}
-		// TODO: not sure about the logic hier yet
-		if (conn->chunk_state != ConnectionInfo::CHUNK_COMPLETE) {
-			return true;
-		} else {
-		}
-	}
-
 	if (isCompleteRequest(conn)) {
 		// TODO: remove hard-coded limit
 		if (total_bytes_read > 4096) {
-			handleRequestTooLarge(client_fd, bytes_read);
+			handleRequestTooLarge(conn, bytes_read);
 			return false;
 		}
 
@@ -102,16 +80,16 @@ bool WebServer::processReceivedData(int client_fd, ConnectionInfo *conn, const c
 	return true;
 }
 
-void WebServer::handleClientDisconnection(int client_fd) {
-	_lggr.info("Client disconnected (fd: " + su::to_string(client_fd) + ")");
-	closeConnection(client_fd);
+void WebServer::handleClientDisconnection(ConnectionInfo *conn) {
+	_lggr.info("Client disconnected (fd: " + su::to_string(conn->clfd) + ")");
+	closeConnection(conn);
 }
 
-void WebServer::handleRequestTooLarge(int client_fd, ssize_t bytes_read) {
-	_lggr.info("Reached max content length for fd: " + su::to_string(client_fd) + ", " +
+void WebServer::handleRequestTooLarge(ConnectionInfo *conn, ssize_t bytes_read) {
+	_lggr.info("Reached max content length for fd: " + su::to_string(conn->clfd) + ", " +
 	           su::to_string(bytes_read) + "/" + su::to_string(4096));
-	sendResponse(client_fd, Response(413));
-	closeConnection(client_fd);
+	sendResponse(conn->clfd, Response(413));
+	closeConnection(conn);
 }
 
 bool WebServer::handleCompleteRequest(int client_fd, ConnectionInfo *conn) {
@@ -140,22 +118,19 @@ void WebServer::processRequest(int client_fd, ConnectionInfo *conn) {
 		return;
 	_lggr.debug("Request parsed sucsessfully");
 
-	if (req.chunked_encoding && conn->chunk_state == ConnectionInfo::READING_HEADERS) {
+	if (req.chunked_encoding && conn->state == ConnectionInfo::READING_HEADERS) {
 		// Accept chunked requests sequence
 		_lggr.debug("Accepting a chunked request");
-		conn->chunk_state = ConnectionInfo::READING_CHUNK;
+		conn->state = ConnectionInfo::READING_CHUNK_SIZE;
 		conn->chunked = true;
-		conn->decoded_body.append(conn->buffer); // save initial headers
 		sendResponse(client_fd, Response::continue_());
 		return;
 	}
 
 	// TODO: this part breaks the req struct for some reason
 	//       can't debug on my own :(
-	if (req.chunked_encoding && conn->chunk_state == ConnectionInfo::CHUNK_COMPLETE) {
+	if (req.chunked_encoding && conn->state == ConnectionInfo::CHUNK_COMPLETE) {
 		_lggr.debug("Chunked request completed!");
-		conn->buffer.clear();
-		conn->buffer = conn->decoded_body; // TODO: decoded_body -> decoded_buffer
 		_lggr.debug("Parsing complete chunked request");
 		if (!parseRequest(conn, req))
 			return;
@@ -178,13 +153,12 @@ void WebServer::processRequest(int client_fd, ConnectionInfo *conn) {
 }
 
 bool WebServer::parseRequest(ConnectionInfo *conn, ClientRequest &req) {
-	_lggr.debug("Parsing request for FD " + su::to_string(conn->clfd));
-	if ((!conn->chunked || conn->chunk_state == ConnectionInfo::READING_HEADERS) &&
-	    !RequestParsingUtils::parse_request(conn->buffer, req)) {
+	_lggr.debug("Parsing request: " + conn->toString());
+	if (!RequestParsingUtils::parse_request(conn->buffer, req)) {
 		_lggr.error("Parsing of the request failed.");
 		_lggr.debug("FD " + su::to_string(conn->clfd) + "\n" + conn->toString());
 		sendResponse(conn->clfd, Response::badRequest());
-		closeConnection(conn->clfd);
+		closeConnection(conn);
 		return false;
 	}
 	return true;
@@ -201,7 +175,7 @@ WebServer::ConnectionInfo *WebServer::getConnectionInfo(int client_fd) {
 	std::map<int, ConnectionInfo *>::iterator conn_it = _connections.find(client_fd);
 	if (conn_it == _connections.end()) {
 		_lggr.error("No connection info found for fd: " + su::to_string(client_fd));
-		closeConnection(client_fd);
+		closeConnection(conn_it->second);
 		return NULL;
 	}
 	return conn_it->second;
