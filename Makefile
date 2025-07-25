@@ -1,15 +1,15 @@
-################################################################################
-#                  .,,,''''''',,                                               #
-#             .,,,/           ,~~~\.     /~~~\     \   \                       #
-#    /     __/               /      \_'''',,,/     ))  ))                      #
-#    \_O--/                  |       \    __ ",,  //  //                       #
-#        |                    /  \_  /     @)  ''//_ //                        #
-#       |                      ',,,/      ~~    //  ~~__                       #
-#       |          )             (           __//        ---___ _/OO           #
-#        \          )     /    )   ( ,,,,   (_Q   '''----_______,_/            #
-#          \       |--.-- #|   |,,,/\_   ~~\/                                  #
-#            \____________#| /    \_ ''\___                 ~O       O         #
-#             /  /    _/  /         ~~\ __ \                /\_     /\/        #
+# **************************************************************************** #
+#                                                                              #
+#                                                         :::      ::::::::    #
+#    Makefile                                           :+:      :+:    :+:    #
+#                                                     +:+ +:+         +:+      #
+#    By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+         #
+#                                                 +#+#+#+#+#+   +#+            #
+#    Created: Invalid date        by         __/       #+#    #+#              #
+#    Updated: 2025/07/25 16:01:17 by htharrau         ###   ########.fr        #
+#                                                                              #
+# **************************************************************************** #
+
 #            /__/   #|__/                 |##           _  /_   _  /_          #
 #            |##    ~~        -cfbd-                     \/  \,  \/  \,        #
 #     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~    #
@@ -46,11 +46,10 @@ SRC_FILES		+= src/RequestParser/request_line.cpp
 SRC_FILES		+= src/RequestParser/headers.cpp
 SRC_FILES		+= src/RequestParser/body.cpp
 
-SRC_FILES		+= src/ConfigParser/config_parser.cpp
-SRC_FILES		+= src/ConfigParser/struct_parser.cpp
-SRC_FILES		+= src/ConfigParser/config_utils.cpp
-SRC_FILES		+= src/ConfigParser/valid_directives.cpp
-#SRC_FILES		+= src/ConfigParser/tester.cpp
+SRC_FILES		+= src/ConfigParser/ConfigParser.cpp
+SRC_FILES		+= src/ConfigParser/ServerStructure.cpp
+SRC_FILES		+= src/ConfigParser/ConfigHelper.cpp
+SRC_FILES		+= src/ConfigParser/ValidDirective.cpp
 
 #Object files directory
 OBJ_DIR			:= obj/

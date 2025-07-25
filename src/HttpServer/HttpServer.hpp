@@ -4,7 +4,7 @@
 #include "../Logger/Logger.hpp"
 #include "../RequestParser/request_parser.hpp"
 #include "../Utils/StringUtils.hpp"
-#include "../ConfigParser/config_parser.hpp"
+#include "../ConfigParser/ConfigParser.hpp"
 
 #include <arpa/inet.h>
 #include <climits>

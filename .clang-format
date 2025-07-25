@@ -7,3 +7,4 @@ DerivePointerAlignment: false
 PointerAlignment: Right
 InsertNewlineAtEOF: true
 KeepEmptyLinesAtEOF: true
+PackConstructorInitializers: Never

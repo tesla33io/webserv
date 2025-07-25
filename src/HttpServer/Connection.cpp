@@ -1,4 +1,4 @@
-#include "ConfigParser/config_parser.hpp"
+#include "ConfigParser/ConfigParser.hpp"
 #include "HttpServer.hpp"
 #include "src/Logger/Logger.hpp"
 #include "src/RequestParser/request_parser.hpp"

@@ -1,4 +1,4 @@
-#include "ConfigParser/config_parser.hpp"
+#include "ConfigParser/ConfigParser.hpp"
 #include "HttpServer.hpp"
 #include "src/Logger/Logger.hpp"
 #include "src/RequestParser/request_parser.hpp"
@@ -296,23 +296,47 @@ void WebServer::cleanup() {
 	_lggr.info("Server cleanup completed");
 }
 
+
+// int main(int argc, char *argv[]) {
+
+// 	if (argc != 2) {
+// 		std::cerr << "webserv: no configuration file specified" << std::endl;
+// 		std::cerr << "Usage: " << argv[0] << " <configuration_file>" << std::endl;
+// 		return 1;
+// 	}
+
+// 	ConfigNode tree;
+// 	ConfigParser configparser;
+
+// 	if (!configparser.parseTree(argv[1], tree)) {
+// 		std::cerr << "Error: Failed to open or parse configuration file '" << argv[1] << "'" << std::endl;
+// 		std::cerr << "Please check the configuration file syntax and try again." << std::endl;
+// 		return 1;
+// 	}
+
+// 	std::vector<ServerConfig> servers;
+	
+// 	configparser.convertTreeToStruct(tree, servers);
+
+
+
 int main(int argc, char *argv[]) {
-	Logger lgger("config_prasing", Logger::INFO, true);
 
 	if (argc != 2) {
-		std::cerr << "TODO: write a nice error message with usage instructions here <<<"
-		          << std::endl;
+		std::cerr << "webserv: no configuration file specified" << std::endl;
+		std::cerr << "Usage: " << argv[0] << " <configuration_file>" << std::endl;
 		return 1;
 	}
 
-	ConfigNode conf;
-	if (!ConfigParsing::tree_parser(argv[1], conf, lgger)) {
-		std::cerr << "TODO: also nice error message here..." << std::endl;
-		return 1;
-	}
-
+	ConfigParser configparser;
 	std::vector<ServerConfig> servers;
-	ConfigParsing::struct_parser(conf, servers, lgger);
+
+	if (!configparser.loadConfig(argv[1], servers)) {
+		std::cerr << "Error: Failed to open or parse configuration file '" << argv[1] << "'" << std::endl;
+		std::cerr << "Please check the configuration file syntax and try again." << std::endl;
+		return 1;
+	}
+
 	WebServer Wserver(servers);
 
 	Wserver.initialize();
