@@ -6,7 +6,7 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/01 08:40:30 by jalombar          #+#    #+#             */
-/*   Updated: 2025/07/04 13:28:48 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/07/22 11:38:00 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,7 +17,7 @@ std::vector<ClientRequest> test_requests;
 void init_requests() {
 	ClientRequest test1;
 	test1.method = GET;
-	test1.path = "cgi-bin/ciao.php";
+	test1.path = "cgi-bin/php/ciao.php";
 	test1.query = "name=Claudio";
 	test1.uri = test1.path + "?" + test1.query;
 	test1.version = "HTTP/1.1";
@@ -32,7 +32,7 @@ void init_requests() {
 
 	ClientRequest test2;
 	test2.method = POST;
-	test2.path = "cgi-bin/ciao.php";
+	test2.path = "cgi-bin/php/ciao.php";
 	test2.query = "";
 	test2.uri = test2.path;
 	test2.version = "HTTP/1.1";
@@ -49,7 +49,7 @@ void init_requests() {
 
 	ClientRequest test3;
 	test3.method = GET;
-	test3.path = "cgi-bin/ciao.php";
+	test3.path = "cgi-bin/php/ciao.php";
 	test3.query = "";
 	test3.uri = test3.path;
 	test3.version = "HTTP/1.1";
@@ -66,7 +66,7 @@ void init_requests() {
 int main(void) {
 	init_requests();
 	for (size_t i = 0; i < test_requests.size(); ++i) {
-		CGIUtils::handle_CGI_request(test_requests[i]);
+		CGIUtils::handle_CGI_request(test_requests[i], 0);
 	}
 	return (0);
 }

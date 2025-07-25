@@ -1,4 +1,6 @@
 BasedOnStyle: LLVM
+Language: Cpp
+Standard: Cpp03
 IndentWidth: 4
 UseTab: ForIndentation
 TabWidth: 4
@@ -7,3 +9,4 @@ DerivePointerAlignment: false
 PointerAlignment: Right
 InsertNewlineAtEOF: true
 KeepEmptyLinesAtEOF: true
+PackConstructorInitializers: Never
