@@ -1,0 +1,55 @@
+
+
+http {   
+	server {        
+		listen 127.0.0.1:8080;
+        error_page  404 /custom_404.html;
+        error_page  500 /err500.html;
+        error_page 500 502 503 504 /custom_50x.html;
+
+        location /images {
+            root /img;
+            return 303 /gggg ;
+
+        }
+
+        location / {
+            root /www;
+            index index.html;
+            autoindex on;
+        }
+    }
+
+    server {
+        listen 8081;
+
+        location /images/ {
+            root /img;
+            allowed_methods GET POST ;
+        }
+
+        location / {
+            root /html;
+            index index.html;
+            autoindex off;
+        }
+    }
+
+    server {
+        listen 8081;
+
+        location /images/ {
+            root /img;
+            allowed_methods GET  ;
+        }
+
+        location / {
+            root /html;
+            index index.html;
+        }
+    }
+}
+
+events{
+
+}
