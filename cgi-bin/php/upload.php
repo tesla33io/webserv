@@ -33,7 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
         // Handle duplicate filenames
         $target_path = $upload_dir . $filename;
         if (file_exists($target_path)) {
-            $filename = $filename . '_' . time();
+            $filename = time() . '_' . $filename;
             $target_path = $upload_dir . $filename;
         }
         
