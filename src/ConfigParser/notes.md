@@ -30,28 +30,6 @@ To handle NGINX-style configuration files. The configuration file consists of di
 
 
 
-server block :
-address:port
-vector map error pages 
-uint max_body
-vector (location blocks)
-
-location block :
-method
-return
-root
-alias
-index
-default.html
-
-
-
-
-////////////////////////////////////////////////////////////////////////////////
-TODO: directive validation: add uri syntax validation?
-TODO: directive validation: update the list of method and CGI extension we wanna accept
-TODO: directive validation: add tests
-other: check the use of "", '', change the line approach to a character approach?
 
 ////////////////////////////////////////////////////////////////////////////////
 to compare with NGINX : docker run --rm -v $(pwd)/mini.conf:/etc/nginx/nginx.conf:ro nginx nginx -t

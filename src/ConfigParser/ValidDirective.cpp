@@ -22,10 +22,10 @@ void ConfigParser::initValidDirectives() {
 	validDirectives_.push_back(Validity("root", makeVector("server", "location"), false, 1, 1, &ConfigParser::validateRoot));
 	validDirectives_.push_back(Validity("allowed_methods", makeVector("server", "location"), false, 1, 3, &ConfigParser::validateMethod));
 	validDirectives_.push_back(Validity("upload_path", makeVector("server", "location"), false, 1, 1, &ConfigParser::validateUploadPath));
-	validDirectives_.push_back(Validity("autoindex",  makeVector("server", "location"), false, 1, 2, &ConfigParser::validateAutoIndex));
 	validDirectives_.push_back(Validity("cgi_ext", makeVector("server", "location"), false, 2, SIZE_MAX, &ConfigParser::validateCGI));
 	validDirectives_.push_back(Validity("index", makeVector("server", "location"), false, 1, 1, &ConfigParser::validateIndex));
 	// location only level
+	validDirectives_.push_back(Validity("autoindex",  std::vector<std::string>(1, "location"), false, 1, 1, &ConfigParser::validateAutoIndex));
 	validDirectives_.push_back(Validity("return", std::vector<std::string>(1, "location"), false, 1, 2, &ConfigParser::validateReturn));
 	validDirectives_.push_back(Validity("alias", std::vector<std::string>(1, "location"),  false, 1, 1, &ConfigParser::validateAlias));
 }
@@ -222,7 +222,7 @@ bool ConfigParser::validateIndex(const ConfigNode& node) {
 // must be in the list
 bool ConfigParser::validateMethod(const ConfigNode& node)  {
 	static const char* valid_methods[] = {"GET", "POST", "DELETE"};
-	const int n = sizeof(valid_methods) / sizeof(valid_methods[0]);
+	const int n = 3;
 
 	for (size_t i = 0; i < node.args_.size(); ++i) {
 		bool found = false;
@@ -233,7 +233,7 @@ bool ConfigParser::validateMethod(const ConfigNode& node)  {
 			}
 		}
 		if (!found) {
-			logg_.logWithPrefix(Logger::WARNING, "Configuration file",
+			logg_.logWithPrefix(Logger::ERROR, "Configuration file",
 				"allowed_methods: unsupported method '" + node.args_[i] + "'.");
 			return false;
 		}

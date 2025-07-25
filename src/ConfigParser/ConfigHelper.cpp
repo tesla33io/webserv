@@ -35,7 +35,7 @@ bool ConfigParser::isValidIPv4(const std::string& ip) {
 	std::istringstream iss(ip);
 	std::string token;
 	int count = 0;
-	while (std::getline(iss, token, '.')) { // reads from the stringstream until it hits a '.' character
+	while (std::getline(iss, token, '.')) { 
 		if (++count > 4) 
 			return false;
 		if (token.empty()) 
@@ -54,6 +54,8 @@ bool ConfigParser::isValidIPv4(const std::string& ip) {
 
 // valid uri: starts with /, pas de guillemets or ..
 bool ConfigParser::isValidUri(const std::string& uri) {
+	if (uri.empty())
+		return false;
 	if (uri[0] != '/')
 		return false;
 	if (uri.find('"') != std::string::npos)
@@ -66,6 +68,8 @@ bool ConfigParser::isValidUri(const std::string& uri) {
 // valid uri: starts with https:// or http:// - pas de guillemets or ..
 bool ConfigParser::isValidUrl(const std::string& url) {
 
+	if (url.empty())
+		return false;
 	if (url.find("http://") == 0 || url.find("https://") == 0) {
 		if (url.find('"') != std::string::npos)
 			return false;
@@ -76,11 +80,11 @@ bool ConfigParser::isValidUrl(const std::string& url) {
 	return false;
 }
 
-// valid uri + pas de . + pas de slash at the end
+// valid uri + pas de .. + pas de slash at the end
 bool ConfigParser::isValidPath(const std::string& path) {
 	if (!isValidUri(path))
 		return false;
-	if (path.find(".") != std::string::npos)
+	if (path.find("..") != std::string::npos)  // Only reject ".."
 		return false;
 	if (path[path.size() - 1] == '/')
 		return false;
@@ -107,22 +111,23 @@ std::string ConfigParser::joinArgs(const std::vector<std::string>& args) const {
 	}
 	return result;
 }
-void ConfigParser::printTree(const ConfigNode& node, const std::string& prefix, bool isLast, std::ostream &os) const {
+void ConfigParser::printTree(const ConfigNode& node, const std::string& prefix, 
+	                         bool isLast, std::ostream &os) const {
 	os << prefix;
 	os << (isLast ? "└── " : "├── ");
-	os << node.name_;  // Changed from node.name to node.name_
+	os << node.name_; 
 	
-	if (!node.args_.empty()) {  // Changed from node.args to node.args_
-		os << " " << joinArgs(node.args_);  // Changed from node.args to node.args_
+	if (!node.args_.empty()) { 
+		os << " " << joinArgs(node.args_);
 	}
 	
-	os << " " << node.line_ << std::endl;  // Changed from node.lineNumber to node.line_
+	os << " " << node.line_ << std::endl; 
 	
 	std::string childPrefix = prefix + (isLast ? "    " : "│   ");
 	
-	for (size_t i = 0; i < node.children_.size(); ++i) {  // Changed from node.children to node.children_
-		bool childIsLast = (i == node.children_.size() - 1);  // Changed from node.children to node.children_
-		printTree(node.children_[i], childPrefix, childIsLast, os);  // Changed from node.children to node.children_
+	for (size_t i = 0; i < node.children_.size(); ++i) {  
+		bool childIsLast = (i == node.children_.size() - 1); 
+		printTree(node.children_[i], childPrefix, childIsLast, os); 
 	}
 }
 
@@ -134,7 +139,7 @@ void ConfigParser::printServers(const std::vector<ServerConfig>& servers, std::o
 	
 	for (size_t i = 0; i < servers.size(); ++i) {
 		os << "Server " << (i + 1) << ":\n";
-		printServerConfig(servers[i], os);  // Pass the ostream to helper
+		printServerConfig(servers[i], os);  
 		os << "\n";
 	}
 }
@@ -150,6 +155,11 @@ void ConfigParser::printLocationConfig(const LocConfig &loc, std::ostream &os) c
 	
 	if (!loc.index.empty()) {
 		os << "    Index: " << loc.index << "\n";
+	}
+	
+	// ADD THIS: Print upload_path if it's set
+	if (!loc.upload_path.empty()) {
+		os << "    Upload path: " << loc.upload_path << "\n";
 	}
 	
 	os << "    Autoindex: " << (loc.autoindex ? "on" : "off") << "\n";
@@ -191,7 +201,7 @@ void ConfigParser::printServerConfig(const ServerConfig &server, std::ostream &o
 	
 	if (!server.locations.empty()) {
 		for (size_t i = 0; i < server.locations.size(); ++i) {
-			printLocationConfig(server.locations[i], os);  // Pass the ostream along
+			printLocationConfig(server.locations[i], os); 
 			if (i < server.locations.size() - 1) {
 				os << "\n";
 			}

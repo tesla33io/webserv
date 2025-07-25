@@ -34,11 +34,11 @@ void ConfigParser::convertTreeToStruct(const ConfigNode &tree, std::vector<Serve
 			}
 
 			// Check for duplicate host:port combination - skip (we still accept the configuration file)
-			// if (isDuplicateServer(servers, server)) {
-			// 	logg_.logWithPrefix(Logger::ERROR, "Configuration file", 
-			// 		"Duplicate server configuration for " + server.host + ":" + su::to_string(server.port));
-			// 	continue;
-			// }
+			if (isDuplicateServer(servers, server)) {
+				logg_.logWithPrefix(Logger::ERROR, "Configuration file", 
+					"Duplicate server configuration for " + server.host + ":" + su::to_string(server.port) + ". The duplicate server will not be created.");
+				continue;
+			}
 			
 			// create default location "/" if no locations exist
 			if (server.locations.empty()) {
@@ -128,8 +128,6 @@ void ConfigParser::handleForInherit(const ConfigNode &node, LocConfig &location)
 		location.index = node.args_[0];
 	else if (node.name_ == "cgi_ext") 
 		handleCGI(node, location);
-	else if (node.name_ == "autoindex")
-		location.autoindex = (node.args_[0] == "on");
 }
 
 
@@ -156,9 +154,6 @@ void ConfigParser::inheritGeneralConfig(ServerConfig& server, const LocConfig& f
 		// Inherit CGI extensions if not specified
 		if (loc.cgi_extensions.empty())
 			loc.cgi_extensions = forInheritance.cgi_extensions;	
-		// Inherit auto index value if not specified
-		if (!loc.autoindex && forInheritance.autoindex)
-			loc.autoindex = forInheritance.autoindex;
 		// Inherit index
 		if (loc.index.empty())
 			loc.index = forInheritance.index;

@@ -44,6 +44,7 @@ bool ConfigParser::parseTreeBlocks(std::ifstream &file, int &line_nb, ConfigNode
 	std::string accumulated_line;
 	std::string line;
 	int statement_start_line = 0;
+	bool flag_error = false;
 
 	while (std::getline(file, line)) {
 
@@ -87,9 +88,12 @@ bool ConfigParser::parseTreeBlocks(std::ifstream &file, int &line_nb, ConfigNode
 				return false;
 
 			if (!parseTreeBlocks(file, line_nb, childNode)) {
-				logg_.logWithPrefix(Logger::ERROR, "CONFIG",
-				                     "Unexpected token or structure at line " +
-				                         su::to_string(line_nb) + ": " + statement);
+				if (flag_error == false) {
+					logg_.logWithPrefix(Logger::ERROR, "CONFIG",
+										"Unexpected token or structure at line " +
+											su::to_string(line_nb) + ": " + statement);
+					flag_error = true;
+				}
 				return false;
 			}
 			parent.children_.push_back(childNode);
