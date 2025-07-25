@@ -4,6 +4,7 @@ locust/
 *.log
 webserv
 .cache/
+www/uploads
 
 # Prerequisites
 *.d
