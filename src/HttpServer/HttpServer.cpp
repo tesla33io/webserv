@@ -17,31 +17,8 @@ static bool interrupted = false;
 
 static std::string describeEpollEvents(uint32_t ev);
 
-WebServer::WebServer(int port)
-    : _host("127.0.0.1"),
-      _server_fd(-1),
-      _epoll_fd(-1),
-      _port(port),
-      _backlog(SOMAXCONN),
-      _lggr("ws_" + _host + "_" + su::to_string(port) + ".log", Logger::DEBUG, true) {
-	_lggr.info("An instance of the Webserver was created.");
-}
-
-WebServer::WebServer(std::string &host, int port)
-    : _host(host),
-      _server_fd(-1),
-      _epoll_fd(-1),
-      _port(port),
-      _backlog(SOMAXCONN),
-      _lggr("ws_" + _host + "_" + su::to_string(port) + ".log", Logger::DEBUG, true) {
-	_lggr.info("An instance of the Webserver was created.");
-}
-
 WebServer::WebServer(std::vector<ServerConfig> &confs)
-    : _host("127.0.0.1"),
-      _server_fd(-1),
-      _epoll_fd(-1),
-      _port(0),
+    : _epoll_fd(-1),
       _backlog(SOMAXCONN),
       _confs(confs),
       _lggr("ws.log", Logger::DEBUG, true) {
@@ -49,10 +26,7 @@ WebServer::WebServer(std::vector<ServerConfig> &confs)
 }
 
 WebServer::WebServer(std::vector<ServerConfig> &confs, std::string &prefix_path)
-    : _host("127.0.0.1"),
-      _server_fd(-1),
-      _epoll_fd(-1),
-      _port(0),
+    : _epoll_fd(-1),
       _backlog(SOMAXCONN),
       _root_prefix_path(prefix_path),
       _confs(confs),

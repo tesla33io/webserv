@@ -39,8 +39,6 @@
 class WebServer {
 
   public:
-	WebServer(int port);
-	WebServer(std::string &host, int port);
 	WebServer(std::vector<ServerConfig> &confs);
 	WebServer(std::vector<ServerConfig> &confs, std::string &prefix_path);
 	~WebServer();
@@ -113,10 +111,7 @@ class WebServer {
 	};
 
   private:
-	std::string _host;
-	int _server_fd;
 	int _epoll_fd;
-	int _port;
 	int _backlog;
 	std::string _root_prefix_path;
 
