@@ -44,7 +44,12 @@ struct Validity {
 
 	Validity(std::string n, std::vector<std::string> c, bool rep, size_t min, size_t max,
 	         bool (*f)(const ConfigNode &, Logger &))
-	    : name(n), contexts(c), repeatOK(rep), minArgs(min), maxArgs(max), validF(f) {}
+	    : name(n),
+	      contexts(c),
+	      repeatOK(rep),
+	      minArgs(min),
+	      maxArgs(max),
+	      validF(f) {}
 };
 
 struct ReturnDir {
@@ -52,7 +57,10 @@ struct ReturnDir {
 	std::string uri;
 	bool is_set;
 
-	ReturnDir() : status_code(0), uri(""), is_set(false) {}
+	ReturnDir()
+	    : status_code(0),
+	      uri(""),
+	      is_set(false) {}
 };
 
 struct LocConfig {
@@ -69,10 +77,17 @@ struct LocConfig {
 	bool chunked_encoding;
 
 	LocConfig()
-	    : path(""), root(""), ret_dir(), alias(""), limit_except(), cgi_ext(), error_pages(),
-	      client_max_body_size(0),         // DEFAULT = 0 meaning unlimited
-	      autoindex(false),                // DEFAULT = false
-	      index(), chunked_encoding(false) // DEFAULT = false
+	    : path(""),
+	      root(""),
+	      ret_dir(),
+	      alias(""),
+	      limit_except(),
+	      cgi_ext(),
+	      error_pages(),
+	      client_max_body_size(0), // DEFAULT = 0 meaning unlimited
+	      autoindex(false),        // DEFAULT = false
+	      index(),
+	      chunked_encoding(false) // DEFAULT = false
 	{}
 };
 
@@ -81,14 +96,83 @@ struct ServerConfig {
 	int port;
 	std::vector<std::string> server_names;
 	std::vector<LocConfig> locations;
+	int server_fd;
 
 	ServerConfig()
 	    : host("0.0.0.0"), // additional checks/diff default if duplicate? no implemented
 	      port(8080),      // DEF 8080;
 	      server_names() {}
 
-	// Needed by later part
-	int server_fd;
+	// Find by server_fd
+	static ServerConfig *find(std::vector<ServerConfig> &servers, int server_fd) {
+		for (std::vector<ServerConfig>::iterator it = servers.begin(); it != servers.end(); ++it) {
+			if (it->server_fd == server_fd) {
+				return &(*it);
+			}
+		}
+		return NULL;
+	}
+
+	// Find by host and port
+	static ServerConfig *find(std::vector<ServerConfig> &servers, const std::string &host,
+	                          int port) {
+		for (std::vector<ServerConfig>::iterator it = servers.begin(); it != servers.end(); ++it) {
+			if (it->host == host && it->port == port) {
+				return &(*it);
+			}
+		}
+		return NULL;
+	}
+
+	// Find by server name
+	static ServerConfig *find(std::vector<ServerConfig> &servers, const std::string &server_name) {
+		for (std::vector<ServerConfig>::iterator it = servers.begin(); it != servers.end(); ++it) {
+			// Search through all server names for this server
+			for (std::vector<std::string>::const_iterator name_it = it->server_names.begin();
+			     name_it != it->server_names.end(); ++name_it) {
+				if (*name_it == server_name) {
+					return &(*it);
+				}
+			}
+		}
+		return NULL;
+	}
+
+	// Const versions for const containers
+	static const ServerConfig *find(const std::vector<ServerConfig> &servers, int server_fd) {
+		for (std::vector<ServerConfig>::const_iterator it = servers.begin(); it != servers.end();
+		     ++it) {
+			if (it->server_fd == server_fd) {
+				return &(*it);
+			}
+		}
+		return NULL;
+	}
+
+	static const ServerConfig *find(const std::vector<ServerConfig> &servers,
+	                                const std::string &host, int port) {
+		for (std::vector<ServerConfig>::const_iterator it = servers.begin(); it != servers.end();
+		     ++it) {
+			if (it->host == host && it->port == port) {
+				return &(*it);
+			}
+		}
+		return NULL;
+	}
+
+	static const ServerConfig *find(const std::vector<ServerConfig> &servers,
+	                                const std::string &server_name) {
+		for (std::vector<ServerConfig>::const_iterator it = servers.begin(); it != servers.end();
+		     ++it) {
+			for (std::vector<std::string>::const_iterator name_it = it->server_names.begin();
+			     name_it != it->server_names.end(); ++name_it) {
+				if (*name_it == server_name) {
+					return &(*it);
+				}
+			}
+		}
+		return NULL;
+	}
 };
 
 namespace ConfigParsing {
