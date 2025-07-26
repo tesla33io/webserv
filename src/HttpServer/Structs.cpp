@@ -1,10 +1,11 @@
+#include "Utils/StringUtils.hpp"
 #include "src/HttpServer/HttpServer.hpp"
 #include <ctime>
 #include <string>
 
-//// ConnectionInfo ////
+//// Connection ////
 
-WebServer::ConnectionInfo::ConnectionInfo(int socket_fd)
+WebServer::Connection::Connection(int socket_fd)
     : clfd(socket_fd),
       chunked(false),
       keep_alive(false),
@@ -13,37 +14,37 @@ WebServer::ConnectionInfo::ConnectionInfo(int socket_fd)
 	updateActivity();
 }
 
-void WebServer::ConnectionInfo::updateActivity() { last_activity = time(NULL); }
+void WebServer::Connection::updateActivity() { last_activity = time(NULL); }
 
-bool WebServer::ConnectionInfo::isExpired(time_t current_time, int timeout) const {
+bool WebServer::Connection::isExpired(time_t current_time, int timeout) const {
 	return (current_time - last_activity) > timeout;
 }
 
-void WebServer::ConnectionInfo::resetChunkedState() {
+void WebServer::Connection::resetChunkedState() {
 	state = READING_HEADERS;
 	chunked = false;
 }
 
-std::string stateToString(WebServer::ConnectionInfo::State state) {
+std::string stateToString(WebServer::Connection::State state) {
 	switch (state) {
-	case WebServer::ConnectionInfo::READING_HEADERS:
+	case WebServer::Connection::READING_HEADERS:
 		return "READING_HEADERS";
-	case WebServer::ConnectionInfo::READING_CHUNK_SIZE:
+	case WebServer::Connection::READING_CHUNK_SIZE:
 		return "READING_CHUNK_SIZE";
-	case WebServer::ConnectionInfo::READING_CHUNK_DATA:
+	case WebServer::Connection::READING_CHUNK_DATA:
 		return "READING_CHUNK_DATA";
-	case WebServer::ConnectionInfo::READING_CHUNK_TRAILER:
+	case WebServer::Connection::READING_CHUNK_TRAILER:
 		return "READING_CHUNK_TRAILER";
-	case WebServer::ConnectionInfo::READING_TRAILER:
+	case WebServer::Connection::READING_TRAILER:
 		return "READING_FINAL_TRAILER";
-	case WebServer::ConnectionInfo::CHUNK_COMPLETE:
+	case WebServer::Connection::CHUNK_COMPLETE:
 		return "CHUNK_COMPLETE";
 	default:
 		return "UNKNOWN_STATE";
 	}
 }
 
-std::string WebServer::ConnectionInfo::toString() {
+std::string WebServer::Connection::toString() {
 	std::ostringstream oss;
 
 	oss << "Connection{";
@@ -60,11 +61,16 @@ std::string WebServer::ConnectionInfo::toString() {
 	time_buf[24] = '\0';
 
 	oss << "last_activity: " << time_buf << ", ";
-	oss << "buffer: \"" << buffer << "\", ";
+	oss << "read_buffer: \"" << read_buffer << "\", ";
+	oss << "response_ready: " << (response_ready ? "true" : "false") << ", ";
+	oss << "response_status: "
+	    << (response_ready ? su::to_string(response.status_code) + " " + response.reason_phrase
+	                       : "not ready")
+	    << ", ";
 	oss << "chunked: " << (chunked ? "true" : "false") << ", ";
 	oss << "keep_alive: " << (keep_alive ? "true" : "false") << ", ";
 	oss << "request_count: " << request_count << ", ";
-	oss << "chunk_state: " << stateToString(state) << "}";
+	oss << "state: " << stateToString(state) << "}";
 
 	return oss.str();
 }
@@ -115,6 +121,15 @@ std::string WebServer::Response::toString() const {
 	}
 	response_stream << "\r\n";
 	response_stream << body;
+	return response_stream.str();
+}
+
+std::string WebServer::Response::toShortString() const {
+	std::ostringstream response_stream;
+	response_stream << version << " " << status_code << " " << reason_phrase;
+    if (headers.find("Content-Length") != headers.end()) {
+        response_stream << " Content-Len.: " << headers.find("Content-Length")->second;
+    }
 	return response_stream.str();
 }
 

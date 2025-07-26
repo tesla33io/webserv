@@ -8,6 +8,7 @@
 #include <exception>
 #include <netdb.h>
 #include <string>
+#include <sys/epoll.h>
 #include <sys/socket.h>
 #include <unistd.h>
 #include <vector>
@@ -300,14 +301,6 @@ bool WebServer::isServerSocket(int fd) const {
 	return false;
 }
 
-void WebServer::findPendingConnections(int fd) {
-	for (std::vector<ServerConfig>::const_iterator it = _confs.begin(); it != _confs.end(); ++it) {
-		if (fd == it->server_fd) {
-			_have_pending_conn.push_back(*it);
-		}
-	}
-}
-
 void WebServer::processEpollEvents(const struct epoll_event *events, int event_count) {
 	for (int i = 0; i < event_count; ++i) {
 		const uint32_t event_mask = events[i].events;
@@ -317,18 +310,27 @@ void WebServer::processEpollEvents(const struct epoll_event *events, int event_c
 		            describeEpollEvents(event_mask) + ")");
 
 		if (isServerSocket(fd)) {
-			findPendingConnections(fd);
-			handleNewConnection();
+			// TODO: NULL check
+			ServerConfig *sc = ServerConfig::find(_confs, fd);
+			handleNewConnection(sc);
 		} else {
-			handleClientEvent(fd);
+			handleClientEvent(fd, event_mask);
 		}
 	}
 }
 
-void WebServer::handleClientEvent(int fd) {
-	std::map<int, ConnectionInfo *>::iterator conn_it = _connections.find(fd);
+void WebServer::handleClientEvent(int fd, uint32_t event_mask) {
+	std::map<int, Connection *>::iterator conn_it = _connections.find(fd);
 	if (conn_it != _connections.end()) {
-		handleClientData(fd);
+		Connection *conn = conn_it->second;
+		if (event_mask & EPOLLIN) {
+			handleClientRecv(conn);
+		} else if (event_mask & EPOLLOUT) {
+			if (conn->response_ready)
+				sendResponse(conn);
+			// TODO: check for keep-alive
+			closeConnection(conn);
+		}
 	} else {
 		_lggr.debug("Ignoring event for unknown fd: " + su::to_string(fd));
 	}
@@ -336,7 +338,7 @@ void WebServer::handleClientEvent(int fd) {
 
 inline time_t WebServer::getCurrentTime() const { return time(NULL); }
 
-bool WebServer::isConnectionExpired(const ConnectionInfo *conn) const {
+bool WebServer::isConnectionExpired(const Connection *conn) const {
 	time_t current_time = getCurrentTime();
 	time_t timeout = conn->keep_alive ? KEEP_ALIVE_TO : CONNECTION_TO;
 	return (current_time - conn->last_activity) > timeout;
@@ -346,7 +348,7 @@ void WebServer::logConnectionStats() {
 	size_t active_connections = _connections.size();
 	size_t keep_alive_connections = 0;
 
-	for (std::map<int, ConnectionInfo *>::const_iterator it = _connections.begin();
+	for (std::map<int, Connection *>::const_iterator it = _connections.begin();
 	     it != _connections.end(); ++it) {
 		if (it->second->keep_alive) {
 			keep_alive_connections++;
@@ -361,8 +363,8 @@ void WebServer::cleanup() {
 	_lggr.debug("Performing server cleanup...");
 
 	// Close all client connections
-	for (std::map<int, ConnectionInfo *>::iterator it = _connections.begin();
-	     it != _connections.end(); ++it) {
+	for (std::map<int, Connection *>::iterator it = _connections.begin(); it != _connections.end();
+	     ++it) {
 		close(it->first);
 		delete it->second;
 	}

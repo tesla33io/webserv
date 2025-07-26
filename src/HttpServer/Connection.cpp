@@ -7,38 +7,35 @@
 #include <string>
 #include <vector>
 
-void WebServer::handleNewConnection() {
-	for (std::vector<ServerConfig>::iterator sc = _have_pending_conn.begin();
-	     sc != _have_pending_conn.end(); ++sc) {
-		struct sockaddr_in client_addr;
-		socklen_t client_len = sizeof(client_addr);
+void WebServer::handleNewConnection(ServerConfig *sc) {
+	struct sockaddr_in client_addr;
+	socklen_t client_len = sizeof(client_addr);
 
-		int client_fd = accept(sc->server_fd, (struct sockaddr *)&client_addr, &client_len);
-		if (client_fd == -1) {
-			// TODO: handle this
-		}
-
-		if (!setNonBlocking(client_fd)) {
-			close(client_fd);
-			continue;
-		}
-
-		// TODO: save original host and port of requested server
-		// TODO: error checks
-		ConnectionInfo *conn = addConnection(client_fd, sc->host, sc->port);
-
-		if (!epollManage(EPOLL_CTL_ADD, client_fd, EPOLLIN)) {
-			closeConnection(conn);
-		}
-
-		_lggr.info("New connection from " + std::string(inet_ntoa(client_addr.sin_addr)) + ":" +
-		           su::to_string<unsigned short>(ntohs(client_addr.sin_port)) +
-		           " (fd: " + su::to_string<int>(client_fd) + ")");
+	int client_fd = accept(sc->server_fd, (struct sockaddr *)&client_addr, &client_len);
+	if (client_fd == -1) {
+		// TODO: cannot accept a connection with the client
 	}
+
+	if (!setNonBlocking(client_fd)) {
+		close(client_fd);
+		return;
+	}
+
+	// TODO: save original host and port of requested server
+	// TODO: error checks
+	Connection *conn = addConnection(client_fd, sc->host, sc->port);
+
+	if (!epollManage(EPOLL_CTL_ADD, client_fd, EPOLLIN)) {
+		closeConnection(conn);
+	}
+
+	_lggr.info("New connection from " + std::string(inet_ntoa(client_addr.sin_addr)) + ":" +
+	           su::to_string<unsigned short>(ntohs(client_addr.sin_port)) +
+	           " (fd: " + su::to_string<int>(client_fd) + ")");
 }
 
-WebServer::ConnectionInfo *WebServer::addConnection(int client_fd, std::string host, int port) {
-	ConnectionInfo *conn = new ConnectionInfo(client_fd);
+WebServer::Connection *WebServer::addConnection(int client_fd, std::string host, int port) {
+	Connection *conn = new Connection(client_fd);
 	conn->host = host;
 	conn->port = port;
 	_connections[client_fd] = conn;
@@ -48,7 +45,7 @@ WebServer::ConnectionInfo *WebServer::addConnection(int client_fd, std::string h
 }
 
 void WebServer::updateConnectionActivity(int client_fd) {
-	std::map<int, ConnectionInfo *>::iterator it = _connections.find(client_fd);
+	std::map<int, Connection *>::iterator it = _connections.find(client_fd);
 	if (it != _connections.end()) {
 		it->second->last_activity = getCurrentTime();
 		_lggr.debug("Updated activity for fd: " + su::to_string(client_fd));
@@ -66,10 +63,10 @@ void WebServer::cleanupExpiredConnections() {
 	_conn_to_close.clear();
 
 	// Collect expired connections
-	for (std::map<int, ConnectionInfo *>::iterator it = _connections.begin();
+	for (std::map<int, Connection *>::iterator it = _connections.begin();
 	     it != _connections.end(); ++it) {
 
-		ConnectionInfo *conn = it->second;
+		Connection *conn = it->second;
 		if (conn->isExpired(time(NULL), CONNECTION_TO)) {
 			_conn_to_close.push_back(conn->clfd);
 			_lggr.info("Connection expired for fd: " + su::to_string(conn->clfd));
@@ -87,27 +84,27 @@ void WebServer::cleanupExpiredConnections() {
 }
 
 void WebServer::handleConnectionTimeout(int client_fd) {
-	std::map<int, ConnectionInfo *>::iterator it = _connections.find(client_fd);
+	std::map<int, Connection *>::iterator it = _connections.find(client_fd);
 	if (it != _connections.end()) {
-		ConnectionInfo *conn = it->second;
+		Connection *conn = it->second;
 
-		sendResponse(client_fd, Response(408));
+		prepareResponse(conn, Response(408));
 
 		_lggr.info("Connection timed out for fd: " + su::to_string(client_fd) + " (idle for " +
 		           su::to_string(getCurrentTime() - conn->last_activity) + " seconds)");
-		closeConnection(conn);
+		//closeConnection(conn);
 		// TODO: potential problems in case clfd not in connections for some reason
 	}
 }
 
 bool WebServer::shouldKeepAlive(const ClientRequest &req) {
 	// TODO: check if this could be improved using new & awesome Response struct
-	std::map<int, ConnectionInfo *>::iterator it = _connections.find(req.clfd);
+	std::map<int, Connection *>::iterator it = _connections.find(req.clfd);
 	if (it == _connections.end()) {
 		return false;
 	}
 
-	ConnectionInfo *conn = it->second;
+	Connection *conn = it->second;
 
 	if (conn->request_count >= MAX_KEEP_ALIVE_REQS) {
 		_lggr.debug("Max keep-alive requests reached for fd: " + su::to_string(req.clfd));
@@ -136,7 +133,7 @@ bool WebServer::shouldKeepAlive(const ClientRequest &req) {
 	return req.version == "HTTP/1.1" || req.version == "HTTP/1.0";
 }
 
-void WebServer::closeConnection(ConnectionInfo *conn) {
+void WebServer::closeConnection(Connection *conn) {
 	if (!conn)
 		return;
 	_lggr.debug("Closing connection for fd: " + su::to_string(conn->clfd));
@@ -144,12 +141,11 @@ void WebServer::closeConnection(ConnectionInfo *conn) {
 	epoll_ctl(_epoll_fd, EPOLL_CTL_DEL, conn->clfd, NULL);
 	close(conn->clfd);
 
-	std::map<int, ConnectionInfo *>::iterator it = _connections.find(conn->clfd);
+	std::map<int, Connection *>::iterator it = _connections.find(conn->clfd);
 	if (it != _connections.end()) {
 		_connections.erase(conn->clfd);
 	}
-	delete conn;
-
 	_lggr.debug("Connection cleanup completed for fd: " + su::to_string(conn->clfd));
+	delete conn;
 }
 

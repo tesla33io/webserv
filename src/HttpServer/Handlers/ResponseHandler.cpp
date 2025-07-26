@@ -2,17 +2,35 @@
 #include "RequestParser/request_parser.hpp"
 #include "src/HttpServer/HttpServer.hpp"
 #include "src/Utils/StringUtils.hpp"
+#include <cstdio>
 #include <string>
+#include <sys/epoll.h>
+#include <sys/socket.h>
 #include <vector>
 
-ssize_t WebServer::sendResponse(const int clfd, const Response &resp) {
+ssize_t WebServer::prepareResponse(Connection *conn, const Response &resp) {
 	// TODO: some checks if the arguments are fine to work with
 	// TODO: make sure that Response has all required headers set up correctly (e.g. Content-Type,
 	// Content-Length, etc).
-	_lggr.debug("Sending a response [" + su::to_string(resp.status_code) + "] back to fd " +
-	            su::to_string(clfd));
-	std::string raw_response = resp.toString();
-	return send(clfd, raw_response.c_str(), raw_response.length(), 0);
+	_lggr.debug("Saving a response [" + su::to_string(resp.status_code) + "] for fd " +
+	            su::to_string(conn->clfd));
+	conn->response = resp;
+	conn->response_ready = true;
+	return conn->response.toString().size();
+	// return send(clfd, raw_response.c_str(), raw_response.length(), 0);
+}
+
+bool WebServer::sendResponse(Connection *conn) {
+	if (!conn->response_ready) {
+		_lggr.error("Response is not ready to be sent back to the client");
+		_lggr.debug("Error for clinet " + conn->toString());
+		return false;
+	}
+	_lggr.debug("Sending response [" + conn->response.toShortString() +
+	            "] back to fd: " + su::to_string(conn->clfd));
+	std::string raw_response = conn->response.toString();
+	epollManage(EPOLL_CTL_MOD, conn->clfd, EPOLLIN);
+	return send(conn->clfd, raw_response.c_str(), raw_response.size(), MSG_NOSIGNAL) != -1;
 }
 
 WebServer::Response WebServer::handleGetRequest(ClientRequest &req) {
