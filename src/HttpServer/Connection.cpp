@@ -4,6 +4,7 @@
 #include "src/RequestParser/request_parser.hpp"
 #include "src/Utils/StringUtils.hpp"
 #include <cerrno>
+#include <string>
 #include <vector>
 
 void WebServer::handleNewConnection() {
@@ -24,7 +25,7 @@ void WebServer::handleNewConnection() {
 
 		// TODO: save original host and port of requested server
 		// TODO: error checks
-		ConnectionInfo *conn = addConnection(client_fd);
+		ConnectionInfo *conn = addConnection(client_fd, sc->host, sc->port);
 
 		if (!epollManage(EPOLL_CTL_ADD, client_fd, EPOLLIN)) {
 			closeConnection(conn);
@@ -36,8 +37,10 @@ void WebServer::handleNewConnection() {
 	}
 }
 
-WebServer::ConnectionInfo *WebServer::addConnection(int client_fd) {
+WebServer::ConnectionInfo *WebServer::addConnection(int client_fd, std::string host, int port) {
 	ConnectionInfo *conn = new ConnectionInfo(client_fd);
+	conn->host = host;
+	conn->port = port;
 	_connections[client_fd] = conn;
 
 	_lggr.debug("Added connection tracking for fd: " + su::to_string(client_fd));

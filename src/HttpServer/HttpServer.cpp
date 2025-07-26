@@ -247,7 +247,7 @@ bool WebServer::epollManage(int op, int socket_fd, uint32_t events) {
 		            "), but encountered an error");
 		return false;
 	}
-	_lggr.error("Fd: " + su::to_string(socket_fd) +
+	_lggr.debug("Fd: " + su::to_string(socket_fd) +
 	            std::string(op == EPOLL_CTL_ADD   ? " added to epoll instance with mask "
 	                        : op == EPOLL_CTL_MOD ? " modified with new mask "
 	                                              : " deleted from epoll instance.") +

@@ -152,7 +152,7 @@ class WebServer {
 
 	// Connection management methods
 	void handleNewConnection();
-	ConnectionInfo *addConnection(int client_fd);
+	ConnectionInfo *addConnection(int client_fd, std::string host, int port);
 	void updateConnectionActivity(int client_fd);
 	void cleanupExpiredConnections();
 	void closeConnection(ConnectionInfo *conn);
