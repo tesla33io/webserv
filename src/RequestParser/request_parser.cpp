@@ -127,27 +127,28 @@ bool RequestParsingUtils::parse_request(const std::string &raw_request, ClientRe
 std::string ClientRequest::toString() {
 	std::ostringstream oss;
 
-	oss << "Method: " << method << "\n";
-	oss << "URI: " << uri << "\n";
-	oss << "Path: " << path << "\n";
-	oss << "Query: " << query << "\n";
-	oss << "Version: " << version << "\n";
+	oss << "ClientRequest {method: " << method << ", ";
+	oss << "uri: " << uri << ", ";
+	oss << "path: " << path << ", ";
+	oss << "query: " << query << ", ";
+	oss << "version: " << version << ", ";
 
-	oss << "Headers:\n";
-	std::map<std::string, std::string>::const_iterator it;
-	for (it = headers.begin(); it != headers.end(); ++it) {
-		oss << "  " << it->first << ": " << it->second << "\n";
+	oss << "headers: [";
+	for (std::map<std::string, std::string>::const_iterator it = headers.begin();
+	     it != headers.end(); ++it) {
+		oss << it->first << ":" << it->second << ", ";
 	}
+	oss << "], ";
 
-	oss << "Chunked Encoding: " << (chunked_encoding ? "true" : "false") << "\n";
+	oss << "chunked-encoding: " << (chunked_encoding ? "true" : "false") << ", ";
 
 	if (!body.empty()) {
-		oss << "Body:\n" << body << "\n";
+		oss << "body: \"" << body << "\", ";
 	} else {
-		oss << "Body: <empty>\n";
+		oss << "body: <empty>, ";
 	}
 
-	oss << "Client FD: " << clfd << "\n";
+	oss << "clfd: " << clfd << "}";
 
 	return oss.str();
 }
