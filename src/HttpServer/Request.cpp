@@ -12,98 +12,27 @@
 #include <sys/epoll.h>
 #include <sys/socket.h>
 
-void WebServer::handleClientRecv(Connection *conn) {
-	_lggr.debug("Updated last activity for FD " + su::to_string(conn->clfd));
-	conn->updateActivity();
-
-	char buffer[BUFFER_SIZE];
-	ssize_t total_bytes_read = 0;
-
-	ssize_t bytes_read = receiveData(conn->clfd, buffer, sizeof(buffer) - 1);
-
-	if (bytes_read > 0) {
-		total_bytes_read += bytes_read;
-
-		if (!processReceivedData(conn, buffer, bytes_read, total_bytes_read)) {
-			return;
-		}
-	} else if (bytes_read == 0) {
-		handleClientDisconnection(conn);
-		return;
-	} else if (bytes_read < 0) {
-		_lggr.error("recv error for fd " + su::to_string(conn->clfd) + ": " + strerror(errno));
-		closeConnection(conn);
-		return;
-	}
-}
-
-ssize_t WebServer::receiveData(int client_fd, char *buffer, size_t buffer_size) {
-	errno = 0;
-	ssize_t bytes_read = recv(client_fd, buffer, buffer_size, 0);
-
-	_lggr.logWithPrefix(Logger::DEBUG, "recv", "Bytes received: " + su::to_string(bytes_read));
-	if (bytes_read > 0) {
-		buffer[bytes_read] = '\0';
-	}
-
-	return bytes_read;
-}
-
-bool WebServer::processReceivedData(Connection *conn, const char *buffer, ssize_t bytes_read,
-                                    ssize_t total_bytes_read) {
-	conn->read_buffer += std::string(buffer);
-
-	_lggr.debug("Checking if request was completed");
-	if (isCompleteRequest(conn)) {
-		if (!epollManage(EPOLL_CTL_MOD, conn->clfd, EPOLLIN | EPOLLOUT)) {
-			return false;
-		}
-		_lggr.debug("Request was completed");
-		// TODO: remove hard-coded limit
-		if (total_bytes_read > 4096) {
-			_lggr.debug("Request is too large");
-			handleRequestTooLarge(conn, bytes_read);
-			return false;
-		}
-
-		return handleCompleteRequest(conn->clfd, conn);
-	}
-
-	return true;
-}
-
-void WebServer::handleClientDisconnection(Connection *conn) {
-	_lggr.info("Client disconnected (fd: " + su::to_string(conn->clfd) + ")");
-	closeConnection(conn);
-}
-
 void WebServer::handleRequestTooLarge(Connection *conn, ssize_t bytes_read) {
-	_lggr.info("Reached max content length for fd: " + su::to_string(conn->clfd) + ", " +
+	_lggr.info("Reached max content length for fd: " + su::to_string(conn->fd) + ", " +
 	           su::to_string(bytes_read) + "/" + su::to_string(4096));
 	prepareResponse(conn, Response(413));
 	// closeConnection(conn);
 }
 
-bool WebServer::handleCompleteRequest(int client_fd, Connection *conn) {
+bool WebServer::handleCompleteRequest(Connection *conn) {
 	processRequest(conn);
 
-	if (_connections.find(client_fd) != _connections.end()) {
-		conn->read_buffer.clear();
-		conn->request_count++;
-		conn->updateActivity();
-		return true; // Continue processing
-	} else {
-		_lggr.debug("Client fd: " + su::to_string(client_fd) +
-		            " wasn't found in the connections struct");
-		return false; // Stop processing
-	}
+	conn->read_buffer.clear();
+	conn->request_count++;
+	conn->updateActivity();
+	return true; // Continue processing
 }
 
 void WebServer::processRequest(Connection *conn) {
-	_lggr.info("Processing request from fd: " + su::to_string(conn->clfd));
+	_lggr.info("Processing request from fd: " + su::to_string(conn->fd));
 
 	ClientRequest req;
-	req.clfd = conn->clfd;
+	req.clfd = conn->fd;
 
 	if (!parseRequest(conn, req))
 		return;
@@ -114,6 +43,8 @@ void WebServer::processRequest(Connection *conn) {
 		_lggr.debug("Accepting a chunked request");
 		conn->state = Connection::READING_CHUNK_SIZE;
 		conn->chunked = true;
+		conn->keep_alive = true;
+		conn->force_close = false;
 		prepareResponse(conn, Response::continue_());
 		return;
 	}
@@ -147,7 +78,7 @@ bool WebServer::parseRequest(Connection *conn, ClientRequest &req) {
 	_lggr.debug("Parsing request: " + conn->toString());
 	if (!RequestParsingUtils::parse_request(conn->read_buffer, req)) {
 		_lggr.error("Parsing of the request failed.");
-		_lggr.debug("FD " + su::to_string(conn->clfd) + " " + conn->toString());
+		_lggr.debug("FD " + su::to_string(conn->fd) + " " + conn->toString());
 		prepareResponse(conn, Response::badRequest());
 		// closeConnection(conn);
 		return false;
@@ -155,20 +86,206 @@ bool WebServer::parseRequest(Connection *conn, ClientRequest &req) {
 	return true;
 }
 
-bool WebServer::isCompleteRequest(Connection *conn) {
-	// Simple check for HTTP request completion
-	// Look for double CRLF which indicates end of headers
-	// TODO: make it not simple, but a proper check
-	return conn->read_buffer.find("\r\n\r\n") != std::string::npos;
+bool WebServer::isRequestComplete(Connection *conn) {
+	switch (conn->state) {
+	case Connection::READING_HEADERS:
+		_lggr.debug("isRequestComplete->READING_HEADERS");
+		return isHeadersComplete(conn);
+
+	case Connection::CONTINUE_SENT:
+		_lggr.debug("isRequestComplete->CONTINUE_SENT");
+		conn->state = Connection::READING_CHUNK_SIZE;
+		return processChunkSize(conn);
+
+	case Connection::READING_CHUNK_SIZE:
+		_lggr.debug("isRequestComplete->READING_CHUNK_SIZE");
+		return processChunkSize(conn);
+
+	case Connection::READING_CHUNK_DATA:
+		_lggr.debug("isRequestComplete->READING_CHUNK_DATA");
+		return processChunkData(conn);
+
+	case Connection::READING_TRAILER:
+		_lggr.debug("isRequestComplete->READING_TRAILER");
+		return processTrailer(conn);
+
+	case Connection::REQUEST_COMPLETE:
+	case Connection::CHUNK_COMPLETE:
+		_lggr.debug("isRequestComplete->REQUEST_COMPLETE");
+		return true;
+
+	default:
+		_lggr.debug("isRequestComplete->default");
+		return false;
+	}
 }
 
-WebServer::Connection *WebServer::getConnection(int client_fd) {
-	std::map<int, Connection *>::iterator conn_it = _connections.find(client_fd);
-	if (conn_it == _connections.end()) {
-		_lggr.error("No connection info found for fd: " + su::to_string(client_fd));
-		close(client_fd);
-		return NULL;
+bool WebServer::isHeadersComplete(Connection *conn) {
+	size_t header_end = conn->read_buffer.find("\r\n\r\n");
+	if (header_end == std::string::npos) {
+		return false;
 	}
-	return conn_it->second;
+
+	// Headers are complete, check if this is a chunked request
+	std::string headers = conn->read_buffer.substr(0, header_end + 4);
+
+	std::string headers_lower = su::to_lower(headers);
+
+	if (headers_lower.find("transfer-encoding: chunked") != std::string::npos) {
+		conn->chunked = true;
+		// conn->state = Connection::READING_CHUNK_SIZE;
+		conn->headers_buffer = headers;
+
+		if (headers_lower.find("expect: 100-continue") != std::string::npos) {
+			conn->keep_alive = true;
+			conn->force_close = false;
+			prepareResponse(conn, Response::continue_());
+
+			conn->state = Connection::CONTINUE_SENT;
+
+			conn->read_buffer.clear();
+
+			conn->chunk_size = 0;
+			conn->chunk_bytes_read = 0;
+			conn->chunk_data.clear();
+
+			return true;
+		} else {
+			conn->state = Connection::READING_CHUNK_SIZE;
+
+			conn->read_buffer = conn->read_buffer.substr(header_end + 4);
+
+			conn->chunk_size = 0;
+			conn->chunk_bytes_read = 0;
+			conn->chunk_data.clear();
+
+			return processChunkSize(conn);
+		}
+	} else {
+		conn->chunked = false;
+		conn->state = Connection::REQUEST_COMPLETE;
+		return true;
+	}
+}
+
+bool WebServer::processChunkSize(Connection *conn) {
+	size_t crlf_pos = findCRLF(conn->read_buffer);
+	if (crlf_pos == std::string::npos) {
+		// Need more data to read chunk size
+		return false;
+	}
+
+	std::string chunk_size_line = conn->read_buffer.substr(0, crlf_pos);
+
+	conn->read_buffer = conn->read_buffer.substr(crlf_pos + 2);
+
+	// ignore chunk extensions after ';'
+	size_t semicolon_pos = chunk_size_line.find(';');
+	if (semicolon_pos != std::string::npos) {
+		chunk_size_line = chunk_size_line.substr(0, semicolon_pos);
+	}
+
+	chunk_size_line = su::trim(chunk_size_line);
+
+	// TODO: Check for negative?
+	conn->chunk_size = static_cast<size_t>(std::strtol(chunk_size_line.c_str(), NULL, 16));
+	conn->chunk_bytes_read = 0;
+
+	_lggr.debug("Chunk size: " + su::to_string(conn->chunk_size));
+
+	if (conn->chunk_size == 0) {
+		// Last chunk, read trailers
+		conn->state = Connection::READING_TRAILER;
+		return processTrailer(conn);
+	} else {
+		conn->state = Connection::READING_CHUNK_DATA;
+		return processChunkData(conn);
+	}
+}
+
+bool WebServer::processChunkData(Connection *conn) {
+	size_t available_data = conn->read_buffer.length();
+	size_t bytes_needed = conn->chunk_size - conn->chunk_bytes_read;
+
+	if (available_data < bytes_needed + 2) { // +2 for trailing CRLF
+		// Need more data
+		return false;
+	}
+
+	size_t bytes_to_read = bytes_needed;
+	std::string chunk_part = conn->read_buffer.substr(0, bytes_to_read);
+	conn->chunk_data += chunk_part;
+	conn->chunk_bytes_read += bytes_to_read;
+
+	conn->read_buffer = conn->read_buffer.substr(bytes_to_read);
+
+	// Check if there are trailing CRLF
+	if (conn->read_buffer.length() < 2) {
+		return false;
+	}
+
+	if (conn->read_buffer.substr(0, 2) != "\r\n") {
+		_lggr.error("Invalid chunk format: missing trailing CRLF");
+		return false;
+	}
+
+	// Remove trailing CRLF
+	conn->read_buffer = conn->read_buffer.substr(2);
+
+	conn->state = Connection::READING_CHUNK_SIZE;
+	return processChunkSize(conn);
+}
+
+bool WebServer::processTrailer(Connection *conn) {
+	size_t trailer_end = findCRLF(conn->read_buffer);
+
+	if (trailer_end == std::string::npos) {
+		// Need more data
+		return false;
+	}
+
+	std::string trailer_line = conn->read_buffer.substr(0, trailer_end);
+	conn->read_buffer = conn->read_buffer.substr(trailer_end + 2);
+
+	// If trailer line is empty, we're done
+	if (trailer_line.empty()) {
+		conn->state = Connection::CHUNK_COMPLETE;
+
+		reconstructChunkedRequest(conn);
+		return true;
+	}
+
+	return processTrailer(conn);
+}
+
+// TODO: add more debuggin info
+void WebServer::reconstructChunkedRequest(Connection *conn) {
+	std::string reconstructed_request = conn->headers_buffer;
+
+	std::string headers_lower = su::to_lower(reconstructed_request);
+
+	size_t te_pos = headers_lower.find("transfer-encoding: chunked");
+	if (te_pos != std::string::npos) {
+		// Find the end of this header line
+		size_t line_end = reconstructed_request.find("\r\n", te_pos);
+		if (line_end != std::string::npos) {
+			// Remove the Transfer-Encoding line
+			reconstructed_request.erase(te_pos, line_end - te_pos + 2);
+		}
+	}
+
+	// Add Content-Length header before the final CRLF
+	size_t final_crlf = reconstructed_request.find("\r\n\r\n");
+	if (final_crlf != std::string::npos) {
+		std::string content_length_header =
+		    "\r\nContent-Length: " + su::to_string(conn->chunk_data.length()) + "\r\n";
+		reconstructed_request.insert(final_crlf, content_length_header);
+	}
+
+	conn->read_buffer = reconstructed_request + conn->chunk_data;
+	conn->state = Connection::REQUEST_COMPLETE;
+
+	_lggr.debug("Reconstructed chunked request, total body size: " +
+	            su::to_string(conn->chunk_data.length()));
 }
 
