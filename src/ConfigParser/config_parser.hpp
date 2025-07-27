@@ -1,17 +1,6 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   config_parser.hpp                                  :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/06/21 14:53:33 by htharrau          #+#    #+#             */
-/*   Updated: 2025/06/25 18:41:56 by htharrau         ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
 
-#ifndef CONFIG_PARSER_HPP
-#define CONFIG_PARSER_HPP
+#ifndef CONFIG__PARSER_HPP
+#define CONFIG__PARSER_HPP
 
 #include <exception>
 #include <fstream>
@@ -24,108 +13,193 @@
 #include "../Logger/Logger.hpp"
 #include "../Utils/StringUtils.hpp"
 
-struct ConfigNode {
-	std::string name;
-	std::vector<std::string> args;
-	std::vector<ConfigNode> children;
-	int lineNumber;
-	void *f;
+#ifndef SIZE_MAX
+#define SIZE_MAX ((size_t)-1)
+#endif
+
+
+class ConfigNode {
+
+	public:
+	
+		std::string 				name_;
+		std::vector<std::string> 	args_;
+		std::vector<ConfigNode> 	children_;
+		int 						line_;
+
+		ConfigNode() : line_(0) {}
+		ConfigNode(const std::string& name, std::vector<std::string> args, int line) : 
+				name_(name), 
+				args_(args),
+				line_(line) 
+				{}
+	
+} ;
+
+
+class LocConfig {
+
+	public:
+	
+		std::string path;
+		std::vector<std::string> allowed_methods; // HTTP methods allowed
+		int return_code; // HTTP redirection status (0 = no redirect)
+		std::string return_target; // HTTP redirection target
+		std::string root;
+		std::string alias;
+		bool autoindex; // directory listing
+		std::string index; // default files for directories
+		std::string upload_path; // file upload directory
+		std::map<std::string, std::string> cgi_extensions; // .py -> /usr/bin/python
+
+		LocConfig() : 	return_code(0), 
+						autoindex(false)
+						{}
+
+		bool hasReturn() const { return return_code != 0; }
+		
+		bool hasMethod(const std::string& method) const {
+			for (std::vector<std::string>::const_iterator it = allowed_methods.begin(); 
+				it != allowed_methods.end(); ++it) {
+				if (*it == method) 
+					return true;
+			}
+			return false;
+		}
 };
 
-typedef bool (*ValidFtnPnter)(const ConfigNode &, Logger &);
 
-struct Validity {
-	std::string name;
-	std::vector<std::string> contexts;
-	bool repeatOK;
-	size_t minArgs;
-	size_t maxArgs;
-	ValidFtnPnter validF;
+class ServerConfig {
+	
+	public:
+	
+		std::string host;
+		int port;
+		std::map<int, std::string> error_pages;
+		size_t client_max_body_size;
+		std::vector<LocConfig> locations;
+		int server_fd;
 
-	Validity(std::string n, std::vector<std::string> c, bool rep, size_t min, size_t max,
-	         bool (*f)(const ConfigNode &, Logger &))
-	    : name(n), contexts(c), repeatOK(rep), minArgs(min), maxArgs(max), validF(f) {}
+		ServerConfig() : host("0.0.0.0"), port(8080), client_max_body_size(0) {}
+
+		bool hasErrorPage(int status) const {
+			return error_pages.find(status) != error_pages.end();
+		}
+		
+		std::string getErrorPage(int status) const {
+			std::map<int, std::string>::const_iterator it = error_pages.find(status);
+			return (it != error_pages.end()) ? it->second : "";
+		}
+		
 };
 
-struct ReturnDir {
-	unsigned int status_code;
-	std::string uri;
-	bool is_set;
 
-	ReturnDir() : status_code(0), uri(""), is_set(false) {}
-};
+class ConfigParser {
+	
+	
+	public:
+	
+		ConfigParser();
+		
+		typedef bool (ConfigParser::*ValidationFunction)(const ConfigNode&) ; // validation function pointer forward declaration
+		
+		struct Validity {
+			std::string name_;
+			std::vector<std::string> contexts_;
+			bool repeatOK_;
+			size_t minArgs_;
+			size_t maxArgs_;
+			ValidationFunction validF_;
 
-struct LocConfig {
-	std::string path;
-	std::string root;
-	ReturnDir ret_dir;
-	std::string alias;
-	std::vector<std::string> limit_except;
-	std::vector<std::string> cgi_ext;
-	std::map<int, std::string> error_pages;
-	size_t client_max_body_size;
-	bool autoindex;
-	std::vector<std::string> index;
-	bool chunked_encoding;
+			Validity(	const std::string& n, 
+						const std::vector<std::string>& c, 
+						bool rep, 
+						size_t min, 
+						size_t max,
+						ValidationFunction f)
+						: 	name_(n), 
+							contexts_(c), 
+							repeatOK_(rep), 
+							minArgs_(min), 
+							maxArgs_(max), 
+							validF_(f) 
+							{}
+		};
 
-	LocConfig()
-	    : path(""), root(""), ret_dir(), alias(""), limit_except(), cgi_ext(), error_pages(),
-	      client_max_body_size(0),         // DEFAULT = 0 meaning unlimited
-	      autoindex(false),                // DEFAULT = false
-	      index(), chunked_encoding(false) // DEFAULT = false
-	{}
-};
+		// PARSING THE CONFIGURATION FILE
+		bool loadConfig(const std::string& filePath, std::vector<ServerConfig>& servers);
+	
+	
+	private:
+	
+		Logger logg_; 
+		std::vector<Validity> validDirectives_;
 
-struct ServerConfig {
-	std::string host;
-	int port;
-	std::vector<std::string> server_names;
-	std::vector<LocConfig> locations;
+		// Core parsing methods - tree
+		bool parseTree(const std::string& filePath, ConfigNode& root);
+		bool parseTreeBlocks(std::ifstream &file, int &line_nb, ConfigNode &parent);
+		void processServerBlock(const ConfigNode& serverNode, ServerConfig& server);
+		void processLocationBlock(const ConfigNode& locNode, LocConfig& location);
+		std::string preProcess(const std::string& line) const;
+		
+		// utils for the tree
+		std::vector<std::string> tokenize(const std::string& line) const;
+		bool isBlockStart(const std::string& line) const;
+		bool isBlockEnd(const std::string& line) const;
+		bool isDirective(const std::string& line) const;
+		
+		// tree to Struct
+		void convertTreeToStruct(const ConfigNode& tree, std::vector<ServerConfig>& servers);
+		void serverStructure(const ConfigNode &tree, std::vector<ServerConfig> &servers) ;
+		void treeToStruct(const ConfigNode &tree, std::vector<ServerConfig> &servers) ;
 
-	ServerConfig()
-	    : host("0.0.0.0"), // additional checks/diff default if duplicate? no implemented
-	      port(8080),      // DEF 8080;
-	      server_names() {}
+		// utils for the struct
+		void handleListen(const ConfigNode& node, ServerConfig& server);
+		void handleErrorPage(const ConfigNode& node, ServerConfig& server);
+		void handleBodySize(const ConfigNode& node, ServerConfig& server);
+		void handleLocationBlock(const ConfigNode &locNode, LocConfig &location);
+		void handleReturn(const ConfigNode &node, LocConfig &location) ;
+		void handleCGI(const ConfigNode &node, LocConfig &location) ;
+		void handleForInherit(const ConfigNode &node, LocConfig &location);
+		void inheritGeneralConfig(ServerConfig& server, const LocConfig& forInheritance);
+		void sortLocations(std::vector<LocConfig>& locations) ;
+		static bool compareLocationPaths(const LocConfig& a, const LocConfig& b) ;
+		bool isDuplicateServer(const std::vector<ServerConfig>& servers, const ServerConfig& newServer) ;
 
-	// Needed by later part
-	int server_fd;
-};
 
-namespace ConfigParsing {
+		// Validation methods
+		bool validateDirective(const ConfigNode& node, const ConfigNode& parent) ;
+		bool validateListen(const ConfigNode& node) ;
+		bool validateError(const ConfigNode& node) ;
+		bool validateReturn(const ConfigNode& node) ;
+		bool validateMethod(const ConfigNode& node) ;
+		bool validateMaxBody(const ConfigNode& node) ;
+		bool validateAutoIndex(const ConfigNode& node) ;
+		bool validateLocation(const ConfigNode& node) ;
+		bool validateCGI(const ConfigNode& node) ;
+		bool validateChunk(const ConfigNode& node) ;
+		bool validateUploadPath(const ConfigNode& node) ;
+		bool validateRoot(const ConfigNode& node);
+		bool validateAlias(const ConfigNode& node);
+		bool validateIndex(const ConfigNode& node);
 
-bool tree_parser(const std::string &filePath, ConfigNode &childNode, Logger &logger);
-bool tree_parser_blocks(std::ifstream &file, int &line_nb, ConfigNode &parent, Logger &logger);
-void struct_parser(const ConfigNode &tree, std::vector<ServerConfig> &servers, Logger &logger);
-void handle_location(LocConfig &location, const std::vector<ConfigNode> &children);
-void handle_loc_details(LocConfig &location, const ConfigNode &child);
-void handle_listen(const ConfigNode &node, std::string &host, int &port);
-void handle_error_page(std::map<int, std::string> &error_pages,
-                       const std::vector<std::string> &args);
-void handle_return(LocConfig &location, const ConfigNode &node);
-void inherit_gen_dir(ServerConfig &server, const LocConfig &general_dir);
-void inherit_error_pages(std::map<int, std::string> &loc_map,
-                         const std::map<int, std::string> &general_map);
-std::string preProcess(const std::string &line);
-std::vector<std::string> tokenize(const std::string &line);
-bool isConfigNodeStart(const std::string &line);
-bool isConfigNodeEnd(const std::string &line);
-bool isDirective(const std::string &line);
-bool isValidIPv4(const std::string &ip);
-std::string join_args(const std::vector<std::string> &args);
-void print_tree_config(const ConfigNode &node, const std::string &prefix, bool isLast,
-                       std::ostream &os);
-void print_location_config(const LocConfig &loc, std::ostream &os);
-void print_server_config(const ServerConfig &server, std::ostream &os);
-bool validateListen(const ConfigNode &node, Logger &logger);
-bool validateError(const ConfigNode &node, Logger &logger);
-bool validateReturn(const ConfigNode &node, Logger &logger);
-bool validateMaxBody(const ConfigNode &node, Logger &logger);
-bool validateMethod(const ConfigNode &node, Logger &logger);
-bool validateAutoIndex(const ConfigNode &node, Logger &logger);
-bool validateExt(const ConfigNode &node, Logger &logger);
-bool validateChunk(const ConfigNode &node, Logger &logger);
-bool validateDirective(ConfigNode &childNode, ConfigNode &parent, Logger &logger);
+		// utils for validity
+		void initValidDirectives();
+		std::vector<std::string> makeVector(const std::string& a, const std::string& b) const;
+		bool isValidIPv4(const std::string& ip) ;
+		bool isValidUri(const std::string& uri) ;
+		bool isValidUrl(const std::string& url) ;
+		bool isValidPath(const std::string& path);
 
-} // namespace ConfigParsing
+		
+		// Debug print methods
+		void printServers(const std::vector<ServerConfig>& servers, std::ostream &os) const;
+		void printServerConfig(const ServerConfig &server, std::ostream &os) const;
+		void printLocationConfig(const LocConfig &loc, std::ostream &os) const;
+		void printTree(const ConfigNode& node, const std::string& prefix, bool isLast, std::ostream &os) const;
+		std::string joinArgs(const std::vector<std::string>& args) const;
+
+	};
+
 
 #endif

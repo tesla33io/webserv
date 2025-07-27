@@ -48,11 +48,10 @@ SRC_FILES		+= src/RequestParser/request_line.cpp
 SRC_FILES		+= src/RequestParser/headers.cpp
 SRC_FILES		+= src/RequestParser/body.cpp
 
-SRC_FILES		+= src/ConfigParser/config_parser.cpp
-SRC_FILES		+= src/ConfigParser/struct_parser.cpp
-SRC_FILES		+= src/ConfigParser/config_utils.cpp
-SRC_FILES		+= src/ConfigParser/valid_directives.cpp
-#SRC_FILES		+= src/ConfigParser/tester.cpp
+SRC_FILES		+= src/ConfigParser/ConfigParser.cpp
+SRC_FILES		+= src/ConfigParser/ServerStructure.cpp
+SRC_FILES		+= src/ConfigParser/ConfigHelper.cpp
+SRC_FILES		+= src/ConfigParser/ValidDirective.cpp
 
 #Object files directory
 OBJ_DIR			:= obj/
