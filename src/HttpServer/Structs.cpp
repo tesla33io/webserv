@@ -127,9 +127,9 @@ std::string WebServer::Response::toString() const {
 std::string WebServer::Response::toShortString() const {
 	std::ostringstream response_stream;
 	response_stream << version << " " << status_code << " " << reason_phrase;
-    if (headers.find("Content-Length") != headers.end()) {
-        response_stream << " Content-Len.: " << headers.find("Content-Length")->second;
-    }
+	if (headers.find("Content-Length") != headers.end()) {
+		response_stream << " Content-Len.: " << headers.find("Content-Length")->second;
+	}
 	return response_stream.str();
 }
 
@@ -211,7 +211,7 @@ void WebServer::Response::initFromStatusCode(uint16_t code) {
 			html << "<!DOCTYPE html>\n"
 			     << "<html>\n"
 			     << "<head>\n"
-			     << "<title>Error | " << code << "</title>\n"
+			     << "<title>" << code << " DX</title>\n"
 			     << "<style>\n"
 			     << "@import "
 			        "url('https://fonts.googleapis.com/"
@@ -223,7 +223,9 @@ void WebServer::Response::initFromStatusCode(uint16_t code) {
 			        "margin: 0; padding: 0; }\n"
 			     << "h1 { color: #ff5555; margin-top: 50px; font-weight: 700; font-style: "
 			        "normal; }\n"
-			     << "p { color: #6c757d; font-size: 18px; }\n"
+			     << "p { color: #6c757d; font-size: 18px; }"
+			     << "footer { color: #dcdcdc; position: "
+			        "fixed; width: 100%; margin-top: 50px; }\n"
 			     << "</style>\n"
 			     << "</head>\n"
 			     << "<body>\n"
@@ -233,6 +235,7 @@ void WebServer::Response::initFromStatusCode(uint16_t code) {
 			     << "<a href=\"https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status/"
 			     << code << "\" target=\"_blank\" rel=\"noopener noreferrer\">MDN Web Docs - "
 			     << code << "</a>"
+			     << "<footer>" << __WEBSERV_VERSION__ << "</footer>"
 			     << "</body>\n"
 			     << "</html>\n";
 			body = html.str();
