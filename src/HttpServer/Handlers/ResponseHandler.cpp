@@ -12,8 +12,15 @@ ssize_t WebServer::prepareResponse(Connection *conn, const Response &resp) {
 	// TODO: some checks if the arguments are fine to work with
 	// TODO: make sure that Response has all required headers set up correctly (e.g. Content-Type,
 	// Content-Length, etc).
+	if (conn->response_ready) {
+		_lggr.error(
+		    "Trying to prepare a response for a connection that is ready to sent another one");
+		_lggr.error("Current response: " + conn->response.toShortString());
+		_lggr.error("Trying to prepare response: " + resp.toShortString());
+		return -1;
+	}
 	_lggr.debug("Saving a response [" + su::to_string(resp.status_code) + "] for fd " +
-	            su::to_string(conn->clfd));
+	            su::to_string(conn->fd));
 	conn->response = resp;
 	conn->response_ready = true;
 	return conn->response.toString().size();
@@ -27,13 +34,15 @@ bool WebServer::sendResponse(Connection *conn) {
 		return false;
 	}
 	_lggr.debug("Sending response [" + conn->response.toShortString() +
-	            "] back to fd: " + su::to_string(conn->clfd));
+	            "] back to fd: " + su::to_string(conn->fd));
 	std::string raw_response = conn->response.toString();
-	epollManage(EPOLL_CTL_MOD, conn->clfd, EPOLLIN);
-	return send(conn->clfd, raw_response.c_str(), raw_response.size(), MSG_NOSIGNAL) != -1;
+	epollManage(EPOLL_CTL_MOD, conn->fd, EPOLLIN);
+	conn->response.reset();
+	conn->response_ready = false;
+	return send(conn->fd, raw_response.c_str(), raw_response.size(), MSG_NOSIGNAL) != -1;
 }
 
-WebServer::Response WebServer::handleGetRequest(ClientRequest &req) {
+Response WebServer::handleGetRequest(ClientRequest &req) {
 	_lggr.debug("Requested path: " + req.uri);
 	// TODO: error checks for HOST header (what if `Host:`?)
 	std::string host_header = req.headers["host"];

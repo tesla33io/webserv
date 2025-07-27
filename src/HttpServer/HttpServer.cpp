@@ -16,8 +16,6 @@
 bool WebServer::_running;
 static bool interrupted = false;
 
-static std::string describeEpollEvents(uint32_t ev);
-
 WebServer::WebServer(std::vector<ServerConfig> &confs)
     : _epoll_fd(-1),
       _backlog(SOMAXCONN),
@@ -176,6 +174,8 @@ bool WebServer::setSocketOptions(int socket_fd, const std::string &host, const i
 }
 
 bool WebServer::setNonBlocking(int fd) {
+	(void)fd;
+	return true;
 	_lggr.debug("Setting fd [" + su::to_string(fd) + "] as non-blocking");
 
 	int flags = fcntl(fd, F_GETFL, 0);
@@ -260,82 +260,6 @@ bool WebServer::initializeSingleServer(ServerConfig &config) {
 	return true;
 }
 
-static std::string describeEpollEvents(uint32_t ev) {
-	std::vector<std::string> event_names;
-
-	if (ev & EPOLLIN)
-		event_names.push_back("EPOLLIN");
-	if (ev & EPOLLOUT)
-		event_names.push_back("EPOLLOUT");
-	if (ev & EPOLLPRI)
-		event_names.push_back("EPOLLPRI");
-	if (ev & EPOLLERR)
-		event_names.push_back("EPOLLERR");
-	if (ev & EPOLLHUP)
-		event_names.push_back("EPOLLHUP");
-	if (ev & EPOLLRDHUP)
-		event_names.push_back("EPOLLRDHUP");
-	if (ev & EPOLLONESHOT)
-		event_names.push_back("EPOLLONESHOT");
-	if (ev & EPOLLET)
-		event_names.push_back("EPOLLET");
-
-	if (event_names.empty()) {
-		return "0";
-	}
-
-	std::string result = event_names[0];
-	for (size_t i = 1; i < event_names.size(); ++i) {
-		result += "|" + event_names[i];
-	}
-
-	return result;
-}
-
-bool WebServer::isServerSocket(int fd) const {
-	for (std::vector<ServerConfig>::const_iterator it = _confs.begin(); it != _confs.end(); ++it) {
-		if (fd == it->server_fd) {
-			return true;
-		}
-	}
-	return false;
-}
-
-void WebServer::processEpollEvents(const struct epoll_event *events, int event_count) {
-	for (int i = 0; i < event_count; ++i) {
-		const uint32_t event_mask = events[i].events;
-		const int fd = events[i].data.fd;
-
-		_lggr.debug("Epoll event on fd=" + su::to_string(fd) + " (" +
-		            describeEpollEvents(event_mask) + ")");
-
-		if (isServerSocket(fd)) {
-			// TODO: NULL check
-			ServerConfig *sc = ServerConfig::find(_confs, fd);
-			handleNewConnection(sc);
-		} else {
-			handleClientEvent(fd, event_mask);
-		}
-	}
-}
-
-void WebServer::handleClientEvent(int fd, uint32_t event_mask) {
-	std::map<int, Connection *>::iterator conn_it = _connections.find(fd);
-	if (conn_it != _connections.end()) {
-		Connection *conn = conn_it->second;
-		if (event_mask & EPOLLIN) {
-			handleClientRecv(conn);
-		} else if (event_mask & EPOLLOUT) {
-			if (conn->response_ready)
-				sendResponse(conn);
-			// TODO: check for keep-alive
-			closeConnection(conn);
-		}
-	} else {
-		_lggr.debug("Ignoring event for unknown fd: " + su::to_string(fd));
-	}
-}
-
 inline time_t WebServer::getCurrentTime() const { return time(NULL); }
 
 bool WebServer::isConnectionExpired(const Connection *conn) const {
@@ -394,6 +318,17 @@ static std::string getCurrentWorkingDirectory() {
 		return std::string();
 	}
 }
+
+Connection *WebServer::getConnection(int client_fd) {
+	std::map<int, Connection *>::iterator conn_it = _connections.find(client_fd);
+	if (conn_it == _connections.end()) {
+		_lggr.error("No connection info found for fd: " + su::to_string(client_fd));
+		close(client_fd);
+		return NULL;
+	}
+	return conn_it->second;
+}
+
 
 int main(int argc, char *argv[]) {
 	ArgumentParser ap;

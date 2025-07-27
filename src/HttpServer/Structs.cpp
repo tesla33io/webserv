@@ -5,50 +5,58 @@
 
 //// Connection ////
 
-WebServer::Connection::Connection(int socket_fd)
-    : clfd(socket_fd),
-      chunked(false),
+Connection::Connection(int socket_fd)
+    : fd(socket_fd),
       keep_alive(false),
+      force_close(true),
+      chunked(false),
+      chunk_size(0),
+      chunk_bytes_read(0),
+      response_ready(false),
       request_count(0),
       state(READING_HEADERS) {
 	updateActivity();
 }
 
-void WebServer::Connection::updateActivity() { last_activity = time(NULL); }
+void Connection::updateActivity() { last_activity = time(NULL); }
 
-bool WebServer::Connection::isExpired(time_t current_time, int timeout) const {
+bool Connection::isExpired(time_t current_time, int timeout) const {
 	return (current_time - last_activity) > timeout;
 }
 
-void WebServer::Connection::resetChunkedState() {
+void Connection::resetChunkedState() {
 	state = READING_HEADERS;
 	chunked = false;
 }
 
-std::string stateToString(WebServer::Connection::State state) {
+std::string Connection::stateToString(Connection::State state) {
 	switch (state) {
-	case WebServer::Connection::READING_HEADERS:
+	case Connection::READING_HEADERS:
 		return "READING_HEADERS";
-	case WebServer::Connection::READING_CHUNK_SIZE:
+	case Connection::READING_CHUNK_SIZE:
 		return "READING_CHUNK_SIZE";
-	case WebServer::Connection::READING_CHUNK_DATA:
+	case Connection::READING_CHUNK_DATA:
 		return "READING_CHUNK_DATA";
-	case WebServer::Connection::READING_CHUNK_TRAILER:
+	case Connection::READING_CHUNK_TRAILER:
 		return "READING_CHUNK_TRAILER";
-	case WebServer::Connection::READING_TRAILER:
+	case Connection::CONTINUE_SENT:
+		return "CONTINUE_SENT";
+	case Connection::READING_TRAILER:
 		return "READING_FINAL_TRAILER";
-	case WebServer::Connection::CHUNK_COMPLETE:
+	case Connection::CHUNK_COMPLETE:
 		return "CHUNK_COMPLETE";
+	case Connection::REQUEST_COMPLETE:
+		return "REQUEST_COMPLETE";
 	default:
 		return "UNKNOWN_STATE";
 	}
 }
 
-std::string WebServer::Connection::toString() {
+std::string Connection::toString() {
 	std::ostringstream oss;
 
 	oss << "Connection{";
-	oss << "clfd: " << clfd << ", ";
+	oss << "clfd: " << fd << ", ";
 
 	char time_buf[26];
 	// TODO: do we need thread-safety??
@@ -77,17 +85,18 @@ std::string WebServer::Connection::toString() {
 
 //// Response ////
 
-WebServer::Response::Response()
+Response::Response()
     : version("HTTP/1.1"),
-      status_code(200),
-      reason_phrase("OK") {}
-WebServer::Response::Response(uint16_t code)
+      status_code(0),
+      reason_phrase("Not Ready") {}
+
+Response::Response(uint16_t code)
     : version("HTTP/1.1"),
       status_code(code) {
 	initFromStatusCode(code);
 }
 
-WebServer::Response::Response(uint16_t code, const std::string &response_body)
+Response::Response(uint16_t code, const std::string &response_body)
     : version("HTTP/1.1"),
       status_code(code),
       body(response_body) {
@@ -95,24 +104,22 @@ WebServer::Response::Response(uint16_t code, const std::string &response_body)
 	setContentLength(body.length());
 }
 
-void WebServer::Response::setStatus(uint16_t code) {
+void Response::setStatus(uint16_t code) {
 	status_code = code;
 	reason_phrase = getReasonPhrase(code);
 }
 
-void WebServer::Response::setHeader(const std::string &name, const std::string &value) {
+void Response::setHeader(const std::string &name, const std::string &value) {
 	headers[name] = value;
 }
 
-void WebServer::Response::setContentType(const std::string &ctype) {
-	headers["Content-Type"] = ctype;
-}
+void Response::setContentType(const std::string &ctype) { headers["Content-Type"] = ctype; }
 
-void WebServer::Response::setContentLength(size_t length) {
+void Response::setContentLength(size_t length) {
 	headers["Content-Length"] = su::to_string(length);
 }
 
-std::string WebServer::Response::toString() const {
+std::string Response::toString() const {
 	std::ostringstream response_stream;
 	response_stream << version << " " << status_code << " " << reason_phrase << "\r\n";
 	for (std::map<std::string, std::string>::const_iterator it = headers.begin();
@@ -124,7 +131,7 @@ std::string WebServer::Response::toString() const {
 	return response_stream.str();
 }
 
-std::string WebServer::Response::toShortString() const {
+std::string Response::toShortString() const {
 	std::ostringstream response_stream;
 	response_stream << version << " " << status_code << " " << reason_phrase;
 	if (headers.find("Content-Length") != headers.end()) {
@@ -133,35 +140,42 @@ std::string WebServer::Response::toShortString() const {
 	return response_stream.str();
 }
 
-WebServer::Response WebServer::Response::continue_() { return Response(100); }
+void Response::reset() {
+	status_code = 0;
+	reason_phrase = "Not ready";
+	headers.clear();
+	body.clear();
+}
 
-WebServer::Response WebServer::Response::ok(const std::string &body) { return Response(200, body); }
+Response Response::continue_() { return Response(100); }
 
-WebServer::Response WebServer::Response::notFound() {
+Response Response::ok(const std::string &body) { return Response(200, body); }
+
+Response Response::notFound() {
 	Response resp(404);
 	resp.setContentType("text/html");
 	return resp;
 }
 
-WebServer::Response WebServer::Response::internalServerError() {
+Response Response::internalServerError() {
 	Response resp(500);
 	resp.setContentType("text/html");
 	return resp;
 }
 
-WebServer::Response WebServer::Response::badRequest() {
+Response Response::badRequest() {
 	Response resp(400);
 	resp.setContentType("text/html");
 	return resp;
 }
 
-WebServer::Response WebServer::Response::methodNotAllowed() {
+Response Response::methodNotAllowed() {
 	Response resp(405);
 	resp.setContentType("text/html");
 	return resp;
 }
 
-std::string WebServer::Response::getReasonPhrase(uint16_t code) const {
+std::string Response::getReasonPhrase(uint16_t code) const {
 	switch (code) {
 	case 100:
 		return "Continue";
@@ -201,7 +215,7 @@ std::string WebServer::Response::getReasonPhrase(uint16_t code) const {
 		return "Unknown Status";
 	}
 }
-void WebServer::Response::initFromStatusCode(uint16_t code) {
+void Response::initFromStatusCode(uint16_t code) {
 	reason_phrase = getReasonPhrase(code);
 	if (code >= 400) {
 		// TODO: check conf for error pages
