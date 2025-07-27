@@ -1,13 +1,35 @@
 ////////////////////////////////////////////////////////////////////////////////
 Configuration Parser 
-To handle NGINX-style configuration files. The configuration file consists of directives and their parameters. Simple (single‑line) directives end with a semicolon ( ; ). Other directives act as containers” which group together related directives. Containers are enclosed in curly braces ( {} ) and are often referred to as blocks. Here are some examples of simple directives.
+To handle NGINX-style configuration files. The configuration file consists of directives and their parameters. Simple (single‑line or multi-line) directives end with a semicolon ( ; ). Other directives act as containers which group together related directives. Containers are enclosed in curly braces ( {} ) and are often referred to as blocks. 
+
 
 ////////////////////////////////////////////////////////////////////////////////
-TODO: directive validation: add uri syntax validation?
-TODO: directive validation: update the list of method and CGI extension we wanna accept
-TODO: directive validation: add tests
-TODO: directive validation: add the default index files?
-other: check the use of "", '', change the line approach to a character approach?
+• Define all the interface:port pairs on which your server will listen to (defining multiple websites served by your program).
+• Set up default error pages.
+• Set the maximum allowed size for client request bodies.
+• Specify rules or configurations on a URL/route (no regex required here), for a website, among the following:
+	◦ List of accepted HTTP methods for the route.
+	◦ HTTP redirection.
+	◦ Directory where the requested file should be located (e.g., if URL /kapouet is rooted to /tmp/www, URL /kapouet/pouic/toto/pouet will search for
+	/tmp/www/pouic/toto/pouet).
+	◦ Enabling or disabling directory listing.
+	◦ Default file to serve when the requested resource is a directory.
+	◦ Uploading files from the clients to the server is authorized, and storage location is provided.
+	◦ Execution of CGI, based on file extension (for example .php). Here are some specific remarks regarding CGIs:
+		∗ Do you wonder what a CGI is?
+		∗ Have a careful look at the environment variables involved in the web
+		server-CGI communication. The full request and arguments provided by
+		the client must be available to the CGI.
+		∗ Just remember that, for chunked requests, your server needs to un-chunk
+		them, the CGI will expect EOF as the end of the body.
+		∗ The same applies to the output of the CGI. If no content_length is
+		returned from the CGI, EOF will mark the end of the returned data.
+		∗ The CGI should be run in the correct directory for relative path file access.
+		∗ Your server should support at least one CGI (php-CGI, Python, and so
+		forth).
+
+
+
 
 ////////////////////////////////////////////////////////////////////////////////
 to compare with NGINX : docker run --rm -v $(pwd)/mini.conf:/etc/nginx/nginx.conf:ro nginx nginx -t
@@ -17,40 +39,38 @@ Configuration specifications
 
 	- "events": 
 	one block events just to be able to compare directly with nginx. No args, no directive allowed.
+	Might be deleted in the final version as it does not have any utility
 
 	- "http": 
 	the block containing the server blocks. Again, mostly to compare with nginx. Does not accept global directives. No args.
 	Possible Improvement: Accept include, log_format, or access_log for realism?
 
 	- "server": 
-	server blocks. No argument. Accepts local directive (server_names, listen, location) and global directives (error_page, client_max_body_size, return, root, autoindex, index, chunked_transfer_encoding).
+	server blocks. No argument. Accepts local directive (listen, location) and global directives (error_page, client_max_body_size, return, root, autoindex, index, chunked_transfer_encoding).
 	Multiple server blocks can be specified.
-	Amelioration: check uniqueness of listen: + server_name?
-
-	- "server_name"
-	At least one argument, up to size_t server names. DEFAULT: empty
-	Amelioration: implement wildcard / regex?
 
 	- "listen":
 	Accepts one argument: 8080 or :80 or x.x.x.x:8080.
 	DEFAULT: set the address to 0.0.0.0 and the port to 8080.
 	Amelioration: accept ipv6, accept only ip (no port)
+	Amelioration: check uniqueness of listen
 
-  	- "location": 
+	- "location": 
 	location blocks. Must have one argument (the path). Must be in a server block.
 	Multiple location blocks can be specified.
 	Amelioration: handle modifiers?
 
 	- "error_page": 
 	can be global (server block), or local (location block). At least two arguments. All but the last argument must be unsigned int. This directive can be repeated as long as the error codes differ.
-	Amelioration:  handling redirection? (error_page 404 = @fallback;)?
+	Amelioration:  handling redirection?
 
 	- "root": 
 	Sets the root directory for requests. Can be global (server block), or local (location block).
 	Syntax:	root path; 
+	If in the server block, it will be inherited in the location blocks (unless )
 	Default: root "";
 	
-  	- "client_max_body_size":
+	- "client_max_body_size":
 	can be global (server block), or local (location block). Takes one argument: the size in bytes. (int)
 	Possible Improvement: accept the unit (ex: 5M. NGinX: Sizes can be specified in bytes, kilobytes, or megabytes using the following suffixes: k and K for kilobytes, m and M for megabytes)?
 
@@ -75,7 +95,7 @@ Configuration specifications
 	In a location block. Takes one argument.
 	Attention: alias has different path resolution semantics than root. If both root and alias are set for a location, might need to error/conflict warning. Not checked
 
-	- "chunked_transfer_encoding":
+	- "chunked_transfer_encoding": OPT
 	can be global (server block), or local (location block). Takes one argument: on or off.
 	DEFAULT: off
 

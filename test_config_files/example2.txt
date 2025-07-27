@@ -1,15 +1,13 @@
 http  {
 	server {
 		listen 8080;
-		server_name example.com www.example.com;
 		error_page 404 /404.html;
 		client_max_body_size 500;
 		root /var/www/example;
 		index index.html;
-		autoindex on;
-
+		
 		location / {
-			limit_except GET POST DELETE;
+			allowed_methods GET POST DELETE;
 			return 301 https://example.com/;
 			root /var/www/example/public;
 			autoindex off;
@@ -18,13 +16,20 @@ http  {
 		}
 
 		location /images {
-			limit_except GET;
+			allowed_methods GET;
 			root /var/www/example/images;
-			error_page 404 /404.html;
-			error_page 501 502 503 error.html;
+
 			autoindex on;
 			index index.html;
 
 		}
 	}
+
+		server {
+		listen 8080;
+		error_page 404 /404.html;
+		client_max_body_size 500;
+		root /var/www/example;
+		index index.html;
+		}
 }

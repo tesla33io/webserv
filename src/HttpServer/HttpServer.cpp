@@ -305,14 +305,16 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
-	ConfigNode conf;
-	if (!ConfigParsing::tree_parser(argv[1], conf, lgger)) {
-		std::cerr << "TODO: also nice error message here..." << std::endl;
+	ConfigParser configparser;
+	std::vector<ServerConfig> servers;
+
+	if (!configparser.loadConfig(argv[1], servers)) {
+		std::cerr << "Error: Failed to open or parse configuration file '" << argv[1] << "'" << std::endl;
+		std::cerr << "Please check the configuration file syntax and try again." << std::endl;
 		return 1;
 	}
 
-	std::vector<ServerConfig> servers;
-	ConfigParsing::struct_parser(conf, servers, lgger);
+
 	WebServer Wserver(servers);
 
 	Wserver.initialize();
