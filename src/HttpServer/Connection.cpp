@@ -21,7 +21,6 @@ void WebServer::handleNewConnection(ServerConfig *sc) {
 		return;
 	}
 
-	// TODO: save original host and port of requested server
 	// TODO: error checks
 	Connection *conn = addConnection(client_fd, sc->host, sc->port);
 
@@ -34,7 +33,7 @@ void WebServer::handleNewConnection(ServerConfig *sc) {
 	           " (fd: " + su::to_string<int>(client_fd) + ")");
 }
 
-WebServer::Connection *WebServer::addConnection(int client_fd, std::string host, int port) {
+Connection *WebServer::addConnection(int client_fd, std::string host, int port) {
 	Connection *conn = new Connection(client_fd);
 	conn->host = host;
 	conn->port = port;
@@ -63,13 +62,13 @@ void WebServer::cleanupExpiredConnections() {
 	_conn_to_close.clear();
 
 	// Collect expired connections
-	for (std::map<int, Connection *>::iterator it = _connections.begin();
-	     it != _connections.end(); ++it) {
+	for (std::map<int, Connection *>::iterator it = _connections.begin(); it != _connections.end();
+	     ++it) {
 
 		Connection *conn = it->second;
 		if (conn->isExpired(time(NULL), CONNECTION_TO)) {
-			_conn_to_close.push_back(conn->clfd);
-			_lggr.info("Connection expired for fd: " + su::to_string(conn->clfd));
+			_conn_to_close.push_back(conn->fd);
+			_lggr.info("Connection expired for fd: " + su::to_string(conn->fd));
 		}
 	}
 
@@ -92,8 +91,8 @@ void WebServer::handleConnectionTimeout(int client_fd) {
 
 		_lggr.info("Connection timed out for fd: " + su::to_string(client_fd) + " (idle for " +
 		           su::to_string(getCurrentTime() - conn->last_activity) + " seconds)");
-		//closeConnection(conn);
-		// TODO: potential problems in case clfd not in connections for some reason
+		// closeConnection(conn);
+		//  TODO: potential problems in case clfd not in connections for some reason
 	}
 }
 
@@ -136,16 +135,21 @@ bool WebServer::shouldKeepAlive(const ClientRequest &req) {
 void WebServer::closeConnection(Connection *conn) {
 	if (!conn)
 		return;
-	_lggr.debug("Closing connection for fd: " + su::to_string(conn->clfd));
-
-	epoll_ctl(_epoll_fd, EPOLL_CTL_DEL, conn->clfd, NULL);
-	close(conn->clfd);
-
-	std::map<int, Connection *>::iterator it = _connections.find(conn->clfd);
-	if (it != _connections.end()) {
-		_connections.erase(conn->clfd);
+	if (conn->keep_alive && !conn->force_close) {
+		_lggr.debug("Ignoring connection close request for fd: " + su::to_string(conn->fd) +
+		            ", because of keep-alive");
+		return;
 	}
-	_lggr.debug("Connection cleanup completed for fd: " + su::to_string(conn->clfd));
+	_lggr.debug("Closing connection for fd: " + su::to_string(conn->fd));
+
+	epoll_ctl(_epoll_fd, EPOLL_CTL_DEL, conn->fd, NULL);
+	close(conn->fd);
+
+	std::map<int, Connection *>::iterator it = _connections.find(conn->fd);
+	if (it != _connections.end()) {
+		_connections.erase(conn->fd);
+	}
+	_lggr.debug("Connection cleanup completed for fd: " + su::to_string(conn->fd));
 	delete conn;
 }
 

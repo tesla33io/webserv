@@ -1,10 +1,12 @@
-#ifndef HTTPSERVER_HPP
-#define HTTPSERVER_HPP
+#ifndef __HTTPSERVER_HPP__
+
+#define __HTTPSERVER_HPP__
 
 #include "../ConfigParser/config_parser.hpp"
 #include "../Logger/Logger.hpp"
 #include "../RequestParser/request_parser.hpp"
 #include "../Utils/StringUtils.hpp"
+#include "Response.hpp"
 
 #include <arpa/inet.h>
 #include <climits>
@@ -37,6 +39,54 @@
 
 #define __WEBSERV_VERSION__ "whateverX 0.whatever.7 -- made with <3 at 42 Berlin"
 
+class Connection {
+	friend class WebServer;
+
+	int fd;
+
+	std::string host;
+	int port;
+
+	time_t last_activity;
+	bool keep_alive;
+	bool force_close;
+
+	std::string read_buffer;
+
+	bool chunked;
+	size_t chunk_size;
+	size_t chunk_bytes_read;
+	std::string chunk_data;
+	std::string headers_buffer;
+
+	Response response;
+	bool response_ready;
+
+	int request_count;
+
+	// Chunked transfer state
+	enum State {
+		READING_HEADERS,
+		REQUEST_COMPLETE,
+
+		CONTINUE_SENT,
+		READING_CHUNK_SIZE,
+		READING_CHUNK_DATA,
+		READING_CHUNK_TRAILER,
+		READING_TRAILER,
+		CHUNK_COMPLETE
+	};
+
+	State state;
+
+	Connection(int socket_fd);
+	void updateActivity();
+	bool isExpired(time_t current_time, int timeout) const;
+	void resetChunkedState();
+	std::string toString();
+	std::string stateToString(Connection::State state);
+};
+
 class WebServer {
 
   public:
@@ -48,72 +98,6 @@ class WebServer {
 	void run();
 
 	static bool _running;
-
-	struct Response {
-		std::string version;                        // HTTP/1.1
-		uint16_t status_code;                       // e.g. 200
-		std::string reason_phrase;                  // e.g. OK
-		std::map<std::string, std::string> headers; // e.g. Content-Type: text/html
-		std::string body;                           // e.g. <h1>Hello world!</h1>
-
-		Response();
-		explicit Response(uint16_t code);
-		Response(uint16_t code, const std::string &response_body);
-
-		inline void setStatus(uint16_t code);
-		inline void setHeader(const std::string &name, const std::string &value);
-		inline void setContentType(const std::string &ctype);
-		inline void setContentLength(size_t length);
-		std::string toString() const;
-        std::string toShortString() const;
-
-		// Factory methods for common responses
-		static Response continue_();
-		static Response ok(const std::string &body = "");
-		static Response notFound();
-		static Response internalServerError();
-		static Response badRequest();
-		static Response methodNotAllowed();
-
-	  private:
-		std::string getReasonPhrase(uint16_t code) const;
-		void initFromStatusCode(uint16_t code);
-	};
-
-	// Connection state tracking structure
-	struct Connection {
-		int clfd;
-		std::string host;
-		int port;
-		time_t last_activity;
-		std::string read_buffer;
-		Response response;
-		bool response_ready;
-		bool chunked;
-		bool keep_alive;
-		int request_count;
-
-		// Chunked transfer state
-		enum State {
-			READING_HEADERS,
-			REQUEST_COMPLETE,
-
-			// chunked stuff
-			READING_CHUNK_SIZE,
-			READING_CHUNK_DATA,
-			READING_CHUNK_TRAILER,
-			READING_TRAILER,
-			CHUNK_COMPLETE
-		};
-
-		State state;
-
-		Connection(int socket_fd);
-		void updateActivity();
-		bool isExpired(time_t current_time, int timeout) const;
-		void resetChunkedState();
-		std::string toString();
-	};
 
   private:
 	int _epoll_fd;
@@ -166,8 +150,13 @@ class WebServer {
 	                         ssize_t total_bytes_read);
 	void handleClientDisconnection(Connection *conn);
 	void handleRequestTooLarge(Connection *conn, ssize_t bytes_read);
-	bool handleCompleteRequest(int client_fd, Connection *conn);
-	bool isCompleteRequest(Connection *conn);
+	bool handleCompleteRequest(Connection *conn);
+	bool isRequestComplete(Connection *conn);
+	bool isHeadersComplete(Connection *conn);
+	bool processChunkSize(Connection *conn);
+	bool processChunkData(Connection *conn);
+	bool processTrailer(Connection *conn);
+	void reconstructChunkedRequest(Connection *conn);
 	void processRequest(Connection *conn);
 	bool parseRequest(Connection *conn, ClientRequest &req);
 	ssize_t prepareResponse(Connection *conn, const Response &resp);
@@ -189,7 +178,7 @@ class WebServer {
 
 	// Utility methods
 	Connection *getConnection(int client_fd);
-	bool isServerSocket(int fd) const;
+	bool isListeningSocket(int fd) const;
 	void findPendingConnections(int fd);
 	static void initErrMessages();
 	time_t getCurrentTime() const;
@@ -203,5 +192,7 @@ class WebServer {
 LocConfig *findBestMatch(const std::string &uri, std::vector<LocConfig> &locations);
 bool isDirectory(const char *path);
 bool isRegularFile(const char *path);
+std::string describeEpollEvents(uint32_t ev);
+size_t findCRLF(const std::string &buffer, size_t start_pos);
 
-#endif // HTTPSERVER_HPP
+#endif /* end of include guard: __HTTPSERVER_HPP__*/
