@@ -2,6 +2,7 @@
 
 #define RESPONSE_HPP
 
+#include "../Utils/StringUtils.hpp"
 #include <map>
 #include <stdint.h>
 #include <string>
@@ -18,10 +19,21 @@ class Response {
 	explicit Response(uint16_t code);
 	Response(uint16_t code, const std::string &response_body);
 
-	inline void setStatus(uint16_t code);
-	inline void setHeader(const std::string &name, const std::string &value);
-	inline void setContentType(const std::string &ctype);
-	inline void setContentLength(size_t length);
+	inline void setStatus(uint16_t code) {
+		status_code = code;
+		reason_phrase = getReasonPhrase(code);
+	}
+
+	inline void setHeader(const std::string &name, const std::string &value) {
+		headers[name] = value;
+	}
+
+	inline void setContentType(const std::string &ctype) { headers["Content-Type"] = ctype; }
+
+	inline void setContentLength(size_t length) {
+		headers["Content-Length"] = su::to_string(length);
+	}
+
 	std::string toString() const;
 	std::string toShortString() const;
 	void reset();

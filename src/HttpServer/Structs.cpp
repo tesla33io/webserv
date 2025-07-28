@@ -104,21 +104,6 @@ Response::Response(uint16_t code, const std::string &response_body)
 	setContentLength(body.length());
 }
 
-void Response::setStatus(uint16_t code) {
-	status_code = code;
-	reason_phrase = getReasonPhrase(code);
-}
-
-void Response::setHeader(const std::string &name, const std::string &value) {
-	headers[name] = value;
-}
-
-void Response::setContentType(const std::string &ctype) { headers["Content-Type"] = ctype; }
-
-void Response::setContentLength(size_t length) {
-	headers["Content-Length"] = su::to_string(length);
-}
-
 std::string Response::toString() const {
 	std::ostringstream response_stream;
 	response_stream << version << " " << status_code << " " << reason_phrase << "\r\n";
