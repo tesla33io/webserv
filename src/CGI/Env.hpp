@@ -27,9 +27,9 @@ class Env {
 	Env(ClientRequest &request) {
 		set("SCRIPT_FILENAME", std::string(std::getenv("PWD")) + "/" + request.path);
 		set("SCRIPT_NAME", "/" + request.path);
-		set("REQUEST_METHOD", CGIUtils::select_method(request.method));
+		set("REQUEST_METHOD", request.method);
 		set("QUERY_STRING", request.query);
-		if (request.method == POST) {
+		if (request.method == "POST") {
 			set("CONTENT_TYPE", request.headers["content-type"]);
 			set("CONTENT_LENGTH", request.headers["content-length"]);
 		}

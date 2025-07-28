@@ -16,8 +16,6 @@
 # include "./webserv.hpp"
 #include <string>
 
-// enum RequestMethod { GET, POST, DELETE_ };
-
 struct ClientRequest {
 	// Request line
 	std::string method;

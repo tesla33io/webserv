@@ -17,9 +17,9 @@
 # include "../../includes/webserv.hpp"
 # include "../Logger/Logger.hpp"
 # include "../HttpServer/HttpServer.hpp"
+#include "../HttpServer/Response.hpp"
 
 namespace CGIUtils {
-std::string select_method(RequestMethod &method);
 std::string get_interpreter(std::string &path);
 bool handle_CGI_request(ClientRequest &request, int fd);
 } // namespace CGIUtils

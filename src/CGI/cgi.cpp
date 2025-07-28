@@ -13,17 +13,6 @@
 #include "cgi.hpp"
 #include "Env.hpp"
 
-std::string CGIUtils::select_method(RequestMethod &method) {
-	if (method == GET)
-		return ("GET");
-	else if (method == POST)
-		return ("POST");
-	else if (method == DELETE_)
-		return ("DELETE");
-	else
-		return ("");
-}
-
 std::string CGIUtils::get_interpreter(std::string &path) {
 	Logger logger;
 	std::ifstream file(path.c_str());
@@ -81,7 +70,7 @@ std::string extract_type(std::string &cgi_resp) {
 
 void send_cgi_response(std::string &cgi_output, int clfd) {
 	std::string type = extract_type(cgi_output);
-	WebServer::Response resp;
+	Response resp;
 	resp.setStatus(200);
 	resp.version = "HTTP/1.1";
 	resp.setContentType(extract_type(cgi_output));
@@ -168,7 +157,7 @@ bool CGIUtils::handle_CGI_request(ClientRequest &request, int clfd) {
 	env.free_envp(envp);
 
 	// 6. Send POST data if any
-	if (request.method == POST) {
+	if (request.method == "POST") {
 		logger.logWithPrefix(Logger::INFO, "CGI", "Handling POST request");
 		if (!request.body.empty()) {
 			size_t total_written = 0;
