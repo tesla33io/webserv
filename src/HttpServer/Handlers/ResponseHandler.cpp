@@ -83,14 +83,20 @@ Response WebServer::handleGetRequest(ClientRequest &req) {
 		match->root = match->root.substr(1); // skip first .
 	}
 
-	std::string full_uri = _root_prefix_path + match->root + req.uri;
-	if (req.uri == match->path && isDirectory(full_uri.c_str())) {
+	std::string full_path = match->root + req.uri;
+	if (req.uri == match->path && isDirectory(full_path.c_str())) {
 		// Use index directive
-		full_uri += match->index[0]; // TODO: figure out whta to do when there are many index's
-		                             // TODO: check if it's dir
+		full_path += match->index; // TODO: figure out whta to do when there are many index's
+		                              // TODO: check if it's dir
 	}
+    _lggr.debug("Full path components:");
+    _lggr.debug("  - root: " + match->root);
+    _lggr.debug("  - uri: " + req.uri);
+    _lggr.debug("  - paht: " + match->path);
+    _lggr.debug("  - index: " + match->index);
+	_lggr.debug("Trying to read this file: " + full_path);
 
-	std::string content = getFileContent(full_uri);
+	std::string content = getFileContent(full_path);
 
 	if (content.empty()) {
 		_lggr.error("[Resp] File not found: " + _root_prefix_path + match->root + req.uri);
