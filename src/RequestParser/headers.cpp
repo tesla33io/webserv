@@ -46,7 +46,7 @@ bool RequestParsingUtils::parse_headers(std::istringstream &stream,
                                         ClientRequest &request) {
 	Logger logger;
 	std::string line;
-	logger.logWithPrefix(Logger::INFO, "HTTP", "Parsing headers");
+	logger.logWithPrefix(Logger::DEBUG, "HTTP", "Parsing headers");
 	int header_count = 0;
 	while (std::getline(stream, line)) {
 		// Check header count limit

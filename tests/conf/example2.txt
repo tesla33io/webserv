@@ -1,0 +1,35 @@
+http  {
+	server {
+		listen 8080;
+		error_page 404 /404.html;
+		client_max_body_size 500;
+		root /var/www/example;
+		index index.html;
+		
+		location / {
+			allowed_methods GET POST DELETE;
+			return 301 https://example.com/;
+			root /var/www/example/public;
+			autoindex off;
+			cgi_ext .php .py;
+			index index.php;
+		}
+
+		location /images {
+			allowed_methods GET;
+			root /var/www/example/images;
+
+			autoindex on;
+			index index.html;
+
+		}
+	}
+
+		server {
+		listen 8080;
+		error_page 404 /404.html;
+		client_max_body_size 500;
+		root /var/www/example;
+		index index.html;
+		}
+}

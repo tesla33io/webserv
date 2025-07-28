@@ -13,19 +13,45 @@
 #ifndef UTILS_HPP
 #define UTILS_HPP
 
-# include "../../includes/webserv.hpp"
+#include <cstddef>
+#include <sys/epoll.h>
+#include <string>
+#include <vector>
 
-namespace GeneralUtils {
-	inline std::string to_upper(std::string &s) {
-		for (size_t i = 0; i < s.length(); ++i)
-			s[i] = std::toupper(s[i]);
-		return (s);
+inline std::string describeEpollEvents(uint32_t ev) {
+	std::vector<std::string> event_names;
+
+	if (ev & EPOLLIN)
+		event_names.push_back("EPOLLIN");
+	if (ev & EPOLLOUT)
+		event_names.push_back("EPOLLOUT");
+	if (ev & EPOLLPRI)
+		event_names.push_back("EPOLLPRI");
+	if (ev & EPOLLERR)
+		event_names.push_back("EPOLLERR");
+	if (ev & EPOLLHUP)
+		event_names.push_back("EPOLLHUP");
+	if (ev & EPOLLRDHUP)
+		event_names.push_back("EPOLLRDHUP");
+	if (ev & EPOLLONESHOT)
+		event_names.push_back("EPOLLONESHOT");
+	if (ev & EPOLLET)
+		event_names.push_back("EPOLLET");
+
+	if (event_names.empty()) {
+		return "0";
 	}
-	inline std::string to_lower(std::string &s) {
-		for (size_t i = 0; i < s.length(); ++i)
-			s[i] = std::tolower(s[i]);
-		return (s);
+
+	std::string result = event_names[0];
+	for (size_t i = 1; i < event_names.size(); ++i) {
+		result += "|" + event_names[i];
 	}
-} // namespace GeneralUtils
+
+	return result;
+}
+
+inline size_t findCRLF(const std::string& buffer, size_t start_pos = 0) {
+    return buffer.find("\r\n", start_pos);
+}
 
 #endif

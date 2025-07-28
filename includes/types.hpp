@@ -14,12 +14,13 @@
 #define TYPES_HPP
 
 # include "./webserv.hpp"
+#include <string>
 
-enum RequestMethod { GET, POST, DELETE_ };
+// enum RequestMethod { GET, POST, DELETE_ };
 
 struct ClientRequest {
 	// Request line
-	RequestMethod method;
+	std::string method;
 	std::string uri;
 	std::string path;
 	std::string query;
@@ -37,6 +38,8 @@ struct ClientRequest {
 
 	// CGI request
 	bool CGI;
+
+    std::string toString();
 };
 
 /* struct Response {

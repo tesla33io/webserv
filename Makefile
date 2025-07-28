@@ -42,6 +42,8 @@ SRC_FILES		+= src/HttpServer/Request.cpp
 SRC_FILES		+= src/HttpServer/Structs.cpp
 SRC_FILES		+= src/HttpServer/Handlers/FileHandler.cpp
 SRC_FILES		+= src/HttpServer/Handlers/ResponseHandler.cpp
+SRC_FILES		+= src/HttpServer/Handlers/LocationMatch.cpp
+SRC_FILES		+= src/HttpServer/Handlers/EpollEventHandler.cpp
 
 SRC_FILES		+= src/RequestParser/request_parser.cpp
 SRC_FILES		+= src/RequestParser/request_line.cpp
@@ -85,9 +87,12 @@ TOUCH			:= /bin/touch
 ###### DEBUG SETTINGS ######
 ############################
 
-ifeq ($(DEBUG), 1)
-	CXXFLAGS	+= -fsanitize=address,undefined -D_GLIBCXX_DEBUG
-	#CXXFLAGS	+= -g3 -O0
+ifeq ($(FSANITIZE), 1)
+	CXXFLAGS	+= -O0 -fsanitize=address,undefined -D_GLIBCXX_DEBUG
+endif
+
+ifeq ($(GDB), 1)
+	CXXFLAGS	+=  -O0 -ggdb3
 endif
 
 
@@ -125,6 +130,9 @@ fclean: clean ## Restore project to initial state
 	$(RM) $(TARGET)
 
 re: fclean all ## Rebuild project
+
+run: $(TARGET) ## Run webserv with base1.conf and prefix set to tests/conf/html
+	./$(TARGET) --prefix-path=$(PWD)/tests/conf/html tests/conf/base1.conf
 
 todo: ## Print todo's from source files
 	find . -type f \( -name "*.cpp" -o -name "*.hpp" \) -print | grep -v ".venv" | xargs grep --color -Hn "// *TODO"
