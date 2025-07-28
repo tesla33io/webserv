@@ -309,15 +309,15 @@ void WebServer::cleanup() {
 	_lggr.info("Server cleanup completed");
 }
 
-static std::string getCurrentWorkingDirectory() {
-	char buffer[PATH_MAX];
-	if (getcwd(buffer, sizeof(buffer)) != NULL) {
-		return std::string(buffer);
-	} else {
-		perror("getcwd failed");
-		return std::string();
-	}
-}
+//static std::string getCurrentWorkingDirectory() {
+//	char buffer[PATH_MAX];
+//	if (getcwd(buffer, sizeof(buffer)) != NULL) {
+//		return std::string(buffer);
+//	} else {
+//		perror("getcwd failed");
+//		return std::string();
+//	}
+//}
 
 Connection *WebServer::getConnection(int client_fd) {
 	std::map<int, Connection *>::iterator conn_it = _connections.find(client_fd);
@@ -344,45 +344,24 @@ int main(int argc, char *argv[]) {
 			return 0;
 		}
 		if (args.prefix_path.empty()) {
-			args.prefix_path = getCurrentWorkingDirectory();
+			args.prefix_path = ""; // getCurrentWorkingDirectory();
 		}
 	} catch (const std::exception &e) {
 		std::cerr << "Error: " << e.what() << std::endl;
 		std::cerr << "Use --help for usage information." << std::endl;
 		return 1;
 	}
+
 	Logger lgger("config_prasing.log", Logger::INFO, true);
 
-<<<<<<< HEAD
 	ConfigParser configparser;
 	std::vector<ServerConfig> servers;
 
-	if (!configparser.loadConfig(argv[1], servers)) {
-		std::cerr << "Error: Failed to open or parse configuration file '" << argv[1] << "'" << std::endl;
+	if (!configparser.loadConfig(args.config_file, servers)) {
+		std::cerr << "Error: Failed to open or parse configuration file '" << args.config_file << "'" << std::endl;
 		std::cerr << "Please check the configuration file syntax and try again." << std::endl;
-||||||| 6cad719
-	ConfigNode conf;
-	if (!ConfigParsing::tree_parser(argv[1], conf, lgger)) {
-		std::cerr << "TODO: also nice error message here..." << std::endl;
-=======
-	ConfigNode conf;
-	if (!ConfigParsing::tree_parser(args.config_file, conf, lgger)) {
-		std::cerr << "Error occured during parsing of the config file." << std::endl;
->>>>>>> post_delete_handling
 		return 1;
 	}
-
-<<<<<<< HEAD
-
-	WebServer Wserver(servers);
-||||||| 6cad719
-	std::vector<ServerConfig> servers;
-	ConfigParsing::struct_parser(conf, servers, lgger);
-	WebServer Wserver(servers);
-=======
-	std::vector<ServerConfig> servers;
-	ConfigParsing::struct_parser(conf, servers, lgger);
->>>>>>> post_delete_handling
 
 	WebServer webserv(servers, args.prefix_path);
 
