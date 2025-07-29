@@ -1,12 +1,14 @@
 
 #include "config_parser.hpp"
 
-void ConfigParser::convertTreeToStruct(const ConfigNode &tree, std::vector<ServerConfig> &servers) {
+bool ConfigParser::convertTreeToStruct(const ConfigNode &tree, std::vector<ServerConfig> &servers) {
 	
 	for (std::vector<ConfigNode>::const_iterator node = tree.children_.begin(); node != tree.children_.end(); ++node) {
 		
-		if (node->name_ == "http") 
-			convertTreeToStruct(*node, servers);
+		if (node->name_ == "http") {
+			if (!convertTreeToStruct(*node, servers))
+				return false;
+		}
 
 		else if (node->name_ == "server") {
 			
@@ -26,6 +28,13 @@ void ConfigParser::convertTreeToStruct(const ConfigNode &tree, std::vector<Serve
 					LocConfig location;
 					location.path = child->args_[0];
 					handleLocationBlock(*child, location);
+					// check for duplicates locations
+					if (existentLocationDuplicate(server, location)) {
+						logg_.logWithPrefix(Logger::ERROR, "Configuration file", 
+							"Location block already exists for this path: " + child->args_[0] 
+							+ ", line " + su::to_string(child->line_) );
+						return false;
+					}
 					server.locations.push_back(location);
 				}
 				
@@ -33,21 +42,24 @@ void ConfigParser::convertTreeToStruct(const ConfigNode &tree, std::vector<Serve
 					handleForInherit(*child, forInheritance);
 			}
 
-			// Check for duplicate host:port combination - skip (we still accept the configuration file)
+			// check for duplicate host:port combination 
 			if (isDuplicateServer(servers, server)) {
 				logg_.logWithPrefix(Logger::ERROR, "Configuration file", 
-					"Duplicate server configuration for " + server.host + ":" + su::to_string(server.port) + ". The duplicate server will not be created.");
-				continue;
+					"Duplicate server configuration for " + server.host + ":" + su::to_string(server.port));
+				return false;
 			}
 			
-			// create default location "/" if no locations exist
-			if (server.locations.empty()) {
+			// create default location "/" if no locations exist or no / location exist
+			if (server.locations.empty() || !baseLocation(server)) {
 				LocConfig defaultLocation;
 				defaultLocation.path = "/";
 				server.locations.push_back(defaultLocation);
+				logg_.logWithPrefix(Logger::DEBUG, "Config parsing", 
+					"Base/default location block created for" + server.host + ":" + su::to_string(server.port));
 			}
 			
 			inheritGeneralConfig(server, forInheritance);
+
 
 			sortLocations(server.locations);
 
@@ -63,9 +75,27 @@ void ConfigParser::convertTreeToStruct(const ConfigNode &tree, std::vector<Serve
 			servers.push_back(server);
 		}
 	}
+	return true;
 }
 
 
+bool ConfigParser::baseLocation(ServerConfig& server) {
+	for (size_t i = 0; i < server.locations.size(); ++i) { 
+		LocConfig loc = server.locations[i];
+		if (loc.path == "/")
+			return true;
+	}
+	return false;
+}
+
+bool ConfigParser::existentLocationDuplicate(const ServerConfig& server, const LocConfig& location) {
+	for (size_t i = 0; i < server.locations.size(); ++i) { 
+		LocConfig loc = server.locations[i];
+		if (loc.path == location.path)
+			return true;
+	}
+	return false;
+}
 
 // HOST AND PORT
 void ConfigParser::handleListen(const ConfigNode& node, ServerConfig& server) {
@@ -154,8 +184,8 @@ void ConfigParser::inheritGeneralConfig(ServerConfig& server, const LocConfig& f
 		// Inherit CGI extensions if not specified
 		if (loc.cgi_extensions.empty())
 			loc.cgi_extensions = forInheritance.cgi_extensions;	
-		// Inherit index
-		if (loc.index.empty())
+		// Inherit index only in base / default location
+		if (loc.path == "/" && loc.index.empty())
 			loc.index = forInheritance.index;
 	}
 }
