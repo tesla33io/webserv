@@ -18,15 +18,14 @@
 #define SIZE_MAX ((size_t)-1)
 #endif
 
+extern const int http_status_codes[];
 
 class ConfigNode;
 class ServerConfig;
 class LocConfig;
 class WebServer;
 
-// TODO refuse duplicate blocks
-// TODO restrict status codes for error and retrun
-// TODO: think about the interpreter path rules
+// TODO: think about the interpreter path rules + upload rules, esp in the context of inheritance
 
 class ConfigParser {
 	
@@ -127,6 +126,7 @@ class ConfigParser {
 		bool isHttp(const std::string& url) ;
 		bool hasQuotes(const std::string& str) ;
 		bool hasDotDot(const std::string& str) ;
+		bool unknownCode(uint16_t code) ;
 
 
 		// Debug print methods
