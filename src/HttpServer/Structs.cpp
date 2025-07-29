@@ -116,6 +116,17 @@ std::string Response::toString() const {
 	return response_stream.str();
 }
 
+std::string Response::toStringHeadersOnly() const {
+	std::ostringstream response_stream;
+	response_stream << version << " " << status_code << " " << reason_phrase << "\r\n";
+	for (std::map<std::string, std::string>::const_iterator it = headers.begin();
+	     it != headers.end(); ++it) {
+		response_stream << it->first << ": " << it->second << "\r\n";
+	}
+	response_stream << "\r\n";
+	return response_stream.str();
+}
+
 std::string Response::toShortString() const {
 	std::ostringstream response_stream;
 	response_stream << version << " " << status_code << " " << reason_phrase;

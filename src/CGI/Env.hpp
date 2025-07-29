@@ -6,7 +6,7 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/03 11:30:01 by jalombar          #+#    #+#             */
-/*   Updated: 2025/07/18 11:42:49 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/07/29 15:08:15 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,6 +33,8 @@ class Env {
 			set("CONTENT_TYPE", request.headers["content-type"]);
 			set("CONTENT_LENGTH", request.headers["content-length"]);
 		}
+		if (request.method == "POST" || request.method == "DELETE")
+			set("UPLOAD_DIR", "../../www/uploads/");
 		set("SERVER_SOFTWARE", "CustomCGI/1.0");
 		set("GATEWAY_INTERFACE", "CGI/1.1");
 		set("REDIRECT_STATUS", "200");

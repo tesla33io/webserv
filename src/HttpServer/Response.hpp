@@ -35,6 +35,7 @@ class Response {
 	}
 
 	std::string toString() const;
+	std::string toStringHeadersOnly() const;
 	std::string toShortString() const;
 	void reset();
 

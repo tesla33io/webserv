@@ -1,7 +1,8 @@
 #!/usr/bin/php-cgi
 <?php
 
-$upload_dir = "../../www/uploads/";
+//$upload_dir = "../../www/uploads/";
+$upload_dir = getenv('UPLOAD_DIR');
 
 // Create upload directory if it doesn't exist
 if (!is_dir($upload_dir)) {
@@ -103,8 +104,8 @@ function formatFileSize($bytes) {
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>File Upload</title>
-    <link rel="stylesheet" href="/www/styles.css" />
-    <link rel="icon" type="image/x-icon" href="/www/favicon.png">
+    <link rel="stylesheet" href="/styles.css" />
+    <link rel="icon" type="image/x-icon" href="/favicon.png">
 </head>
 <body>
     <div class="floating-elements">
@@ -183,7 +184,7 @@ function formatFileSize($bytes) {
             </div>
         <?php endif; ?>
 
-        <a href="/www/index.html" class="button">Back to Home</a>
+        <a href="/index.html" class="button">Back to Home</a>
     </div>
 </body>
 </html>

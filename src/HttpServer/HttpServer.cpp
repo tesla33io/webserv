@@ -90,6 +90,12 @@ void WebServer::run() {
 
 		cleanupExpiredConnections();
 	}
+
+	for (std::vector<ServerConfig>::iterator it = _confs.begin(); it != _confs.end(); ++it) {
+		if (it->server_fd != -1) {
+			close(it->server_fd);
+		}
+	}
 }
 
 void sigint_handler(int sig) {
@@ -174,8 +180,6 @@ bool WebServer::setSocketOptions(int socket_fd, const std::string &host, const i
 }
 
 bool WebServer::setNonBlocking(int fd) {
-	(void)fd;
-	return true;
 	_lggr.debug("Setting fd [" + su::to_string(fd) + "] as non-blocking");
 
 	int flags = fcntl(fd, F_GETFL, 0);

@@ -163,6 +163,9 @@ class WebServer {
 	bool sendResponse(Connection *conn);
 	std::string handleGetRequest(const std::string &path);
 
+	// CGI
+	bool prepareCGIRequest(ClientRequest req, Connection *conn);
+
 	// HTTP request handlers
 	Response handleGetRequest(ClientRequest &req);
 	Response handlePostRequest(const ClientRequest &req);   // TODO: Implement

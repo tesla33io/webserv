@@ -6,7 +6,7 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/27 11:49:38 by jalombar          #+#    #+#             */
-/*   Updated: 2025/07/25 11:09:07 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/07/29 15:50:26 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -54,35 +54,70 @@ void print_cgi_response(const std::string &cgi_output) {
 	}
 }
 
-std::string extract_type(std::string &cgi_resp) {
-	std::string type;
-	std::istringstream ss(cgi_resp);
-	std::string line;
-	std::getline(ss, line);
-	std::string key = "Content-type: ";
-	size_t start = line.find(key);
-	if (start != std::string::npos)
-		type = line.substr(start);
-	else
-		type = "text/html";
-	return (type);
+std::string CGIUtils::extract_content_type(std::string &cgi_headers) {
+	std::string content_type = "text/html";
+    std::istringstream header_stream(cgi_headers);
+    std::string line;
+    
+    while (std::getline(header_stream, line)) {
+        if (!line.empty() && line[line.size() - 1] == '\r')
+            line.erase(line.size() - 1);
+
+        if (line.find("Content-Type:") == 0 || line.find("Content-type:") == 0) {
+            size_t colon_pos = line.find(':');
+            if (colon_pos != std::string::npos) {
+                content_type = line.substr(colon_pos + 1);
+                // Trim whitespace
+                size_t start = content_type.find_first_not_of(" \t");
+                if (start != std::string::npos) {
+                    content_type = content_type.substr(start);
+					return (content_type);
+                }
+            }
+        }
+    }
+	return (content_type);
 }
 
-void send_cgi_response(std::string &cgi_output, int clfd) {
-	std::string type = extract_type(cgi_output);
+void CGIUtils::send_cgi_response(std::string &cgi_output, int clfd) {
+	//std::cerr << "                                                  DIOCANE SONO QUI!" << std::endl;
 	Response resp;
 	resp.setStatus(200);
 	resp.version = "HTTP/1.1";
-	resp.setContentType(extract_type(cgi_output));
+	resp.setContentType(extract_content_type(cgi_output));
 	resp.setContentLength(cgi_output.length());
 	size_t header_end = cgi_output.find("\n\n");
 	resp.body = cgi_output.substr(header_end);
 	std::string raw_response = resp.toString();
+	//std::cout << "                                                  " << raw_response << std::endl;
 	send(clfd, raw_response.c_str(), raw_response.length(), 0);
+}
+
+bool CGIUtils::send_normal_resp(int reading_pipe, int clfd, pid_t pid) {
+	Logger logger;
+	std::string cgi_output;
+	char buffer[4096];
+	ssize_t bytes_read;
+
+	
+	while ((bytes_read = read(reading_pipe, buffer, sizeof(buffer))) > 0) {
+		cgi_output.append(buffer, bytes_read);
+	}
+
+	if (bytes_read == -1) {
+		logger.logWithPrefix(Logger::ERROR, "CGI", "Error reading from CGI script");
+		close(reading_pipe);
+		waitpid(pid, NULL, 0);
+		return (false);
+	}
+	print_cgi_response(cgi_output);
+	send_cgi_response(cgi_output, clfd);
+	return (true);
 }
 
 bool CGIUtils::handle_CGI_request(ClientRequest &request, int clfd) {
 	Logger logger;
+	bool chunked = false;
 
 	// 1. Validate and construct script path
 	if (request.path.empty() || request.path.find("..") != std::string::npos) {
@@ -109,7 +144,7 @@ bool CGIUtils::handle_CGI_request(ClientRequest &request, int clfd) {
 	if (pipe(input_pipe) == -1) {
 		logger.logWithPrefix(Logger::ERROR, "CGI", "Failed to create input pipe");
 		env.free_envp(envp);
-		return false;
+		return (false);
 	}
 
 	if (pipe(output_pipe) == -1) {
@@ -146,6 +181,7 @@ bool CGIUtils::handle_CGI_request(ClientRequest &request, int clfd) {
 		// Execute the CGI script
 		char *argv[] = {(char *)interpreter.c_str(), (char *)script_path.c_str(), NULL};
 		execve(interpreter.c_str(), argv, envp);
+		logger.logWithPrefix(Logger::ERROR, "CGI", "Script not executable");
 		exit(1);
 	}
 
@@ -167,6 +203,7 @@ bool CGIUtils::handle_CGI_request(ClientRequest &request, int clfd) {
 				if (written <= 0) {
 					logger.logWithPrefix(Logger::WARNING, "CGI",
 				                     "Failed to write request body to CGI script");
+					close(input_pipe[1]);
 					return (false);
 				};
 				total_written += written;
@@ -176,20 +213,12 @@ bool CGIUtils::handle_CGI_request(ClientRequest &request, int clfd) {
 	close(input_pipe[1]);
 
 	// 7. Read response from CGI script
-	std::string cgi_output;
-	char buffer[4096];
-	ssize_t bytes_read;
-
-	
-	while ((bytes_read = read(output_pipe[0], buffer, sizeof(buffer))) > 0) {
-		cgi_output.append(buffer, bytes_read);
-	}
-
-	if (bytes_read == -1) {
-		logger.logWithPrefix(Logger::ERROR, "CGI", "Error reading from CGI script");
-		close(output_pipe[0]);
-		waitpid(pid, NULL, 0);
-		return (false);
+	if (chunked) {
+		if (!CGIUtils::send_chunked_resp(output_pipe[0], clfd, pid))
+			return (false);
+	} else {
+		if (!CGIUtils::send_normal_resp(output_pipe[0], clfd, pid))
+			return (false);
 	}
 
 	// 8. Wait for child process and check exit status
@@ -205,13 +234,7 @@ bool CGIUtils::handle_CGI_request(ClientRequest &request, int clfd) {
 		close(output_pipe[0]);
 		return (false);
 	}
-
-	// 9. Send response to client
-	print_cgi_response(cgi_output);
-	send_cgi_response(cgi_output, clfd);
-
 	// 10. Clean up
 	close(output_pipe[0]);
 	return (true);
 }
-

@@ -29,6 +29,39 @@ bool WebServer::handleCompleteRequest(Connection *conn) {
 	return true; // Continue processing
 }
 
+bool WebServer::prepareCGIRequest(ClientRequest req, Connection *conn) {
+	Logger _lggr;
+	int	cgi_pipe[2];
+	std::string cgi_output;
+	char buffer[CHUNK_SIZE];
+	ssize_t bytes_read;
+
+	if (pipe(cgi_pipe) == -1) {
+		_lggr.error("Failed to create cgi pipe");
+		prepareResponse(conn, Response::badRequest()); //TOCHECK!!!
+		return (false);
+	}
+	
+	if (!CGIUtils::handle_CGI_request(req, conn->fd)) {
+		_lggr.error("Handling the CGI request failed.");
+		prepareResponse(conn, Response::badRequest());
+		return (false);
+	}
+	while ((bytes_read = read(cgi_pipe[0], buffer, CHUNK_SIZE)) > 0) {
+		std::string chunk(buffer, bytes_read);
+		//send(chunk);
+		if (chunk == "0\r\n\r\n") 
+			break ;
+	}
+	if (bytes_read == -1) {
+        _lggr.error("Error reading from CGI script");
+        close(cgi_pipe[0]);
+		prepareResponse(conn, Response::badRequest()); //TOCHECK!!!
+        return (false);
+    }
+	return (true);
+}
+
 void WebServer::processRequest(Connection *conn) {
 	_lggr.info("Processing request from fd: " + su::to_string(conn->fd));
 
@@ -72,6 +105,10 @@ void WebServer::processRequest(Connection *conn) {
 			// closeConnection(conn);
 			return;
 		}
+		/* if (!prepareCGIRequest(req, conn)) {
+			// closeConnection(conn);
+			return ;
+		} */
 	} else {
 		if (req.method == "GET") {
 			// TODO: do some check if handleGetRequest did not encounter any issues
