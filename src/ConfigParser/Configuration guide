@@ -22,14 +22,9 @@ example:
 #This is a comment
 listen 8080;  # This is also a comment
 
-
 # Statements
 All directives must end with a semicolon ;
 Blocks start with { and end with }
-Statements can span multiple lines until terminated
-example:
-error_page 404 500 502
-    /error.html;  # Multi-line statement
 
 # Whitespace
 Extra spaces and blank lines are ignored
@@ -58,12 +53,12 @@ Context: server
 Required: No (only one per server)
 Defines the IP address and port for the server to listen on.
 Default: 0.0.0.0:8080
-listen 8080;                    # Listen on all interfaces, port 8080
-listen :8080;                   # Same as above
+listen 8080;                    # Listen on all interfaces, port 8080 (0.0.0.0:8080)
+listen :8080;                   # Same as above (0.0.0.0:8080)
 listen 127.0.0.1:8080;          # Listen on localhost only
 listen 192.168.1.100:9000;      # Listen on specific IP
+listen 127.0.0.1                # Invalid 
 Valid ports: 1-65535
-
 
 # client_max_body_size
 Syntax: client_max_body_size size;
@@ -81,10 +76,14 @@ Syntax: error_page code1 [code2 ...] uri;
 Context: server
 Repeatable: Yes
 Defines custom error pages for HTTP status codes.
-error_page 404 /404.html;
-error_page 500 502 503 /50x.html;
-error_page 403 /forbidden.html;
+error_page 404 404.html;
+error_page 500 502 503 error/50x.html;
+error_page 403 forbidden.html;
 Valid codes: 400-599
+Must be an html file
+URI cannot start with '/'
+
+
 
 # # Server or Location Level Directives # #
 These directives can be used at server level (inherited by all locations) or overridden at location level.
@@ -97,10 +96,9 @@ Sets the root directory for requests.
 root /var/www;
 root /var/www/html;
 Rules:
-
 Must start with /
-Must NOT end with /
-Cannot contain .. or quotes
+Cannot end with /
+Cannot contain . or quotes
 
 # allowed_methods
 Syntax: allowed_methods method1 [method2 method3];
@@ -117,7 +115,7 @@ Context: server, location
 Sets the directory for file uploads.
 upload_path /var/uploads;
 upload_path /tmp/uploads;
-Rules: Same as root directive
+Rules: Same as root directive (must start with '/', not end with '/', no '..' or quotes)
 
 # cgi_ext
 Syntax: cgi_ext extension1 interpreter1 [extension2 interpreter2 ...];
@@ -126,6 +124,7 @@ Maps file extensions to CGI interpreters.
 cgi_ext .py /usr/bin/python3;
 cgi_ext .py /usr/bin/python3 .php /usr/bin/php;
 Supported extensions: .py, .php
+ Interpreter location rules ???
 
 # index
 Syntax: index filename;
@@ -135,8 +134,8 @@ index index.html;
 index main.html;
 index home.php;
 Rules:
-Must be a filename (no paths)
-Must contain exactly one dot
+Must be an html file
+Doesnot start with '/'
 Cannot contain quotes or slashes
 
 
@@ -149,15 +148,16 @@ Defines configuration for specific URL paths.
 location / {
     # Configuration for all paths
 }
-location /images {
+location /images/ {
     # Configuration for /images and /images/*
 }
-location /api/v1 {
+location /api/v1/ {
     # Configuration for /api/v1 and /api/v1/*
 }
 Rules:
-Path must start with /
+Path must start and ends with '/'
 Cannot contain .. or quotes
+Cannot be the same path as an existing block
 
 # autoindex
 Syntax: autoindex on|off;
@@ -166,7 +166,6 @@ Enables or disables directory listing.
 location / {
     autoindex on;   # Show directory contents
 }
-
 location /private {
     autoindex off;  # Don't show directory contents
 }
@@ -196,12 +195,12 @@ Other codes must NOT have a URL/URI
 Syntax: alias path;
 Context: location
 Maps a location to a different filesystem path.
-location /downloads {
-    alias /var/files;  # /downloads/file.txt → /var/files/file.txt
+location /downloads/ {
+    alias /var/files/;  # /downloads/file.txt → /var/files/file.txt
 }
 Rules:
-Must start with /
-Can end with / (unlike root)
+Must start and ends with '/'
+No quotes and '..'
 
 
 # # # # Configuration Examples # # # # 
@@ -231,7 +230,7 @@ http {
             autoindex off;
         }
         
-        location /uploads {
+        location /uploads/ {
             upload_path /var/uploads/site1;
             allowed_methods POST;
         }
@@ -246,7 +245,7 @@ http {
             autoindex on;
         }
         
-        location /api {
+        location /api/ {
             cgi_ext .py /usr/bin/python3;
             allowed_methods GET POST;
         }
@@ -266,15 +265,15 @@ http {
             autoindex off;
         }
         
-        location /v1 {
+        location /v1/ {
             upload_path /var/api/uploads;
         }
         
-        location /admin {
+        location /admin/ {
             return 401;  # Require authentication
         }
         
-        location /health {
+        location /health/ {
             return 200;  # Health check endpoint
         }
     }
