@@ -127,12 +127,12 @@ bool ConfigParser::validateListen(const ConfigNode& node) {
 bool ConfigParser::validateReturn(const ConfigNode& node)  {
 	std::istringstream ss(node.args_[0]);
 	uint16_t code;
-	if (!(ss >> code) || ss.fail() || !ss.eof() || code < 100 || code > 599) {
+	if (!(ss >> code) || ss.fail() || !ss.eof() || code < 100 || code > 599 || unknownCode(code)) {
 		logg_.logWithPrefix(Logger::WARNING, "Configuration file", "Invalid return status code: " + node.args_[0]
 		 + " on line " + su::to_string(node.line_));
 		return false;
 	}
-	if (code >= 300 && code < 400) { // redirections
+	if (code >= 300 && code < 400 ) { // redirections
 		if (node.args_.size() != 2) {
 			logg_.logWithPrefix(Logger::WARNING, "Configuration file", "return code " + su::to_string(code) 
 				+ " must include a URI or URL on line "+ su::to_string(node.line_));
@@ -160,8 +160,8 @@ bool ConfigParser::validateError(const ConfigNode& node)  {
 	for (size_t i = 0; i < node.args_.size() - 1; ++i) {
 		std::istringstream iss(node.args_[i]);
 		uint16_t code;
-		if (!(iss >> code) || iss.fail() || !iss.eof() || code < 400 || code > 599) {
-			logg_.logWithPrefix(Logger::WARNING, "Configuration file", "Error page status code must be 400-599. Received: " 
+		if (!(iss >> code) || iss.fail() || !iss.eof() || code < 400 || code > 599 || unknownCode(code)) {
+			logg_.logWithPrefix(Logger::WARNING, "Configuration file", "Error page status code must exist (400-599). Received: " 
 				+ node.args_[i]+ " on line "+ su::to_string(node.line_));
 			return false;
 		}

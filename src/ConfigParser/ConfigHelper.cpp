@@ -53,26 +53,46 @@ bool ConfigParser::isValidIPv4(const std::string& ip) {
 }
 
 
-// Helper function to check if string contains quotes
+// check if string contains "quotes"
 bool ConfigParser::hasQuotes(const std::string& str) {
 	return str.find('"') != std::string::npos;
 }
 
-// Helper function to check if string contains ".."
+// check if string contains ".."
 bool ConfigParser::hasDotDot(const std::string& str) {
 	return str.find("..") != std::string::npos;
 }
 
-// Helper function to check if URL is HTTP/HTTPS
+// check if URL is HTTP/HTTPS
 bool ConfigParser::isHttp(const std::string& url) {
 	if (url.empty()) 
 		return false;
 	return su::starts_with(url, "http://") || su::starts_with(url, "https://");
 }
 
-// Helper function to check if file ends with .html
+// check if file ends with .html
 bool ConfigParser::isHtml(const std::string& path) {
 	return su::ends_with(path, ".html");
+}
+
+const int http_status_codes[] = {
+	100, 101, 102, 103,
+	200, 201, 202, 203, 204, 205, 206, 207, 208, 226,
+	300, 301, 302, 303, 304, 305, 306, 307, 308,
+	400, 401, 402, 403, 404, 405, 406, 407, 408, 409,
+	410, 411, 412, 413, 414, 415, 416, 417, 418, 421,
+	422, 423, 424, 425, 426, 428, 429, 431, 451,
+	500, 501, 502, 503, 504, 505, 506, 507, 508, 510, 511
+};
+
+// Helper function to check if file ends with .html
+bool ConfigParser::unknownCode(uint16_t code) {
+	size_t count = sizeof(http_status_codes) / sizeof(http_status_codes[0]);
+	for (size_t i = 0; i < count; ++i) {
+		if (http_status_codes[i] == code)
+			return false; 
+	}
+	return true; 
 }
 
 

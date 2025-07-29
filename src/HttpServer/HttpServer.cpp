@@ -336,8 +336,6 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
-	Logger lgger("config_prasing.log", Logger::INFO, true);
-
 	ConfigParser configparser;
 	std::vector<ServerConfig> servers;
 
