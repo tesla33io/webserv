@@ -45,6 +45,11 @@
 /// This class manages the state of individual client connections including
 /// connection metadata, request parsing state, response handling, and
 /// keep-alive functionality.
+/// Represents a client connection to the web server.
+///
+/// This class manages the state of individual client connections including
+/// connection metadata, request parsing state, response handling, and
+/// keep-alive functionality.
 class Connection {
 	friend class WebServer;
 	// friend class Response; // for the overloads of response builder 
@@ -74,14 +79,15 @@ class Connection {
 
 	/// Represents the current state of request processing.
 	enum State {
-		READING_HEADERS,
-		REQUEST_COMPLETE,
-		CONTINUE_SENT,
-		READING_CHUNK_SIZE,
-		READING_CHUNK_DATA,
-		READING_CHUNK_TRAILER,
-		READING_TRAILER,
-		CHUNK_COMPLETE
+		READING_HEADERS,  ///< Reading request headers
+		REQUEST_COMPLETE, ///< Complete request received
+
+		CONTINUE_SENT,         ///< 100-Continue response sent
+		READING_CHUNK_SIZE,    ///< Reading chunk size line
+		READING_CHUNK_DATA,    ///< Reading chunk data
+		READING_CHUNK_TRAILER, ///< Reading chunk trailer
+		READING_TRAILER,       ///< Reading final trailer
+		CHUNK_COMPLETE         ///< Chunked transfer complete
 	};
 
 	State state;
@@ -233,6 +239,11 @@ class WebServer {
 	bool isConnectionExpired(const Connection *conn) const;
 
 	/// !!! DEPRECATED !!!
+	/// Logs statistics about current connections.
+	/// \deprecated Functionality was removed.
+	void logConnectionStats();
+
+	/// !!! DEPRECATED !!!
 	/// Retrieves a connection object by file descriptor.
 	/// \deprecated Direct map access is preferred.
 	/// \param client_fd The client file descriptor.
@@ -247,9 +258,18 @@ class WebServer {
 	/// Accepts a new client connection and adds it to the connection pool.
 	/// \param sc Pointer to the server configuration that received the connection.
 	void handleNewConnection(ServerConfig *sc);
-	// Connection *addConnection(int client_fd, std::string host, int port);
-	Connection *addConnection(int client_fd, ServerConfig *sc);
 
+	/// Creates and registers a new client connection.
+	/// \param client_fd The client socket file descriptor.
+	/// \param host The host address clinet wants to connect to.
+	/// \param port The port number client wants to connect to.
+	/// \returns Pointer to the newly created Connection object.
+	Connection *addConnection(int client_fd, std::string host, int port);
+
+	/// !!! DEPRECATED !!!
+	/// Updates the last activity time for a connection.
+	/// \deprecated Use Connection::updateActivity instead.
+	/// \param client_fd The client file descriptor.
 	void updateConnectionActivity(int client_fd);
 
 	/// !!! DEPRECATED !!!
@@ -358,6 +378,10 @@ class WebServer {
 	bool processReceivedData(Connection *conn, const char *buffer, ssize_t bytes_read,
 	                         ssize_t total_bytes_read);
 
+	/// Handles client disconnection events.
+	/// \param conn The connection that was disconnected.
+	void handleClientDisconnection(Connection *conn);
+
 	/// Handlers/ResponseHandler.cpp
 
 	/// Prepares response data for transmission to client.
@@ -380,12 +404,23 @@ class WebServer {
 	/// \param path The file path to analyze.
 	/// \returns Content-Type string (e.g., "text/html", "text/plain").
 	std::string detectContentType(const std::string &path);
+
+		/// Handlers/FileHandler.cpp
+
+	/// Reads file content from filesystem.
+	/// \param path The filesystem path to the file.
+	/// \returns File content as string, or empty string on error.
+	std::string getFileContent(std::string path);
 	// bool isValidPath(const std::string &path) const; -- TODO: maybe Implement
 
-	// Request validation methods - allowed methods and maxbodysize
+
+		// Request validation methods - allowed methods and maxbodysize
 	bool allowedMethod(const ClientRequest& req, Connection* conn); // Helene 
 	bool validateBodySize(Connection* conn, size_t bytes); // // Helene TODO
 
+
+	// Error handling
+	Response createErrorResponse(uint16_t code) const; // TODO: Implement
 
 	// Utility methods
 	Connection *getConnection(int client_fd);
@@ -396,11 +431,9 @@ class WebServer {
 	bool isConnectionExpired(const Connection *conn) const;
 	void logConnectionStats();
 	void cleanup();
-	std::string buildFullPath(const std::string& uri, LocConfig *Location);
+		std::string buildFullPath(const std::string& uri, LocConfig *Location);
 	Response handleDirectoryRequest(Connection* conn, const std::string& dir_path);
 	Response handleFileRequest(Connection* conn, const std::string& dir_path);
-
-
 };
 
 // Utility functions
@@ -422,6 +455,10 @@ bool isDirectory(const char *path);
 /// \returns True if path is a regular file, false otherwise.
 bool isRegularFile(const char *path);
 bool isDirectoryRequest(std::string uri); // helene
+
+/// Converts epoll event flags to human-readable string representation.
+/// \param ev The epoll event flags to describe.
+/// \returns String representation of the events (e.g., "EPOLLIN | EPOLLOUT").
 std::string describeEpollEvents(uint32_t ev);
 
 /// Searches for CRLF (\r\n) sequence in buffer starting from given position.
