@@ -224,6 +224,10 @@ class WebServer {
 	/// Initializes a single server configuration.
 	/// \param config The server configuration to initialize.
 	/// \returns True on successful initialization, false otherwise.
+
+	/// Initializes a single server configuration.
+	/// \param config The server configuration to initialize.
+	/// \returns True on successful initialization, false otherwise.
 	bool initializeSingleServer(ServerConfig &config);
 
 	/// !!! DEPRECATED !!!
@@ -238,6 +242,11 @@ class WebServer {
 	/// \param conn The connection to check.
 	/// \returns True if expired, false otherwise.
 	bool isConnectionExpired(const Connection *conn) const;
+
+	/// !!! DEPRECATED !!!
+	/// Logs statistics about current connections.
+	/// \deprecated Functionality was removed.
+	void logConnectionStats();
 
 	/// !!! DEPRECATED !!!
 	/// Retrieves a connection object by file descriptor.
@@ -260,7 +269,18 @@ class WebServer {
 	/// \param host The host address clinet wants to connect to.
 	/// \param port The port number client wants to connect to.
 	/// \returns Pointer to the newly created Connection object.
+
+	/// Creates and registers a new client connection.
+	/// \param client_fd The client socket file descriptor.
+	/// \param host The host address clinet wants to connect to.
+	/// \param port The port number client wants to connect to.
+	/// \returns Pointer to the newly created Connection object.
 	Connection *addConnection(int client_fd, std::string host, int port);
+
+	/// !!! DEPRECATED !!!
+	/// Updates the last activity time for a connection.
+	/// \deprecated Use Connection::updateActivity instead.
+	/// \param client_fd The client file descriptor.
 
 	/// !!! DEPRECATED !!!
 	/// Updates the last activity time for a connection.
@@ -273,7 +293,19 @@ class WebServer {
 	/// \deprecated Logic (will be) moved to antoher place.
 	/// \param req The client request to analyze.
 	/// \returns True if connection should be kept alive, false otherwise.
+
+	/// !!! DEPRECATED !!!
+	/// Determines if a connection should be kept alive based on request headers.
+	/// \deprecated Logic (will be) moved to antoher place.
+	/// \param req The client request to analyze.
+	/// \returns True if connection should be kept alive, false otherwise.
 	bool shouldKeepAlive(const ClientRequest &req);
+
+	/// Closes expired connections to free resources.
+	void cleanupExpiredConnections();
+
+	/// Handles connection timeout by preparing appropriate response.
+	/// \param client_fd The file descriptor of the timed-out connection.
 
 	/// Closes expired connections to free resources.
 	void cleanupExpiredConnections();
@@ -291,7 +323,20 @@ class WebServer {
 	/// Handles cases where request size exceeds limits.
 	/// \param conn The connection that sent the oversized request.
 	/// \param bytes_read Number of bytes that were read.
+	/// Gracefully closes a client connection.
+	/// \param conn Pointer to the connection to close.
+	void closeConnection(Connection *conn);
+
+	/// Request.cpp
+
+	/// Handles cases where request size exceeds limits.
+	/// \param conn The connection that sent the oversized request.
+	/// \param bytes_read Number of bytes that were read.
 	void handleRequestTooLarge(Connection *conn, ssize_t bytes_read);
+
+	/// Processes a complete HTTP request and prepares response.
+	/// \param conn The connection containing the complete request.
+	/// \returns True if request was processed successfully, false otherwise.
 
 	/// Processes a complete HTTP request and prepares response.
 	/// \param conn The connection containing the complete request.
@@ -373,6 +418,10 @@ class WebServer {
 	/// \returns True if processing succeeded, false on error.
 	bool processReceivedData(Connection *conn, const char *buffer, ssize_t bytes_read,
 	                         ssize_t total_bytes_read);
+
+	/// Handles client disconnection events.
+	/// \param conn The connection that was disconnected.
+	void handleClientDisconnection(Connection *conn);
 
 	/// Handlers/ResponseHandler.cpp
 
