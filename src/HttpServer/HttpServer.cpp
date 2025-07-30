@@ -163,7 +163,6 @@ bool WebServer::createAndConfigureSocket(ServerConfig &config, const struct addr
 
 // https://stackoverflow.com/questions/14388706/how-do-so-reuseaddr-and-so-reuseport-differ
 bool WebServer::setSocketOptions(int socket_fd, const std::string &host, const int port) {
-	return true; // disable non-blocking for now
 	int reuse_addr = 1;
 	if (setsockopt(socket_fd, SOL_SOCKET, SO_REUSEADDR, &reuse_addr, sizeof(reuse_addr)) == -1) {
 		_lggr.logWithPrefix(Logger::ERROR, host + ":" + su::to_string<int>(port),
