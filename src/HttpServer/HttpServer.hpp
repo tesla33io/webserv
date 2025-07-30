@@ -79,14 +79,15 @@ class Connection {
 
 	/// Represents the current state of request processing.
 	enum State {
-		READING_HEADERS,
-		REQUEST_COMPLETE,
-		CONTINUE_SENT,
-		READING_CHUNK_SIZE,
-		READING_CHUNK_DATA,
-		READING_CHUNK_TRAILER,
-		READING_TRAILER,
-		CHUNK_COMPLETE
+		READING_HEADERS,  ///< Reading request headers
+		REQUEST_COMPLETE, ///< Complete request received
+
+		CONTINUE_SENT,         ///< 100-Continue response sent
+		READING_CHUNK_SIZE,    ///< Reading chunk size line
+		READING_CHUNK_DATA,    ///< Reading chunk data
+		READING_CHUNK_TRAILER, ///< Reading chunk trailer
+		READING_TRAILER,       ///< Reading final trailer
+		CHUNK_COMPLETE         ///< Chunked transfer complete
 	};
 
 	State state;
@@ -240,6 +241,11 @@ class WebServer {
 	/// \param conn The connection to check.
 	/// \returns True if expired, false otherwise.
 	bool isConnectionExpired(const Connection *conn) const;
+
+	/// !!! DEPRECATED !!!
+	/// Logs statistics about current connections.
+	/// \deprecated Functionality was removed.
+	void logConnectionStats();
 
 	/// !!! DEPRECATED !!!
 	/// Retrieves a connection object by file descriptor.
@@ -412,6 +418,10 @@ class WebServer {
 	bool processReceivedData(Connection *conn, const char *buffer, ssize_t bytes_read,
 	                         ssize_t total_bytes_read);
 
+	/// Handles client disconnection events.
+	/// \param conn The connection that was disconnected.
+	void handleClientDisconnection(Connection *conn);
+
 	/// Handlers/ResponseHandler.cpp
 
 	/// Prepares response data for transmission to client.
@@ -435,16 +445,21 @@ class WebServer {
 	/// \returns Content-Type string (e.g., "text/html", "text/plain").
 	std::string detectContentType(const std::string &path);
 
-	/// Handlers/FileHandler.cpp
-		// Request validation methods - allowed methods and maxbodysize
-	bool allowedMethod(const ClientRequest& req, Connection* conn); // Helene 
-	bool validateBodySize(Connection* conn, size_t bytes); // // Helene TODO
+		/// Handlers/FileHandler.cpp
 
 	/// Reads file content from filesystem.
 	/// \param path The filesystem path to the file.
 	/// \returns File content as string, or empty string on error.
 	std::string getFileContent(std::string path);
+	// bool isValidPath(const std::string &path) const; -- TODO: maybe Implement
 
+
+		// Request validation methods - allowed methods and maxbodysize
+	bool allowedMethod(const ClientRequest& req, Connection* conn); // Helene 
+	bool validateBodySize(Connection* conn, size_t bytes); // // Helene TODO
+
+
+	// Error handling
 	Response createErrorResponse(uint16_t code) const; // TODO: Implement
 
 	// Utility methods
@@ -453,6 +468,9 @@ class WebServer {
 
 
 	void logConnectionStats();
+		std::string buildFullPath(const std::string& uri, LocConfig *Location);
+	Response handleDirectoryRequest(Connection* conn, const std::string& dir_path);
+	Response handleFileRequest(Connection* conn, const std::string& dir_path);
 };
 
 // Utility functions
