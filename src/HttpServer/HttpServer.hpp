@@ -244,11 +244,6 @@ class WebServer {
 	bool isConnectionExpired(const Connection *conn) const;
 
 	/// !!! DEPRECATED !!!
-	/// Logs statistics about current connections.
-	/// \deprecated Functionality was removed.
-	void logConnectionStats();
-
-	/// !!! DEPRECATED !!!
 	/// Retrieves a connection object by file descriptor.
 	/// \deprecated Direct map access is preferred.
 	/// \param client_fd The client file descriptor.
@@ -418,10 +413,6 @@ class WebServer {
 	/// \returns True if processing succeeded, false on error.
 	bool processReceivedData(Connection *conn, const char *buffer, ssize_t bytes_read,
 	                         ssize_t total_bytes_read);
-
-	/// Handles client disconnection events.
-	/// \param conn The connection that was disconnected.
-	void handleClientDisconnection(Connection *conn);
 
 	/// Handlers/ResponseHandler.cpp
 
