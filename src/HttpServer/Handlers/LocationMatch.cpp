@@ -7,9 +7,11 @@
 
 static bool isPrefixMatch(const std::string &uri, const std::string &location_path);
 
+// locations are sorted from longest path to shortest ("/")
+// every server has at least one 
 LocConfig *findBestMatch(const std::string &uri, std::vector<LocConfig> &locations) {
 	for (std::vector<LocConfig>::iterator it = locations.begin(); it != locations.end(); ++it) {
-		if (isPrefixMatch(uri, it->path)) {
+		if (isPrefixMatch(uri, it->getPath())) {
 			return &(*it);
 		}
 	}
@@ -34,3 +36,15 @@ static bool isPrefixMatch(const std::string &uri, const std::string &location_pa
 	char next_char = uri[location_path.length()];
 	return next_char == '/' || location_path[location_path.length() - 1] == '/';
 }
+
+
+std::string WebServer::buildFullPath(const std::string& uri, LocConfig *location) {
+	std::string full_path = _root_prefix_path + location->root + uri;
+	_lggr.debug("Path building:");
+	_lggr.debug("  - prefix: '" + _root_prefix_path + "'");
+	_lggr.debug("  - root: '" + location->root + "'");
+	_lggr.debug("  - uri: '" + uri + "'");
+	_lggr.debug("  - result: '" + full_path + "'");
+	return full_path;
+}
+

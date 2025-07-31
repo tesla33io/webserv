@@ -25,6 +25,7 @@
 #include <string>
 #include <sys/epoll.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <vector>
@@ -46,16 +47,20 @@
 /// keep-alive functionality.
 class Connection {
 	friend class WebServer;
+	// friend class Response; // for the overloads of response builder 
 
 	int fd;
 
-	std::string host;
-	int port;
+	// std::string host;
+	// int port;
+	ServerConfig *servConfig;
+	LocConfig *locConfig; 
 
 	time_t last_activity;
 	bool keep_persistent_connection;
 
 	std::string read_buffer;
+	size_t body_bytes_read; // for client_max_body_size
 
 	bool chunked;
 	size_t chunk_size;
@@ -65,20 +70,18 @@ class Connection {
 
 	Response response;
 	bool response_ready;
-
 	int request_count;
 
 	/// Represents the current state of request processing.
 	enum State {
-		READING_HEADERS,  ///< Reading request headers
-		REQUEST_COMPLETE, ///< Complete request received
-
-		CONTINUE_SENT,         ///< 100-Continue response sent
-		READING_CHUNK_SIZE,    ///< Reading chunk size line
-		READING_CHUNK_DATA,    ///< Reading chunk data
-		READING_CHUNK_TRAILER, ///< Reading chunk trailer
-		READING_TRAILER,       ///< Reading final trailer
-		CHUNK_COMPLETE         ///< Chunked transfer complete
+		READING_HEADERS,
+		REQUEST_COMPLETE,
+		CONTINUE_SENT,
+		READING_CHUNK_SIZE,
+		READING_CHUNK_DATA,
+		READING_CHUNK_TRAILER,
+		READING_TRAILER,
+		CHUNK_COMPLETE
 	};
 
 	State state;
@@ -107,6 +110,11 @@ class Connection {
 	/// \param state The connection state to convert.
 	/// \returns The string representation of the state.
 	std::string stateToString(Connection::State state);
+
+	void resetForNewRequest(); // reset locConfig body_bytes_read, ...
+
+  public :
+	ServerConfig* getServerConfig() const { return servConfig; }
 };
 
 /// HTTP web server implementation using epoll for event-driven I/O.
@@ -239,18 +247,9 @@ class WebServer {
 	/// Accepts a new client connection and adds it to the connection pool.
 	/// \param sc Pointer to the server configuration that received the connection.
 	void handleNewConnection(ServerConfig *sc);
+	// Connection *addConnection(int client_fd, std::string host, int port);
+	Connection *addConnection(int client_fd, ServerConfig *sc);
 
-	/// Creates and registers a new client connection.
-	/// \param client_fd The client socket file descriptor.
-	/// \param host The host address clinet wants to connect to.
-	/// \param port The port number client wants to connect to.
-	/// \returns Pointer to the newly created Connection object.
-	Connection *addConnection(int client_fd, std::string host, int port);
-
-	/// !!! DEPRECATED !!!
-	/// Updates the last activity time for a connection.
-	/// \deprecated Use Connection::updateActivity instead.
-	/// \param client_fd The client file descriptor.
 	void updateConnectionActivity(int client_fd);
 
 	/// !!! DEPRECATED !!!
@@ -381,17 +380,27 @@ class WebServer {
 	/// \param path The file path to analyze.
 	/// \returns Content-Type string (e.g., "text/html", "text/plain").
 	std::string detectContentType(const std::string &path);
+	// bool isValidPath(const std::string &path) const; -- TODO: maybe Implement
 
-	/// Handlers/FileHandler.cpp
+	// Request validation methods - allowed methods and maxbodysize
+	bool allowedMethod(const ClientRequest& req, Connection* conn); // Helene 
+	bool validateBodySize(Connection* conn, size_t bytes); // // Helene TODO
 
-	/// Reads file content from filesystem.
-	/// \param path The filesystem path to the file.
-	/// \returns File content as string, or empty string on error.
-	std::string getFileContent(std::string path);
 
-	// Response createErrorResponse(uint16_t code) const; // TODO: Implement
-	// Response handlePostRequest(const ClientRequest &req);   // TODO: Implement
-	// Response handleDeleteRequest(const ClientRequest &req); // TODO: Implement
+	// Utility methods
+	Connection *getConnection(int client_fd);
+	bool isListeningSocket(int fd) const;
+	void findPendingConnections(int fd);
+	static void initErrMessages();
+	time_t getCurrentTime() const;
+	bool isConnectionExpired(const Connection *conn) const;
+	void logConnectionStats();
+	void cleanup();
+	std::string buildFullPath(const std::string& uri, LocConfig *Location);
+	Response handleDirectoryRequest(Connection* conn, const std::string& dir_path);
+	Response handleFileRequest(Connection* conn, const std::string& dir_path);
+
+
 };
 
 // Utility functions
@@ -412,10 +421,7 @@ bool isDirectory(const char *path);
 /// \param path The filesystem path to check.
 /// \returns True if path is a regular file, false otherwise.
 bool isRegularFile(const char *path);
-
-/// Converts epoll event flags to human-readable string representation.
-/// \param ev The epoll event flags to describe.
-/// \returns String representation of the events (e.g., "EPOLLIN | EPOLLOUT").
+bool isDirectoryRequest(std::string uri); // helene
 std::string describeEpollEvents(uint32_t ev);
 
 /// Searches for CRLF (\r\n) sequence in buffer starting from given position.
@@ -424,4 +430,5 @@ std::string describeEpollEvents(uint32_t ev);
 /// \returns Position of CRLF sequence, or string::npos if not found.
 size_t findCRLF(const std::string &buffer, size_t start_pos);
 
-#endif /* end of include guard: __HTTPSERVER_HPP__*/
+#endif  /* end of include guard: __HTTPSERVER_HPP__*/
+

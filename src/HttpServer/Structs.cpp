@@ -84,6 +84,8 @@ std::string Connection::toString() {
 
 //// Response ////
 
+Logger Response::tmplogg_;
+
 Response::Response()
     : version("HTTP/1.1"),
       status_code(0),
@@ -101,6 +103,12 @@ Response::Response(uint16_t code, const std::string &response_body)
       body(response_body) {
 	initFromStatusCode(code);
 	setContentLength(body.length());
+}
+
+Response::Response(uint16_t code, Connection* conn)
+	: version("HTTP/1.1"),
+	  status_code(code) {
+	initFromCustomErrorPage(code, conn);
 }
 
 std::string Response::toString() const {
@@ -159,6 +167,31 @@ Response Response::methodNotAllowed() {
 	return resp;
 }
 
+// OVErLOAD
+Response Response::notFound(Connection *conn) {
+	Response resp(404, conn);
+	resp.setContentType("text/html");
+	return resp;
+}
+
+Response Response::internalServerError(Connection *conn) {
+	Response resp(500, conn);
+	resp.setContentType("text/html");
+	return resp;
+}
+
+Response Response::badRequest(Connection *conn) {
+	Response resp(400, conn);
+	resp.setContentType("text/html");
+	return resp;
+}
+
+Response Response::methodNotAllowed(Connection *conn) {
+	Response resp(405, conn);
+	resp.setContentType("text/html");
+	return resp;
+}
+
 std::string Response::getReasonPhrase(uint16_t code) const {
 	switch (code) {
 	case 100:
@@ -199,12 +232,44 @@ std::string Response::getReasonPhrase(uint16_t code) const {
 		return "Unknown Status";
 	}
 }
+
+
+void Response::initFromCustomErrorPage(uint16_t code, Connection *conn) {
+
+	reason_phrase = getReasonPhrase(code);
+
+	if (!conn || !conn->getServerConfig() || !conn->getServerConfig()->hasErrorPage(code)) {
+		tmplogg_.logWithPrefix(Logger::DEBUG, "Response", "No custom error page for " + su::to_string(code));
+		initFromStatusCode(code);
+		return ;
+	}
+	
+	std::ifstream errorFile(conn->getServerConfig()->getErrorPage(code).c_str());
+ 	if (!errorFile.is_open()) {
+		tmplogg_.logWithPrefix(Logger::WARNING, "Response", "Custom error page " + su::to_string(code) + " could not be opened.");
+		initFromStatusCode(code);
+		return;
+	}
+
+	std::ostringstream html;
+	html << errorFile.rdbuf();
+	body = html.str();
+	setContentLength(body.length());
+	// HELENE TODO: check for html valid content? - set other values for the response attri?
+	setContentType("text/html"); // ?
+	errorFile.close();
+	tmplogg_.logWithPrefix(Logger::DEBUG, "Response", "Custom error page " + 
+		  su::to_string(code) + " has been loaded.");
+
+}
+
 void Response::initFromStatusCode(uint16_t code) {
 	reason_phrase = getReasonPhrase(code);
 	if (code >= 400) {
 		// TODO: check conf for error pages
 		// Using built-in error pages
 		if (body.empty()) {
+			tmplogg_.logWithPrefix(Logger::DEBUG, "Response", "No custom error page for" + su::to_string(code) + " could be used or exist. Generating the default page now.");
 			std::ostringstream html;
 			html << "<!DOCTYPE html>\n"
 			     << "<html>\n"

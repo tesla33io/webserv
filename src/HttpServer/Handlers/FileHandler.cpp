@@ -23,6 +23,7 @@ std::string WebServer::getFileContent(std::string path) {
 	return content;
 }
 
+
 bool isDirectory(const char *path) {
 	struct stat pathStat;
 	if (stat(path, &pathStat) != 0) {
@@ -40,3 +41,10 @@ bool isRegularFile(const char *path) {
 	}
 	return S_ISREG(pathStat.st_mode);
 }
+
+bool isDirectoryRequest(std::string uri) {
+	return (!uri.empty() && uri[uri.size() - 1] == '/');
+}
+
+
+
