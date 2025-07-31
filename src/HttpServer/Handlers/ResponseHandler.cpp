@@ -8,24 +8,26 @@
 #include <sys/socket.h>
 #include <vector>
 
+
 ssize_t WebServer::prepareResponse(Connection *conn, const Response &resp) {
 	// TODO: some checks if the arguments are fine to work with
 	// TODO: make sure that Response has all required headers set up correctly (e.g. Content-Type,
 	// Content-Length, etc).
 	if (conn->response_ready) {
 		_lggr.error(
-		    "Trying to prepare a response for a connection that is ready to sent another one");
+			"Trying to prepare a response for a connection that is ready to sent another one");
 		_lggr.error("Current response: " + conn->response.toShortString());
 		_lggr.error("Trying to prepare response: " + resp.toShortString());
 		return -1;
 	}
 	_lggr.debug("Saving a response [" + su::to_string(resp.status_code) + "] for fd " +
-	            su::to_string(conn->fd));
+				su::to_string(conn->fd));
 	conn->response = resp;
 	conn->response_ready = true;
 	return conn->response.toString().size();
 	// return send(clfd, raw_response.c_str(), raw_response.length(), 0);
 }
+
 
 bool WebServer::sendResponse(Connection *conn) {
 	if (!conn->response_ready) {
@@ -34,7 +36,7 @@ bool WebServer::sendResponse(Connection *conn) {
 		return false;
 	}
 	_lggr.debug("Sending response [" + conn->response.toShortString() +
-	            "] back to fd: " + su::to_string(conn->fd));
+				"] back to fd: " + su::to_string(conn->fd));
 	std::string raw_response = conn->response.toString();
 	epollManage(EPOLL_CTL_MOD, conn->fd, EPOLLIN);
 	conn->response.reset();
@@ -42,78 +44,120 @@ bool WebServer::sendResponse(Connection *conn) {
 	return send(conn->fd, raw_response.c_str(), raw_response.size(), MSG_NOSIGNAL) != -1;
 }
 
+
 Response WebServer::handleGetRequest(ClientRequest &req) {
 	_lggr.debug("Requested path: " + req.uri);
-	// TODO: error checks for HOST header (what if `Host:`?)
-	std::string host_header = req.headers["host"];
-	std::string host = host_header.substr(0, host_header.find(":"));
-	_lggr.debug("Host: " + host);
-	std::string port = host_header.substr(host.length() + 1, std::string::npos);
-	_lggr.debug("Port: " + port);
-
-	ServerConfig *req_host = NULL;
-	for (std::vector<ServerConfig>::iterator it = _confs.begin(); it != _confs.end(); ++it) {
-		// TODO: handle check for servers with 0.0.0.0 host (should ignore host in this case?)
-		if (((it->host != "0.0.0.0" && it->host == host) || it->host == "0.0.0.0") &&
-		    it->port == std::atoi(port.c_str())) {
-			req_host = &(*it);
-		}
-	}
-	if (!req_host) {
-		_lggr.error("Did not found server from the list to server the request");
+	
+	Connection* conn = getConnection(req.clfd);
+	if (!conn || !conn->servConfig) {
+		_lggr.error("[Resp] Connection instance not found for client fd : " + su::to_string(req.clfd));
 		return Response::internalServerError();
 	}
-	_lggr.debug("Found responsible server: " + req_host->host + " [" +
-	            su::to_string(req_host->server_fd) + "]");
-
-	for (std::vector<LocConfig>::iterator it = req_host->locations.begin();
-	     it != req_host->locations.end(); ++it) {
-		_lggr.debug("Location: " + it->path);
-	}
-
-	LocConfig *match = findBestMatch(req.uri, req_host->locations);
-	// TODO: relative path, e.g.: `./bla`
-	_lggr.debug("Found best match with " + match->path);
+	
+	// initialize the correct locConfig // defualt "/"
+	LocConfig *match = findBestMatch(req.uri, conn->servConfig->locations);
+	conn->locConfig = match; // Set location context
+	
 	if (!match) {
-		// TODO: handle error when no location was matched
+		_lggr.error("[Resp] No matched location for : " + req.uri);
+		return Response::internalServerError(conn);
 	}
 
-	bool isRelative = match->root[0] == '.';
-	if (isRelative) {
-		match->root = match->root.substr(1); // skip first .
+	// GET method allowed in the loc? 
+	if (!allowedMethod(req, conn)) {
+		_lggr.debug("GET method not allowed for location: " + match->path);
+		return Response::methodNotAllowed(conn);
+	}
+	
+	// Build file path
+	std::string fullPath = buildFullPath(req.uri, match);
+
+	// does it exist as a DIRECTORY? stat
+	if (isDirectoryRequest(fullPath)) {
+		// TODO : is it possible to have a directory request wo the ending '/'?
+		if (!isDirectory(fullPath.c_str())) {
+			_lggr.error("Path not found: " + fullPath);
+			return Response::notFound(conn);
+		}
+		else // directory match found 
+			return handleDirectoryRequest(conn, fullPath);
 	}
 
-	std::string full_path = match->root + req.uri;
-	if (req.uri == match->path && isDirectory(full_path.c_str())) {
-		// Use index directive
-		full_path += match->index; // TODO: figure out whta to do when there are many index's
-		                              // TODO: check if it's dir
+	else { // no directory request -> file request
+		if (!isRegularFile(fullPath.c_str())) {
+			_lggr.error("Path not found: " + fullPath);
+			return Response::notFound(conn);
+		}
+		else // directory match found 
+			return handleFileRequest(conn, fullPath);
 	}
-    _lggr.debug("Full path components:");
-    _lggr.debug("  - root: " + match->root);
-    _lggr.debug("  - uri: " + req.uri);
-    _lggr.debug("  - paht: " + match->path);
-    _lggr.debug("  - index: " + match->index);
-	_lggr.debug("Trying to read this file: " + full_path);
 
-	std::string content = getFileContent(full_path);
-
-	if (content.empty()) {
-		_lggr.error("[Resp] File not found: " + _root_prefix_path + match->root + req.uri);
-		return Response::notFound();
-	} else {
-		// TODO: Implement proper content-type detection
-		return Response(200, content);
-	}
+	_lggr.error("Path not found: " + fullPath);
+	return Response::notFound(conn);
 }
+
+
+// Serving the index file or listing if possible
+Response WebServer::handleDirectoryRequest(Connection* conn, const std::string& dir_path) {
+	_lggr.debug("Handling directory request: " + dir_path);
+	
+	// Try to serve index file 
+	if (!conn->locConfig->index.empty()) {
+		std::string index_path = dir_path + conn->locConfig->index;
+		_lggr.debug("Trying index file: " + index_path);
+		if (isRegularFile(index_path.c_str())) {
+			_lggr.debug("Found index file, serving: " + index_path);
+			return handleFileRequest(conn, index_path);
+		}
+	}
+	
+	// TODO : Handle autoindex 
+	// if (conn->locConfig->autoindex) {
+	// 	_lggr.debug("Autoindex on, generating directory listing");
+	// 	return generateDirectoryListing(conn, dir_path);
+	// }
+	
+	// No index file and no autoindex
+	_lggr.debug("No index file, autoindex disabled");
+	return Response::notFound(conn);
+}
+
+
+
+// serving the file if found
+Response WebServer::handleFileRequest(Connection* conn, const std::string& file_path) {
+	_lggr.debug("Handling file request: " + file_path);
+	// Read file content
+	std::string content = getFileContent(file_path);
+	if (content.empty()) {
+		_lggr.error("Failed to read file: " + file_path);
+		return Response::internalServerError(conn);
+	}
+	// Create response
+	Response resp(200, content);
+	// resp.setContentType(); TODO : other attributes needed for response?
+	_lggr.debug("Successfully serving file: " + file_path + 
+				" (" + su::to_string(content.length()) + " bytes)");
+	return resp;
+}
+
+
+bool WebServer::allowedMethod(const ClientRequest& req, Connection* conn) {
+
+	if (!conn->locConfig->hasMethod(req.method)) {
+		_lggr.debug("Method " + req.method + "is not allowed for location " + 
+				conn->locConfig->path);
+	}
+	return true;
+}
+
 
 std::string WebServer::detectContentType(const std::string &path) {
 	std::string ft_html = ".html";
 	if (path.length() > ft_html.length() &&
-	    std::equal(ft_html.rbegin(), ft_html.rend(), path.rbegin())) {
+		std::equal(ft_html.rbegin(), ft_html.rend(), path.rbegin())) {
 		return "text/html";
 	} else {
 		return "text/plain";
 	}
 }
-

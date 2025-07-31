@@ -186,6 +186,8 @@ class LocConfig {
 	bool hasReturn() const { return return_code != 0; }
 
 	bool hasMethod(const std::string &method) const {
+		if (allowed_methods.empty())
+			return true;
 		for (std::vector<std::string>::const_iterator it = allowed_methods.begin();
 		     it != allowed_methods.end(); ++it) {
 			if (*it == method)

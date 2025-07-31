@@ -16,7 +16,7 @@
 void WebServer::handleRequestTooLarge(Connection *conn, ssize_t bytes_read) {
 	_lggr.info("Reached max content length for fd: " + su::to_string(conn->fd) + ", " +
 	           su::to_string(bytes_read) + "/" + su::to_string(4096));
-	prepareResponse(conn, Response(413));
+	prepareResponse(conn, Response(413, conn));
 	// closeConnection(conn);
 }
 
@@ -75,7 +75,7 @@ void WebServer::processRequest(Connection *conn) {
 	if (req.CGI) {
 		if (!CGIUtils::handle_CGI_request(req, conn->fd)) {
 			_lggr.error("Handling the CGI request failed.");
-			prepareResponse(conn, Response::badRequest());
+			prepareResponse(conn, Response::badRequest(conn));
 			// closeConnection(conn);
 			return;
 		}
@@ -84,9 +84,9 @@ void WebServer::processRequest(Connection *conn) {
 			// TODO: do some check if handleGetRequest did not encounter any issues
 			prepareResponse(conn, handleGetRequest(req));
 		} else if (req.method == "POST" || req.method == "DELETE_") {
-			prepareResponse(conn, Response(501));
+			prepareResponse(conn, Response(501, conn));
 		} else {
-			prepareResponse(conn, Response::methodNotAllowed());
+			prepareResponse(conn, Response::methodNotAllowed(conn));
 		}
 	}
 }
@@ -96,7 +96,7 @@ bool WebServer::parseRequest(Connection *conn, ClientRequest &req) {
 	if (!RequestParsingUtils::parse_request(conn->read_buffer, req)) {
 		_lggr.error("Parsing of the request failed.");
 		_lggr.debug("FD " + su::to_string(conn->fd) + " " + conn->toString());
-		prepareResponse(conn, Response::badRequest());
+		prepareResponse(conn, Response::badRequest(conn));
 		// closeConnection(conn);
 		return false;
 	}

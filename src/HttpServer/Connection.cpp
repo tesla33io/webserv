@@ -23,7 +23,7 @@ void WebServer::handleNewConnection(ServerConfig *sc) {
 	}
 
 	// TODO: error checks
-	Connection *conn = addConnection(client_fd, sc->host, sc->port);
+	Connection *conn = addConnection(client_fd, sc);
 
 	if (!epollManage(EPOLL_CTL_ADD, client_fd, EPOLLIN)) {
 		closeConnection(conn);
@@ -34,10 +34,11 @@ void WebServer::handleNewConnection(ServerConfig *sc) {
 	           " (fd: " + su::to_string<int>(client_fd) + ")");
 }
 
-Connection *WebServer::addConnection(int client_fd, std::string host, int port) {
+Connection *WebServer::addConnection(int client_fd, ServerConfig *sc) {
 	Connection *conn = new Connection(client_fd);
-	conn->host = host;
-	conn->port = port;
+	// conn->host = host;
+	// conn->port = port;
+	conn->servConfig = sc;
 	_connections[client_fd] = conn;
 
 	_lggr.debug("Added connection tracking for fd: " + su::to_string(client_fd));
@@ -85,6 +86,8 @@ void WebServer::handleConnectionTimeout(int client_fd) {
 	std::map<int, Connection *>::iterator it = _connections.find(client_fd);
 	if (it != _connections.end()) {
 		Connection *conn = it->second;
+
+		prepareResponse(conn, Response(408, conn));
 
 		_lggr.info("Connection timed out for fd: " + su::to_string(client_fd) + " (idle for " +
 		           su::to_string(getCurrentTime() - conn->last_activity) + " seconds)");
