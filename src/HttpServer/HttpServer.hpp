@@ -26,6 +26,7 @@
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <vector>
@@ -436,21 +437,18 @@ class WebServer {
 	/// \returns Content-Type string (e.g., "text/html", "text/plain").
 	std::string detectContentType(const std::string &path);
 
-		/// Handlers/FileHandler.cpp
-
-	/// Reads file content from filesystem.
-	/// \param path The filesystem path to the file.
-	/// \returns File content as string, or empty string on error.
-	std::string getFileContent(std::string path);
-	// bool isValidPath(const std::string &path) const; -- TODO: maybe Implement
-
 
 		// Request validation methods - allowed methods and maxbodysize
 	bool allowedMethod(const ClientRequest& req, Connection* conn); // Helene 
 	bool validateBodySize(Connection* conn, size_t bytes); // // Helene TODO
 
+	/// Handlers/FileHandler.cpp
 
-	// Error handling
+	/// Reads file content from filesystem.
+	/// \param path The filesystem path to the file.
+	/// \returns File content as string, or empty string on error.
+	std::string getFileContent(std::string path);
+
 	Response createErrorResponse(uint16_t code) const; // TODO: Implement
 
 	// Utility methods
