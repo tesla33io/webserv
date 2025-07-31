@@ -87,8 +87,6 @@ void WebServer::handleConnectionTimeout(int client_fd) {
 	if (it != _connections.end()) {
 		Connection *conn = it->second;
 
-		prepareResponse(conn, Response(408, conn));
-
 		_lggr.info("Connection timed out for fd: " + su::to_string(client_fd) + " (idle for " +
 		           su::to_string(getCurrentTime() - conn->last_activity) + " seconds)");
 		closeConnection(conn);
