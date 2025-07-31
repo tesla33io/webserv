@@ -6,7 +6,7 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/27 11:49:38 by jalombar          #+#    #+#             */
-/*   Updated: 2025/07/29 15:50:26 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/07/31 10:19:32 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -80,7 +80,6 @@ std::string CGIUtils::extract_content_type(std::string &cgi_headers) {
 }
 
 void CGIUtils::send_cgi_response(std::string &cgi_output, int clfd) {
-	//std::cerr << "                                                  DIOCANE SONO QUI!" << std::endl;
 	Response resp;
 	resp.setStatus(200);
 	resp.version = "HTTP/1.1";
@@ -89,7 +88,6 @@ void CGIUtils::send_cgi_response(std::string &cgi_output, int clfd) {
 	size_t header_end = cgi_output.find("\n\n");
 	resp.body = cgi_output.substr(header_end);
 	std::string raw_response = resp.toString();
-	//std::cout << "                                                  " << raw_response << std::endl;
 	send(clfd, raw_response.c_str(), raw_response.length(), 0);
 }
 

@@ -2,7 +2,7 @@
 #include "src/Logger/Logger.hpp"
 #include "src/RequestParser/request_parser.hpp"
 #include "src/Utils/StringUtils.hpp"
-#include "src/CGI/cgi.hpp"
+#include "src/CGI/CGI.hpp"
 #include <cerrno>
 #include <cstddef>
 #include <cstdio>
@@ -29,7 +29,7 @@ bool WebServer::handleCompleteRequest(Connection *conn) {
 	return true; // Continue processing
 }
 
-bool WebServer::prepareCGIRequest(ClientRequest req, Connection *conn) {
+/* bool WebServer::prepareCGIRequest(ClientRequest req, Connection *conn) {
 	Logger _lggr;
 	int	cgi_pipe[2];
 	std::string cgi_output;
@@ -60,7 +60,7 @@ bool WebServer::prepareCGIRequest(ClientRequest req, Connection *conn) {
         return (false);
     }
 	return (true);
-}
+} */
 
 void WebServer::processRequest(Connection *conn) {
 	_lggr.info("Processing request from fd: " + su::to_string(conn->fd));
@@ -99,12 +99,18 @@ void WebServer::processRequest(Connection *conn) {
 	std::string response;
 
 	if (req.CGI) {
-		if (!CGIUtils::handle_CGI_request(req, conn->fd)) {
+		if (!CGIUtils::CGI_handler(req, conn->fd)) {
 			_lggr.error("Handling the CGI request failed.");
 			prepareResponse(conn, Response::badRequest());
 			// closeConnection(conn);
 			return;
 		}
+		/* if (!CGIUtils::handle_CGI_request(req, conn->fd)) {
+			_lggr.error("Handling the CGI request failed.");
+			prepareResponse(conn, Response::badRequest());
+			// closeConnection(conn);
+			return;
+		} */
 		/* if (!prepareCGIRequest(req, conn)) {
 			// closeConnection(conn);
 			return ;

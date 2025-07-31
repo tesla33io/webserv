@@ -37,6 +37,10 @@ SRC_DIR			:= ./
 SRC_FILES		+= src/CGI/cgi.cpp
 SRC_FILES		+= src/CGI/chunked_resp.cpp
 
+SRC_FILES		+= src/CGI/CGI.cpp
+SRC_FILES		+= src/CGI/cgi_handler.cpp
+
+
 SRC_FILES		+= src/HttpServer/HttpServer.cpp
 SRC_FILES		+= src/HttpServer/Connection.cpp
 SRC_FILES		+= src/HttpServer/Request.cpp
