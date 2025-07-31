@@ -1,8 +1,8 @@
 #include "HttpServer.hpp"
+#include "src/CGI/cgi.hpp"
 #include "src/Logger/Logger.hpp"
 #include "src/RequestParser/request_parser.hpp"
 #include "src/Utils/StringUtils.hpp"
-#include "src/CGI/cgi.hpp"
 #include <cerrno>
 #include <cstddef>
 #include <cstdio>
@@ -23,6 +23,7 @@ void WebServer::handleRequestTooLarge(Connection *conn, ssize_t bytes_read) {
 bool WebServer::handleCompleteRequest(Connection *conn) {
 	processRequest(conn);
 
+	_lggr.debug("Request was processed. Read buffer will be cleaned");
 	conn->read_buffer.clear();
 	conn->request_count++;
 	conn->updateActivity();
@@ -39,13 +40,19 @@ void WebServer::processRequest(Connection *conn) {
 		return;
 	_lggr.debug("Request parsed sucsessfully");
 
+	// RFC 2068 Section 8.1 -- presistent connection unless client or server sets connection header
+	// to 'close' -- indicating that the socket for this connection may be closed
+	if (req.headers.find("connection") != req.headers.end()) {
+		if (req.headers["connection"] == "close") {
+			conn->keep_persistent_connection = false;
+		}
+	}
+
 	if (req.chunked_encoding && conn->state == Connection::READING_HEADERS) {
 		// Accept chunked requests sequence
 		_lggr.debug("Accepting a chunked request");
 		conn->state = Connection::READING_CHUNK_SIZE;
 		conn->chunked = true;
-		conn->keep_alive = true;
-		conn->force_close = false;
 		prepareResponse(conn, Response::continue_());
 		return;
 	}
@@ -147,8 +154,6 @@ bool WebServer::isHeadersComplete(Connection *conn) {
 		conn->headers_buffer = headers;
 
 		if (headers_lower.find("expect: 100-continue") != std::string::npos) {
-			conn->keep_alive = true;
-			conn->force_close = false;
 			prepareResponse(conn, Response::continue_());
 
 			conn->state = Connection::CONTINUE_SENT;
