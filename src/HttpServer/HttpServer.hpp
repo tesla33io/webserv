@@ -26,7 +26,6 @@
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
-#include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <vector>
@@ -80,15 +79,14 @@ class Connection {
 
 	/// Represents the current state of request processing.
 	enum State {
-		READING_HEADERS,  ///< Reading request headers
-		REQUEST_COMPLETE, ///< Complete request received
-
-		CONTINUE_SENT,         ///< 100-Continue response sent
-		READING_CHUNK_SIZE,    ///< Reading chunk size line
-		READING_CHUNK_DATA,    ///< Reading chunk data
-		READING_CHUNK_TRAILER, ///< Reading chunk trailer
-		READING_TRAILER,       ///< Reading final trailer
-		CHUNK_COMPLETE         ///< Chunked transfer complete
+		READING_HEADERS,
+		REQUEST_COMPLETE,
+		CONTINUE_SENT,
+		READING_CHUNK_SIZE,
+		READING_CHUNK_DATA,
+		READING_CHUNK_TRAILER,
+		READING_TRAILER,
+		CHUNK_COMPLETE
 	};
 
 	State state;
@@ -437,12 +435,10 @@ class WebServer {
 	/// \returns Content-Type string (e.g., "text/html", "text/plain").
 	std::string detectContentType(const std::string &path);
 
-
+	/// Handlers/FileHandler.cpp
 		// Request validation methods - allowed methods and maxbodysize
 	bool allowedMethod(const ClientRequest& req, Connection* conn); // Helene 
 	bool validateBodySize(Connection* conn, size_t bytes); // // Helene TODO
-
-	/// Handlers/FileHandler.cpp
 
 	/// Reads file content from filesystem.
 	/// \param path The filesystem path to the file.
@@ -450,8 +446,13 @@ class WebServer {
 	std::string getFileContent(std::string path);
 
 	Response createErrorResponse(uint16_t code) const; // TODO: Implement
-	// Response handlePostRequest(const ClientRequest &req);   // TODO: Implement
-	// Response handleDeleteRequest(const ClientRequest &req); // TODO: Implement
+
+	// Utility methods
+	void findPendingConnections(int fd);
+	static void initErrMessages();
+
+
+	void logConnectionStats();
 };
 
 // Utility functions
