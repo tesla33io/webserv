@@ -263,23 +263,8 @@ inline time_t WebServer::getCurrentTime() const { return time(NULL); }
 
 bool WebServer::isConnectionExpired(const Connection *conn) const {
 	time_t current_time = getCurrentTime();
-	time_t timeout = conn->keep_alive ? KEEP_ALIVE_TO : CONNECTION_TO;
+	time_t timeout = CONNECTION_TO;
 	return (current_time - conn->last_activity) > timeout;
-}
-
-void WebServer::logConnectionStats() {
-	size_t active_connections = _connections.size();
-	size_t keep_alive_connections = 0;
-
-	for (std::map<int, Connection *>::const_iterator it = _connections.begin();
-	     it != _connections.end(); ++it) {
-		if (it->second->keep_alive) {
-			keep_alive_connections++;
-		}
-	}
-
-	_lggr.info("Connection Stats - Active: " + su::to_string(active_connections) +
-	           ", Keep-Alive: " + su::to_string(keep_alive_connections));
 }
 
 void WebServer::cleanup() {

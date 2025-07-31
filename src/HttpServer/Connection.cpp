@@ -4,6 +4,7 @@
 #include "src/RequestParser/request_parser.hpp"
 #include "src/Utils/StringUtils.hpp"
 #include <cerrno>
+#include <cmath>
 #include <string>
 #include <vector>
 
@@ -59,7 +60,8 @@ void WebServer::cleanupExpiredConnections() {
 	}
 
 	_last_cleanup = current_time;
-	_conn_to_close.clear();
+
+	std::vector<Connection *> expired;
 
 	// Collect expired connections
 	for (std::map<int, Connection *>::iterator it = _connections.begin(); it != _connections.end();
@@ -67,19 +69,16 @@ void WebServer::cleanupExpiredConnections() {
 
 		Connection *conn = it->second;
 		if (conn->isExpired(time(NULL), CONNECTION_TO)) {
-			_conn_to_close.push_back(conn->fd);
+			conn->keep_persistent_connection = false;
+			expired.push_back(conn);
 			_lggr.info("Connection expired for fd: " + su::to_string(conn->fd));
 		}
 	}
 
-	// Close expired connections
-	for (std::vector<int>::iterator it = _conn_to_close.begin(); it != _conn_to_close.end(); ++it) {
-		handleConnectionTimeout(*it);
-	}
-
-	if (!_conn_to_close.empty()) {
-		_lggr.info("Cleaned up " + su::to_string(_conn_to_close.size()) + " expired connections");
-	}
+    for (size_t i = 0; i < expired.size(); ++i) {
+        closeConnection(expired[i]);
+    }
+    expired.clear();
 }
 
 void WebServer::handleConnectionTimeout(int client_fd) {
@@ -87,12 +86,9 @@ void WebServer::handleConnectionTimeout(int client_fd) {
 	if (it != _connections.end()) {
 		Connection *conn = it->second;
 
-		prepareResponse(conn, Response(408));
-
 		_lggr.info("Connection timed out for fd: " + su::to_string(client_fd) + " (idle for " +
 		           su::to_string(getCurrentTime() - conn->last_activity) + " seconds)");
-		// closeConnection(conn);
-		//  TODO: potential problems in case clfd not in connections for some reason
+		closeConnection(conn);
 	}
 }
 
@@ -135,9 +131,10 @@ bool WebServer::shouldKeepAlive(const ClientRequest &req) {
 void WebServer::closeConnection(Connection *conn) {
 	if (!conn)
 		return;
-	if (conn->keep_alive && !conn->force_close) {
-		_lggr.debug("Ignoring connection close request for fd: " + su::to_string(conn->fd) +
-		            ", because of keep-alive");
+
+	// TODO: redundant check may be removed
+	if (conn->keep_persistent_connection) {
+		_lggr.debug("Ignoring connection close request for fd: " + su::to_string(conn->fd));
 		return;
 	}
 	_lggr.debug("Closing connection for fd: " + su::to_string(conn->fd));

@@ -7,8 +7,7 @@
 
 Connection::Connection(int socket_fd)
     : fd(socket_fd),
-      keep_alive(false),
-      force_close(true),
+      keep_persistent_connection(true),
       chunked(false),
       chunk_size(0),
       chunk_bytes_read(0),
@@ -76,7 +75,7 @@ std::string Connection::toString() {
 	                       : "not ready")
 	    << ", ";
 	oss << "chunked: " << (chunked ? "true" : "false") << ", ";
-	oss << "keep_alive: " << (keep_alive ? "true" : "false") << ", ";
+	oss << "keep_presistent_connection: " << (keep_persistent_connection ? "true" : "false") << ", ";
 	oss << "request_count: " << request_count << ", ";
 	oss << "state: " << stateToString(state) << "}";
 

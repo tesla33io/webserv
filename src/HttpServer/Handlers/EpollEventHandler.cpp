@@ -1,4 +1,5 @@
 #include "../HttpServer.hpp"
+#include <cstring>
 #include <string>
 
 void WebServer::processEpollEvents(const struct epoll_event *events, int event_count) {
@@ -38,8 +39,8 @@ void WebServer::handleClientEvent(int fd, uint32_t event_mask) {
 		if (event_mask & EPOLLOUT) {
 			if (conn->response_ready)
 				sendResponse(conn);
-			// TODO: check for keep-alive
-			closeConnection(conn);
+			if (!conn->keep_persistent_connection)
+				closeConnection(conn);
 		}
 	} else {
 		_lggr.debug("Ignoring event for unknown fd: " + su::to_string(fd));
@@ -62,8 +63,9 @@ void WebServer::handleClientRecv(Connection *conn) {
 			return;
 		}
 	} else if (bytes_read == 0) {
-		conn->force_close = true; // TODO: not sure about this one when it comes to chunked requests
-		handleClientDisconnection(conn);
+		_lggr.warn("Client (fd: " + su::to_string(conn->fd) + ") closed connection");
+		conn->keep_persistent_connection = false;
+		closeConnection(conn);
 		return;
 	} else if (bytes_read < 0) {
 		_lggr.error("recv error for fd " + su::to_string(conn->fd) + ": " + strerror(errno));
@@ -112,7 +114,3 @@ bool WebServer::processReceivedData(Connection *conn, const char *buffer, ssize_
 	return true;
 }
 
-void WebServer::handleClientDisconnection(Connection *conn) {
-	_lggr.info("Client disconnected (fd: " + su::to_string(conn->fd) + ")");
-	closeConnection(conn);
-}
