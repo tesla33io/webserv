@@ -2,11 +2,13 @@
 
 #define __HTTPSERVER_HPP__
 
+#include "../../includes/webserv.hpp"
 #include "../ConfigParser/config_parser.hpp"
 #include "../Logger/Logger.hpp"
 #include "../RequestParser/request_parser.hpp"
 #include "../Utils/StringUtils.hpp"
 #include "Response.hpp"
+#include "src/CGI/CGI.hpp"
 
 #include <arpa/inet.h>
 #include <climits>
@@ -114,6 +116,9 @@ class WebServer {
 	Logger _lggr;
 	static std::map<uint16_t, std::string> err_messages;
 
+	/// @brief List of all CGI Objects
+	std::map<int, std::pair<CGI *, Connection *> > _cgi_pool;
+
 	// Connection management arguments
 	std::map<int, Connection *> _connections;
 	std::vector<int> _conn_to_close;
@@ -164,12 +169,17 @@ class WebServer {
 	std::string handleGetRequest(const std::string &path);
 
 	// CGI
-	bool prepareCGIRequest(ClientRequest req, Connection *conn);
+	void sendCGIResponse(std::string &cgi_output, CGI *cgi, Connection *conn);
+	void normalResponse(CGI *cgi, Connection *conn);
+	void chunkedResponse(CGI *cgi, Connection *conn);
+	void handleCGIOutput(int fd);
+	bool isCGIFd(int fd) const;
+	bool handleCGIRequest(ClientRequest &req, Connection *conn);
 
 	// HTTP request handlers
 	Response handleGetRequest(ClientRequest &req);
-	Response handlePostRequest(const ClientRequest &req);   // TODO: Implement
-	Response handleDeleteRequest(const ClientRequest &req); // TODO: Implement
+	Response handlePostRequest(ClientRequest &req);   // TODO: Implement
+	Response handleDeleteRequest(ClientRequest &req); // TODO: Implement
 
 	// File serving methods
 	std::string getFileContent(std::string path);

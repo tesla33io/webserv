@@ -6,7 +6,7 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/31 09:07:54 by jalombar          #+#    #+#             */
-/*   Updated: 2025/07/31 11:22:43 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/01 10:31:57 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -31,9 +31,7 @@ CGI::CGI(ClientRequest &request) {
 }
 
 // Set or update an environment variable
-void CGI::setEnv(const std::string &key, const std::string &value) { 
-	env_[key] = value;
-}
+void CGI::setEnv(const std::string &key, const std::string &value) { env_[key] = value; }
 
 // Get an environment variable's value or empty string if not found
 std::string CGI::getEnv(const std::string &key) const {
@@ -45,9 +43,7 @@ std::string CGI::getEnv(const std::string &key) const {
 }
 
 // Remove a variable if it exists
-void CGI::unsetEnv(const std::string &key) {
-	env_.erase(key);
-}
+void CGI::unsetEnv(const std::string &key) { env_.erase(key); }
 
 // Convert to a null-terminated char** suitable for execve
 char **CGI::toEnvp() const {
@@ -100,29 +96,17 @@ void CGI::setInterpreter(std::string &path) {
 		interpreter_ = "";
 	}
 }
-const char *CGI::getInterpreter() const {
-	return (interpreter_.c_str());
-}
+const char *CGI::getInterpreter() const { return (interpreter_.c_str()); }
 
-const char *CGI::getScriptPath() const {
-	return (script_path_.c_str());
-}
+const char *CGI::getScriptPath() const { return (script_path_.c_str()); }
 
-void CGI::setPid(pid_t pid) {
-	pid_ = pid;
-}
+void CGI::setPid(pid_t pid) { pid_ = pid; }
 
-pid_t CGI::getPid() const {
-	return (pid_);
-}
+pid_t CGI::getPid() const { return (pid_); }
 
-void CGI::setOutputFd(int fd) {
-	output_fd_ = fd;
-}
+void CGI::setOutputFd(int fd) { output_fd_ = fd; }
 
-int CGI::getOutputFd() const {
-	return (output_fd_);
-}
+int CGI::getOutputFd() const { return (output_fd_); }
 
 /* CGI HANDLER */
 
@@ -147,27 +131,47 @@ void CGI::print_cgi_response(const std::string &cgi_output) {
 
 std::string CGI::extract_content_type(std::string &cgi_headers) {
 	std::string content_type = "text/html";
-    std::istringstream header_stream(cgi_headers);
-    std::string line;
-    
-    while (std::getline(header_stream, line)) {
-        if (!line.empty() && line[line.size() - 1] == '\r')
-            line.erase(line.size() - 1);
+	std::istringstream header_stream(cgi_headers);
+	std::string line;
 
-        if (line.find("Content-Type:") == 0 || line.find("Content-type:") == 0) {
-            size_t colon_pos = line.find(':');
-            if (colon_pos != std::string::npos) {
-                content_type = line.substr(colon_pos + 1);
-                // Trim whitespace
-                size_t start = content_type.find_first_not_of(" \t");
-                if (start != std::string::npos) {
-                    content_type = content_type.substr(start);
+	while (std::getline(header_stream, line)) {
+		if (!line.empty() && line[line.size() - 1] == '\r')
+			line.erase(line.size() - 1);
+
+		if (line.find("Content-Type:") == 0 || line.find("Content-type:") == 0) {
+			size_t colon_pos = line.find(':');
+			if (colon_pos != std::string::npos) {
+				content_type = line.substr(colon_pos + 1);
+				// Trim whitespace
+				size_t start = content_type.find_first_not_of(" \t");
+				if (start != std::string::npos) {
+					content_type = content_type.substr(start);
 					return (content_type);
-                }
-            }
-        }
-    }
+				}
+			}
+		}
+	}
 	return (content_type);
+}
+
+bool CGI::cleanup() {
+	Logger logger;
+	// 8. Wait for child process and check exit status
+	int status;
+	if (waitpid(getPid(), &status, 0) == -1) {
+		logger.logWithPrefix(Logger::ERROR, "CGI", "Failed to wait for CGI process");
+		close(getOutputFd());
+		return (false);
+	}
+
+	if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
+		logger.logWithPrefix(Logger::ERROR, "CGI", "CGI script failed or was terminated");
+		close(getOutputFd());
+		return (false);
+	}
+	// 9. Clean up
+	close(getOutputFd());
+	return (true);
 }
 
 /* NORMAL RESPONSE */
@@ -190,8 +194,14 @@ bool CGI::send_normal_resp(CGI &cgi, int clfd) {
 	char buffer[4096];
 	ssize_t bytes_read;
 
-	
 	while ((bytes_read = read(cgi.getOutputFd(), buffer, sizeof(buffer))) > 0) {
+		// NOT CHUNKED
+		// Read until child proc is running || Read until end of body
+		// Separate headers (if any) from the CGI output
+		// Create Response
+		// Set headers
+		// Set body (CL will be calculated auto)
+		// Connection->response_ready = true
 		cgi_output.append(buffer, bytes_read);
 	}
 
@@ -209,103 +219,105 @@ bool CGI::send_normal_resp(CGI &cgi, int clfd) {
 /* CHUNKED RESPONSE */
 
 void CGI::send_chunk(int clfd, const char *data, size_t size) {
-    if (size == 0) {
-        const char *final_chunk = "0\r\n\r\n";
-        send(clfd, final_chunk, 5, 0);
-        return ;
-    }
-    // Convert size to hex string
-    std::stringstream hex_size;
-    hex_size << std::hex << size;
-    std::string chunk_header = hex_size.str() + "\r\n";
-    
-    // Send chunk size
-    send(clfd, chunk_header.c_str(), chunk_header.length(), 0);
-    
-    // Send chunk data
-    send(clfd, data, size, 0);
-    
-    // Send chunk trailer
-    const char* chunk_trailer = "\r\n";
-    send(clfd, chunk_trailer, 2, 0);
+	if (size == 0) {
+		const char *final_chunk = "0\r\n\r\n";
+		send(clfd, final_chunk, 5, 0);
+		return;
+	}
+	// Convert size to hex string
+	std::stringstream hex_size;
+	hex_size << std::hex << size;
+	std::string chunk_header = hex_size.str() + "\r\n";
+
+	// Send chunk size
+	send(clfd, chunk_header.c_str(), chunk_header.length(), 0);
+
+	// Send chunk data
+	send(clfd, data, size, 0);
+
+	// Send chunk trailer
+	const char *chunk_trailer = "\r\n";
+	send(clfd, chunk_trailer, 2, 0);
 }
 
 // Extract and send CGI headers first, then start chunked body
-bool CGI::send_cgi_headers(CGI &cgi, int clfd, std::string &first_chunk, std::string &remaining_data) {
-    Logger logger;
-    
-    // Find the end of headers (double newline)
-    size_t header_end = first_chunk.find("\r\n\r\n");
-    if (header_end == std::string::npos) {
-        header_end = first_chunk.find("\n\n");
-        if (header_end == std::string::npos) {
-			logger.logWithPrefix(Logger::WARNING, "CGI", "First chunk does not contain complete headers");
-            return (false);
-        }
-        header_end += 2; // Skip \n\n
-    } else {
-        header_end += 4; // Skip \r\n\r\n
-    }
-    
-    // Extract headers and body
-    std::string cgi_headers = first_chunk.substr(0, header_end);
-    remaining_data = first_chunk.substr(header_end);
-    
-    // Parse CGI headers to extract content-type
-    std::string content_type = cgi.extract_content_type(cgi_headers);
-    
-    // Build HTTP response headers with chunked encoding
-    Response resp;
-    resp.setStatus(200);
-    resp.version = "HTTP/1.1";
-    resp.setContentType(content_type);
-    resp.setHeader("Transfer-Encoding", "chunked");
-    
-    // Send headers without body (chunked body will follow)
-    std::string headers_only = resp.toStringHeadersOnly();
-    send(clfd, headers_only.c_str(), headers_only.length(), 0);
-    
-    return (true);
+bool CGI::send_cgi_headers(CGI &cgi, int clfd, std::string &first_chunk,
+                           std::string &remaining_data) {
+	Logger logger;
+
+	// Find the end of headers (double newline)
+	size_t header_end = first_chunk.find("\r\n\r\n");
+	if (header_end == std::string::npos) {
+		header_end = first_chunk.find("\n\n");
+		if (header_end == std::string::npos) {
+			logger.logWithPrefix(Logger::WARNING, "CGI",
+			                     "First chunk does not contain complete headers");
+			return (false);
+		}
+		header_end += 2; // Skip \n\n
+	} else {
+		header_end += 4; // Skip \r\n\r\n
+	}
+
+	// Extract headers and body
+	std::string cgi_headers = first_chunk.substr(0, header_end);
+	remaining_data = first_chunk.substr(header_end);
+
+	// Parse CGI headers to extract content-type
+	std::string content_type = cgi.extract_content_type(cgi_headers);
+
+	// Build HTTP response headers with chunked encoding
+	Response resp;
+	resp.setStatus(200);
+	resp.version = "HTTP/1.1";
+	resp.setContentType(content_type);
+	resp.setHeader("Transfer-Encoding", "chunked");
+
+	// Send headers without body (chunked body will follow)
+	std::string headers_only = resp.toStringHeadersOnly();
+	send(clfd, headers_only.c_str(), headers_only.length(), 0);
+
+	return (true);
 }
 
 bool CGI::send_chunked_resp(CGI &cgi, int clfd) {
 	Logger logger;
-    char buffer[CHUNK_SIZE];
-    std::string accumulated_data;
-    bool headers_sent = false;
-    ssize_t bytes_read;
+	char buffer[CHUNK_SIZE];
+	std::string accumulated_data;
+	bool headers_sent = false;
+	ssize_t bytes_read;
 
-    while ((bytes_read = read(cgi.getOutputFd(), buffer, CHUNK_SIZE)) > 0) {
-        if (!headers_sent) {
-            // Accumulate data until we have complete headers
-            accumulated_data.append(buffer, bytes_read);
-            
-            std::string remaining_body;
-            if (cgi.send_cgi_headers(cgi, clfd, accumulated_data, remaining_body)) {
-                headers_sent = true;
-                
-                // Send first chunk if there's body data
-                if (!remaining_body.empty()) {
-                    cgi.send_chunk(clfd, remaining_body.c_str(), remaining_body.size());
-                }
-            }
-            // If headers not complete, continue reading
-        } else {
-            // Headers already sent, send this data as a chunk
-            cgi.send_chunk(clfd, buffer, bytes_read);
-        }
-    }
+	while ((bytes_read = read(cgi.getOutputFd(), buffer, CHUNK_SIZE)) > 0) {
+		if (!headers_sent) {
+			// Accumulate data until we have complete headers
+			accumulated_data.append(buffer, bytes_read);
+
+			std::string remaining_body;
+			if (cgi.send_cgi_headers(cgi, clfd, accumulated_data, remaining_body)) {
+				headers_sent = true;
+
+				// Send first chunk if there's body data
+				if (!remaining_body.empty()) {
+					cgi.send_chunk(clfd, remaining_body.c_str(), remaining_body.size());
+				}
+			}
+			// If headers not complete, continue reading
+		} else {
+			// Headers already sent, send this data as a chunk
+			cgi.send_chunk(clfd, buffer, bytes_read);
+		}
+	}
 
 	if (bytes_read == -1) {
-        logger.logWithPrefix(Logger::ERROR, "CGI", "Error reading from CGI script");
-        close(cgi.getOutputFd());
-        waitpid(cgi.getPid(), NULL, 0);
-        return (false);
-    }
+		logger.logWithPrefix(Logger::ERROR, "CGI", "Error reading from CGI script");
+		close(cgi.getOutputFd());
+		waitpid(cgi.getPid(), NULL, 0);
+		return (false);
+	}
 
-    // Send final chunk to indicate end of response
-    if (headers_sent) {
-        cgi.send_chunk(clfd, NULL, 0); // This sends "0\r\n\r\n"
-    }
+	// Send final chunk to indicate end of response
+	if (headers_sent) {
+		cgi.send_chunk(clfd, NULL, 0); // This sends "0\r\n\r\n"
+	}
 	return (true);
 }

@@ -6,7 +6,7 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/31 10:18:53 by jalombar          #+#    #+#             */
-/*   Updated: 2025/07/31 11:22:53 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/01 11:44:43 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -85,10 +85,10 @@ bool CGIUtils::run_CGI_script(ClientRequest &req, CGI &cgi) {
 			size_t total_written = 0;
 			while (total_written < req.body.size()) {
 				ssize_t written = write(input_pipe[1], req.body.c_str() + total_written,
-			                        req.body.size() - total_written);
+				                        req.body.size() - total_written);
 				if (written <= 0) {
 					logger.logWithPrefix(Logger::WARNING, "CGI",
-				                     "Failed to write request body to CGI script");
+					                     "Failed to write request body to CGI script");
 					close(input_pipe[1]);
 					return (false);
 				};
@@ -108,6 +108,8 @@ bool CGIUtils::CGI_handler(ClientRequest &req, int clfd) {
 		logger.logWithPrefix(Logger::WARNING, "CGI", "Invalid or potentially unsafe path");
 		return (false);
 	}
+
+	/// Heap allocated
 	CGI cgi(req);
 	if (std::strcmp(cgi.getInterpreter(), "") == 0)
 		return (false);
@@ -139,4 +141,22 @@ bool CGIUtils::CGI_handler(ClientRequest &req, int clfd) {
 	// 9. Clean up
 	close(cgi.getOutputFd());
 	return (true);
+}
+
+CGI *CGIUtils::create_CGI(ClientRequest &req) {
+	Logger logger;
+	// 1. Validate and construct script path
+	if (req.path.empty() || req.path.find("..") != std::string::npos) {
+		logger.logWithPrefix(Logger::WARNING, "CGI", "Invalid or potentially unsafe path");
+		return (NULL);
+	}
+
+	// Heap allocated
+	CGI *cgi = new CGI(req);
+	if (std::strcmp(cgi->getInterpreter(), "") == 0)
+		return (NULL);
+	if (!run_CGI_script(req, *cgi))
+		return (NULL);
+
+	return (cgi);
 }

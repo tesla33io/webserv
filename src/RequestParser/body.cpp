@@ -6,7 +6,7 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/25 10:46:18 by jalombar          #+#    #+#             */
-/*   Updated: 2025/07/24 12:15:44 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/01 09:00:08 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -82,10 +82,6 @@ bool RequestParsingUtils::chunked_encoding(std::istringstream &stream, ClientReq
 bool RequestParsingUtils::parse_body(std::istringstream &stream, ClientRequest &request) {
 	Logger logger;
 	logger.logWithPrefix(Logger::DEBUG, "HTTP", "Parsing message body");
-
-	// TODO: \/\/\/\/
-	// if (request.chunked_encoding)
-	//	return (chunked_encoding(stream, request));
 
 	const char *content_length_value = find_header(request, "content-length");
 

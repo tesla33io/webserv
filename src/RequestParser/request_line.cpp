@@ -6,7 +6,7 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/25 10:33:32 by jalombar          #+#    #+#             */
-/*   Updated: 2025/07/22 11:05:01 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/01 08:50:24 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -92,22 +92,18 @@ bool decode_and_validate_uri(const std::string &uri, std::string &decoded) {
 }
 
 /* Checks */
-bool RequestParsingUtils::check_req_line(ClientRequest &request, std::string &method) {
+bool RequestParsingUtils::check_req_line(ClientRequest &request) {
 	Logger logger;
 
-	if (method.empty() || request.uri.empty() || request.version.empty()) {
+	if (request.method.empty() || request.uri.empty() || request.version.empty()) {
 		logger.logWithPrefix(Logger::WARNING, "HTTP", "Empty component in request line");
 		return (false);
 	}
 
-	if (method.find(' ') != std::string::npos || request.uri.find(' ') != std::string::npos ||
+	if (request.method.find(' ') != std::string::npos ||
+	    request.uri.find(' ') != std::string::npos ||
 	    request.version.find(' ') != std::string::npos) {
 		logger.logWithPrefix(Logger::WARNING, "HTTP", "Extra spaces in request line");
-		return (false);
-	}
-
-	if (!RequestParsingUtils::assign_method(method, request)) {
-		logger.logWithPrefix(Logger::WARNING, "HTTP", "Invalid method");
 		return (false);
 	}
 
@@ -145,7 +141,6 @@ bool RequestParsingUtils::check_req_line(ClientRequest &request, std::string &me
 bool RequestParsingUtils::parse_req_line(std::istringstream &stream, ClientRequest &request) {
 	Logger logger;
 	std::string line;
-	std::string method;
 	logger.logWithPrefix(Logger::DEBUG, "HTTP", "Parsing request line");
 
 	if (!std::getline(stream, line)) {
@@ -185,9 +180,9 @@ bool RequestParsingUtils::parse_req_line(std::istringstream &stream, ClientReque
 	}
 
 	// Manual parsing to ensure exactly one space between components
-	method = trimmed_line.substr(0, first_space);
+	request.method = trimmed_line.substr(0, first_space);
 	request.uri = trimmed_line.substr(first_space + 1, second_space - first_space - 1);
 	request.version = trimmed_line.substr(second_space + 1);
 
-	return (RequestParsingUtils::check_req_line(request, method));
+	return (RequestParsingUtils::check_req_line(request));
 }

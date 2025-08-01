@@ -34,12 +34,8 @@ TARGET			:= webserv
 SRC_DIR			:= ./
 
 #Source files
-SRC_FILES		+= src/CGI/cgi.cpp
-SRC_FILES		+= src/CGI/chunked_resp.cpp
-
 SRC_FILES		+= src/CGI/CGI.cpp
 SRC_FILES		+= src/CGI/cgi_handler.cpp
-
 
 SRC_FILES		+= src/HttpServer/HttpServer.cpp
 SRC_FILES		+= src/HttpServer/Connection.cpp
