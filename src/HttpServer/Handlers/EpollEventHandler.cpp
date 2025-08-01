@@ -40,20 +40,8 @@ void WebServer::sendCGIResponse(std::string &cgi_output, CGI *cgi, Connection *c
 	std::string raw_response = resp.toString();
 	conn->response_ready = true;
 	send(conn->fd, raw_response.c_str(), raw_response.length(), 0);
+	cgi->cleanup();
 }
-
-/* void WebServer::sendCGIResponse(std::string &cgi_output, CGI *cgi, Connection *conn) {
-    Response resp;
-    resp.setStatus(200);
-    resp.version = "HTTP/1.1";
-    resp.setContentType(cgi->extract_content_type(cgi_output));
-    resp.setContentLength(cgi_output.length());
-    size_t header_end = cgi_output.find("\n\n");
-    resp.body = cgi_output.substr(header_end);
-    std::string raw_response = resp.toString();
-    conn->response_ready = true;
-    send(conn->fd, raw_response.c_str(), raw_response.length(), 0);
-} */
 
 void WebServer::chunkedResponse(CGI *cgi, Connection *conn) {
 	(void)cgi;
