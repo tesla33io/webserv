@@ -261,16 +261,9 @@ class WebServer {
 
 	/// Creates and registers a new client connection.
 	/// \param client_fd The client socket file descriptor.
-	/// \param host The host address clinet wants to connect to.
-	/// \param port The port number client wants to connect to.
+	/// \param sc The configuaration struct for the matching host:port server
 	/// \returns Pointer to the newly created Connection object.
-
-	/// Creates and registers a new client connection.
-	/// \param client_fd The client socket file descriptor.
-	/// \param host The host address clinet wants to connect to.
-	/// \param port The port number client wants to connect to.
-	/// \returns Pointer to the newly created Connection object.
-	Connection *addConnection(int client_fd, ServerConfig *sc);
+	Connection *addConnection(int client_fd, ServerConfig *sc) ;
 
 	/// !!! DEPRECATED !!!
 	/// Updates the last activity time for a connection.
@@ -472,6 +465,8 @@ std::string describeEpollEvents(uint32_t ev);
 /// \param start_pos The position to start searching from.
 /// \returns Position of CRLF sequence, or string::npos if not found.
 size_t findCRLF(const std::string &buffer, size_t start_pos);
+
+
 
 #endif  /* end of include guard: __HTTPSERVER_HPP__*/
 
