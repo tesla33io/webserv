@@ -30,6 +30,9 @@ WebServer::WebServer(std::vector<ServerConfig> &confs, std::string &prefix_path)
       _root_prefix_path(prefix_path),
       _confs(confs),
       _lggr("ws.log", Logger::DEBUG, true) {
+	 for (std::vector<ServerConfig>::iterator it = _confs.begin(); it != _confs.end(); ++it) {
+        it->root_prefix = _root_prefix_path;
+    }
 	_lggr.info("An instance of the Webserver was created.");
 }
 

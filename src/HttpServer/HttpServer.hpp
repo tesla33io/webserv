@@ -270,12 +270,7 @@ class WebServer {
 	/// \param host The host address clinet wants to connect to.
 	/// \param port The port number client wants to connect to.
 	/// \returns Pointer to the newly created Connection object.
-	Connection *addConnection(int client_fd, std::string host, int port);
-
-	/// !!! DEPRECATED !!!
-	/// Updates the last activity time for a connection.
-	/// \deprecated Use Connection::updateActivity instead.
-	/// \param client_fd The client file descriptor.
+	Connection *addConnection(int client_fd, ServerConfig *sc);
 
 	/// !!! DEPRECATED !!!
 	/// Updates the last activity time for a connection.

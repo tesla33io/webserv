@@ -21,8 +21,8 @@ class Response {
 
 	Response();
 	explicit Response(uint16_t code);
-	Response(uint16_t code, const std::string &response_body);
-	Response(uint16_t code, Connection* conn); // custom error pages
+	explicit Response(uint16_t code, const std::string &response_body);
+	explicit Response(uint16_t code, Connection* conn); // custom error pages
 
 	inline void setStatus(uint16_t code) {
 		status_code = code;

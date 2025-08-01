@@ -49,7 +49,7 @@ bool ConfigParser::convertTreeToStruct(const ConfigNode &tree, std::vector<Serve
 				return false;
 			}
 			
-			// create default location "/" if no locations exist or no / location exist
+			// create default location "/" if no locations exist or no '/' location exist
 			if (server.locations.empty() || !baseLocation(server)) {
 				LocConfig defaultLocation;
 				defaultLocation.path = "/";
@@ -59,9 +59,8 @@ bool ConfigParser::convertTreeToStruct(const ConfigNode &tree, std::vector<Serve
 			}
 			
 			inheritGeneralConfig(server, forInheritance);
-
-
 			sortLocations(server.locations);
+			addRootToErrorUri(server);
 
 			logg_.logWithPrefix(Logger::INFO, "Config parsing", 
 				"Parsed server block on " + server.host + ":" + su::to_string(server.port) + 
@@ -78,24 +77,6 @@ bool ConfigParser::convertTreeToStruct(const ConfigNode &tree, std::vector<Serve
 	return true;
 }
 
-
-bool ConfigParser::baseLocation(ServerConfig& server) {
-	for (size_t i = 0; i < server.locations.size(); ++i) { 
-		LocConfig loc = server.locations[i];
-		if (loc.path == "/")
-			return true;
-	}
-	return false;
-}
-
-bool ConfigParser::existentLocationDuplicate(const ServerConfig& server, const LocConfig& location) {
-	for (size_t i = 0; i < server.locations.size(); ++i) { 
-		LocConfig loc = server.locations[i];
-		if (loc.path == location.path)
-			return true;
-	}
-	return false;
-}
 
 // HOST AND PORT
 void ConfigParser::handleListen(const ConfigNode& node, ServerConfig& server) {
@@ -161,37 +142,10 @@ void ConfigParser::handleForInherit(const ConfigNode &node, LocConfig &location)
 }
 
 
-// Apply server-level configs to locations that don't override them
-void ConfigParser::inheritGeneralConfig(ServerConfig& server, const LocConfig& forInheritance) {
-	
-	for (size_t i = 0; i < server.locations.size(); ++i) {
-		
-		LocConfig& loc = server.locations[i];
 
-		// If location has alias, don't inherit root and clear rrot
-		if (!loc.alias.empty()) 
-			loc.root.clear();
-		else {
-			if (loc.root.empty())
-				loc.root = forInheritance.root;
-		}
-		// Inherit methods if location doesn't specify any
-		if (loc.allowed_methods.empty())
-			loc.allowed_methods = forInheritance.allowed_methods;
-		// Inherit upload path if not specified
-		if (loc.upload_path.empty())
-			loc.upload_path = forInheritance.upload_path;
-		// Inherit CGI extensions if not specified
-		if (loc.cgi_extensions.empty())
-			loc.cgi_extensions = forInheritance.cgi_extensions;	
-		// Inherit index only in base / default location
-		if (loc.path == "/" && loc.index.empty())
-			loc.index = forInheritance.index;
-	}
-}
-
-
+////////////////////
 // LOCATION-LEVEL DIRECTIVE HANDLERS
+////
 
 void ConfigParser::handleLocationBlock(const ConfigNode &locNode, LocConfig &location) {
 	for (std::vector<ConfigNode>::const_iterator node = locNode.children_.begin(); node != locNode.children_.end(); ++node) {
@@ -235,19 +189,53 @@ void ConfigParser::handleCGI(const ConfigNode &node, LocConfig &location) {
 	}
 }
 
-// Sort locations by path length (longest first for proper nginx-style matching)
-void ConfigParser::sortLocations(std::vector<LocConfig>& locations) {
-	std::sort(locations.begin(), locations.end(), compareLocationPaths);
+
+////////////////////
+// POST CHECKS AND VALIDATION AND MODIFICATION
+////
+
+
+// generate the base location '/' if does not exist
+bool ConfigParser::baseLocation(ServerConfig& server) {
+	for (size_t i = 0; i < server.locations.size(); ++i) { 
+		LocConfig loc = server.locations[i];
+		if (loc.path == "/")
+			return true;
+	}
+	return false;
 }
 
-// Comparator function for sorting locations
-bool ConfigParser::compareLocationPaths(const LocConfig& a, const LocConfig& b) {
-	if (a.path.length() != b.path.length()) 
-		return a.path.length() > b.path.length();
-	return a.path < b.path;
+
+// Apply server-level configs to locations that don't override them
+void ConfigParser::inheritGeneralConfig(ServerConfig& server, const LocConfig& forInheritance) {
+	
+	for (size_t i = 0; i < server.locations.size(); ++i) {
+		
+		LocConfig& loc = server.locations[i];
+
+		// If location has alias, don't inherit root and clear rrot
+		if (!loc.alias.empty()) 
+			loc.root.clear();
+		else {
+			if (loc.root.empty())
+				loc.root = forInheritance.root;
+		}
+		// Inherit methods if location doesn't specify any
+		if (loc.allowed_methods.empty())
+			loc.allowed_methods = forInheritance.allowed_methods;
+		// Inherit upload path if not specified
+		if (loc.upload_path.empty())
+			loc.upload_path = forInheritance.upload_path;
+		// Inherit CGI extensions if not specified
+		if (loc.cgi_extensions.empty())
+			loc.cgi_extensions = forInheritance.cgi_extensions;	
+		// Inherit index only in base / default location
+		if (loc.path == "/" && loc.index.empty())
+			loc.index = forInheritance.index;
+	}
 }
 
-// duplicate host:server ?
+// HOST:SERVER dupliactes -> not accepted
 bool ConfigParser::isDuplicateServer(const std::vector<ServerConfig>& servers, const ServerConfig& newServer) {
 	for (std::vector<ServerConfig>::const_iterator it = servers.begin(); it != servers.end(); ++it) {
 		if (it->host == newServer.host && it->port == newServer.port) {
@@ -256,3 +244,36 @@ bool ConfigParser::isDuplicateServer(const std::vector<ServerConfig>& servers, c
 	}
 	return false;
 }
+
+// LOCATION PATH dupliactes -> not accepted
+bool ConfigParser::existentLocationDuplicate(const ServerConfig& server, const LocConfig& location) {
+	for (size_t i = 0; i < server.locations.size(); ++i) { 
+		LocConfig loc = server.locations[i];
+		if (loc.path == location.path)
+			return true;
+	}
+	return false;
+}
+
+// ADD root TO ERROR PAGE URI
+void ConfigParser::addRootToErrorUri(ServerConfig& server) {
+	LocConfig* defaultL = server.defaultLocation();
+	if (!server.error_pages.empty()  && defaultL != NULL && !defaultL->root.empty()) {
+		const std::string& root = defaultL->root;
+		for (std::map<uint16_t, std::string>::iterator it = server.error_pages.begin();
+		       it != server.error_pages.end(); ++it) {
+			it->second = root + "/" + it->second;
+		}
+	}
+}
+
+// SORT LOCATIONS by path length (longest first for proper nginx-style matching)
+void ConfigParser::sortLocations(std::vector<LocConfig>& locations) {
+	std::sort(locations.begin(), locations.end(), compareLocationPaths);
+}
+bool ConfigParser::compareLocationPaths(const LocConfig& a, const LocConfig& b) {
+	if (a.path.length() != b.path.length()) 
+		return a.path.length() > b.path.length();
+	return a.path < b.path;
+}
+
