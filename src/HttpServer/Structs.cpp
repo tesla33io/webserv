@@ -84,7 +84,7 @@ std::string Connection::toString() {
 
 //// Response ////
 
-Logger Response::tmplogg_;
+Logger Response::tmplogg_("Response", Logger::DEBUG); 
 
 Response::Response()
     : version("HTTP/1.1"),
@@ -240,13 +240,15 @@ void Response::initFromCustomErrorPage(uint16_t code, Connection *conn) {
 
 	if (!conn || !conn->getServerConfig() || !conn->getServerConfig()->hasErrorPage(code)) {
 		tmplogg_.logWithPrefix(Logger::DEBUG, "Response", "No custom error page for " + su::to_string(code));
+		tmplogg_.logWithPrefix(Logger::DEBUG, "Response", "Creating the default error page for " + su::to_string(code));
 		initFromStatusCode(code);
 		return ;
 	}
-	
-	std::ifstream errorFile(conn->getServerConfig()->getErrorPage(code).c_str());
+	tmplogg_.logWithPrefix(Logger::DEBUG, "Response", "A custom error page exists for " + su::to_string(code));
+	std::string fullPath = conn->getServerConfig()->getRootPrefix() + conn->getServerConfig()->getErrorPage(code); 
+	std::ifstream errorFile(fullPath.c_str());
  	if (!errorFile.is_open()) {
-		tmplogg_.logWithPrefix(Logger::WARNING, "Response", "Custom error page " + su::to_string(code) + " could not be opened.");
+		tmplogg_.logWithPrefix(Logger::WARNING, "Response", "Custom error page " + fullPath + " could not be opened.");
 		initFromStatusCode(code);
 		return;
 	}

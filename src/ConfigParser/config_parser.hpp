@@ -100,7 +100,7 @@ class ConfigParser {
 		bool isDuplicateServer(const std::vector<ServerConfig>& servers, const ServerConfig& newServer) ;
 		bool existentLocationDuplicate(const ServerConfig& server, const LocConfig& location) ;
 		bool baseLocation(ServerConfig& server) ;
-
+		void addRootToErrorUri(ServerConfig& server) ;
 
 		// Validation methods
 		bool validateDirective(const ConfigNode& node, const ConfigNode& parent) ;
@@ -155,8 +155,6 @@ class ConfigNode {
 	    : name_(name), args_(args), line_(line) {}
 };
 
-
-
 class LocConfig {
 	friend class ConfigParser;
 	friend class WebServer;
@@ -179,12 +177,8 @@ class LocConfig {
 	    : return_code(0),
 	      autoindex(false) {}
 
-
 	inline std::string getPath() const { return path; }
-
-
 	bool hasReturn() const { return return_code != 0; }
-
 	bool hasMethod(const std::string &method) const {
 		if (allowed_methods.empty())
 			return true;
@@ -195,7 +189,6 @@ class LocConfig {
 		}
 		return false;
 	}
-
 	bool hasExtension(const std::string &ext) const {
 		return cgi_extensions.find(ext) != cgi_extensions.end();
 	}
@@ -219,7 +212,10 @@ class ServerConfig {
 	std::map<uint16_t, std::string> error_pages;
 	size_t client_max_body_size;
 	std::vector<LocConfig> locations;
+
+	std::string root_prefix;
 	int server_fd;
+
 
 	
   public:
@@ -229,23 +225,31 @@ class ServerConfig {
 	      port(8080),
 	      client_max_body_size(0) {}
 
-	// const std::string& getHost() const { return host; }
-	// int getPort() const { return port; }
-	
-	bool hasErrorPage(uint16_t status) const { return error_pages.find(status) != error_pages.end(); }
-
+	// GETTERS
+	const std::string& getHost() const { return host; }
+	int getPort() const { return port; }
+	const std::map<uint16_t, std::string>& getErrorPages() const { return error_pages; } ;
+	size_t getMaxBodySize() const { return client_max_body_size; }
+	const std::string& getRootPrefix() const { return root_prefix; } ;
 	std::string getErrorPage(uint16_t status) const {
 		std::map<uint16_t, std::string>::const_iterator it = error_pages.find(status);
 		return (it != error_pages.end()) ? it->second : "";
 	}
+	
+	// BOOL
+	bool hasErrorPage(uint16_t status) const { return error_pages.find(status) != error_pages.end(); }
+	bool hasMaxBodySize() const { return client_max_body_size > 0; }
 
-	bool hasMaxBodySize() const {
-		return client_max_body_size > 0;
-	}
 
-	size_t getMaxBodySize() const {
-		return client_max_body_size;
-	}
+	// The default location
+	LocConfig* defaultLocation() { 
+			for (std::vector<LocConfig>::iterator it = locations.begin(); it != locations.end(); ++it) {
+			if (it->getPath() == "/") {
+				return &(*it);
+			}
+		}
+		return NULL;
+	 } 
 
 	// Find by server_fd
 	static ServerConfig *find(std::vector<ServerConfig> &servers, int server_fd) {

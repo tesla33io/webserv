@@ -51,13 +51,13 @@ Response WebServer::handleGetRequest(ClientRequest &req) {
 	Connection* conn = getConnection(req.clfd);
 	if (!conn || !conn->servConfig) {
 		_lggr.error("[Resp] Connection instance not found for client fd : " + su::to_string(req.clfd));
-		return Response::internalServerError();
+		return Response::internalServerError(conn);
 	}
 	
 	// initialize the correct locConfig // defualt "/"
 	LocConfig *match = findBestMatch(req.uri, conn->servConfig->locations);
 	conn->locConfig = match; // Set location context
-	
+	_lggr.error("[Resp] Matched location : " + match->path);
 	if (!match) {
 		_lggr.error("[Resp] No matched location for : " + req.uri);
 		return Response::internalServerError(conn);
@@ -85,7 +85,7 @@ Response WebServer::handleGetRequest(ClientRequest &req) {
 
 	else { // no directory request -> file request
 		if (!isRegularFile(fullPath.c_str())) {
-			_lggr.error("Path not found: " + fullPath);
+			_lggr.error("Path to file not found: " + fullPath);
 			return Response::notFound(conn);
 		}
 		else // directory match found 
@@ -135,7 +135,8 @@ Response WebServer::handleFileRequest(Connection* conn, const std::string& file_
 	}
 	// Create response
 	Response resp(200, content);
-	// resp.setContentType(); TODO : other attributes needed for response?
+	resp.setContentType("text/html"); // TODO detectContentType? 
+	resp.setContentLength(content.length()); 
 	_lggr.debug("Successfully serving file: " + file_path + 
 				" (" + su::to_string(content.length()) + " bytes)");
 	return resp;
@@ -144,9 +145,12 @@ Response WebServer::handleFileRequest(Connection* conn, const std::string& file_
 
 bool WebServer::allowedMethod(const ClientRequest& req, Connection* conn) {
 
+	if (conn->locConfig->allowed_methods.empty())
+		return true;
 	if (!conn->locConfig->hasMethod(req.method)) {
-		_lggr.debug("Method " + req.method + "is not allowed for location " + 
+		_lggr.debug("Method " + req.method + " is not allowed for location " + 
 				conn->locConfig->path);
+		return false;
 	}
 	return true;
 }
