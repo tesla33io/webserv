@@ -250,7 +250,7 @@ class WebServer {
 	/// \returns Pointer to Connection object or nullptr if not found.
 	Connection *getConnection(int client_fd);
 
-	/// Performs cleanup of all server resources and connections.
+	/// Performs cleanup of all server resources and connectioqns.
 	void cleanup();
 
 	/// Connection.cpp
