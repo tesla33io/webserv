@@ -296,23 +296,8 @@ class WebServer {
 
 	/// Handles connection timeout by preparing appropriate response.
 	/// \param client_fd The file descriptor of the timed-out connection.
-
-	/// Closes expired connections to free resources.
-	void cleanupExpiredConnections();
-
-	/// Handles connection timeout by preparing appropriate response.
-	/// \param client_fd The file descriptor of the timed-out connection.
 	void handleConnectionTimeout(int client_fd);
 
-	/// Gracefully closes a client connection.
-	/// \param conn Pointer to the connection to close.
-	void closeConnection(Connection *conn);
-
-	/// Request.cpp
-
-	/// Handles cases where request size exceeds limits.
-	/// \param conn The connection that sent the oversized request.
-	/// \param bytes_read Number of bytes that were read.
 	/// Gracefully closes a client connection.
 	/// \param conn Pointer to the connection to close.
 	void closeConnection(Connection *conn);
