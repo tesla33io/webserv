@@ -306,6 +306,8 @@ void WebServer::cleanup() {
 //	}
 //}
 
+
+// DEPRECATED // to double check
 Connection *WebServer::getConnection(int client_fd) {
 	std::map<int, Connection *>::iterator conn_it = _connections.find(client_fd);
 	if (conn_it == _connections.end()) {

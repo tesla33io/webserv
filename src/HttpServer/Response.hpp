@@ -51,12 +51,17 @@ class Response {
 	static Response internalServerError();
 	static Response badRequest();
 	static Response methodNotAllowed();
+	static Response notImplemented(); 
+	static Response forbidden();
 
 	// Factory methods overload when Connexion instance is available
 	static Response notFound(Connection* conn);
 	static Response internalServerError(Connection* conn);
 	static Response badRequest(Connection* conn);
 	static Response methodNotAllowed(Connection* conn);
+	static Response notImplemented(Connection *conn);
+	static Response forbidden(Connection *conn);
+
 
 	
   private:

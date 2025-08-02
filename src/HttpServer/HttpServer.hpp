@@ -13,6 +13,7 @@
 #include <cstddef>
 #include <cstdio>
 #include <cstring>
+#include <dirent.h> // for directory listing
 #include <fcntl.h>
 #include <fstream>
 #include <iostream>
@@ -25,7 +26,6 @@
 #include <string>
 #include <sys/epoll.h>
 #include <sys/socket.h>
-#include <sys/stat.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -53,12 +53,9 @@
 /// keep-alive functionality.
 class Connection {
 	friend class WebServer;
-	// friend class Response; // for the overloads of response builder 
-
+	
 	int fd;
 
-	// std::string host;
-	// int port;
 	ServerConfig *servConfig;
 	LocConfig *locConfig; 
 
@@ -305,10 +302,6 @@ class WebServer {
 	/// Processes a complete HTTP request and prepares response.
 	/// \param conn The connection containing the complete request.
 	/// \returns True if request was processed successfully, false otherwise.
-
-	/// Processes a complete HTTP request and prepares response.
-	/// \param conn The connection containing the complete request.
-	/// \returns True if request was processed successfully, false otherwise.
 	bool handleCompleteRequest(Connection *conn);
 
 	/// Parses and processes an HTTP request from connection buffer.
@@ -402,8 +395,16 @@ class WebServer {
 
 	/// Handles HTTP GET requests by serving requested resources.
 	/// \param req The GET request to process.
+	/// \param conn The connection to send response to.
 	/// \returns Response object containing the requested resource or error.
-	Response handleGetRequest(ClientRequest &req);
+	Response handleGetRequest(ClientRequest &req, Connection *conn);
+
+
+	/// Handles Return directives.
+	/// \param req The GET request to process.
+	/// \returns Response object containing the requested resource or error.
+	Response handleReturnDirective(ClientRequest &req, Connection* conn);
+
 
 	/// Determines appropriate Content-Type header based on file extension.
 	/// \param path The file path to analyze.
@@ -411,8 +412,7 @@ class WebServer {
 	std::string detectContentType(const std::string &path);
 
 
-		// Request validation methods - allowed methods and maxbodysize
-	bool allowedMethod(const ClientRequest& req, Connection* conn); // Helene 
+	// Request validation methods - allowed methods and maxbodysize
 	bool validateBodySize(Connection* conn, size_t bytes); // // Helene TODO
 
 	/// Handlers/FileHandler.cpp
@@ -422,18 +422,31 @@ class WebServer {
 	/// \returns File content as string, or empty string on error.
 	std::string getFileContent(std::string path);
 
-	Response createErrorResponse(uint16_t code) const; // TODO: Implement
+	/// Prepares response data for transmission of a file to client
+	/// \param conn The connection to send response to.
+	/// \param dir_path The full path to the file to send.
+	/// \returns Response object containing the requested resource or error.
+	Response handleFileRequest(Connection* conn, const std::string& dir_path);
+
+	/// Prepares response data when a directory is requested
+	/// \param conn The connection to send response to.
+	/// \param dir_path The response object containing the path
+	/// \returns Response object containing the requested resource or error.
+	Response handleDirectoryRequest(Connection* conn, const std::string& dir_path);
+
+	/// Prepares response data for transmission to client : directory listing
+	/// \param conn The connection to send response to.
+	/// \param fullDirPath The response object containing the file directory.
+	/// \returns Response object containing the requested resource or error.
+	Response generateDirectoryListing(Connection* conn, const std::string &fullDirPath);
 
 	// Utility methods
 	void findPendingConnections(int fd);
 	static void initErrMessages();
-
-
+	std::string buildFullPath(const std::string& uri, LocConfig *Location);
 	void logConnectionStats();
-		std::string buildFullPath(const std::string& uri, LocConfig *Location);
-	Response handleDirectoryRequest(Connection* conn, const std::string& dir_path);
-	Response handleFileRequest(Connection* conn, const std::string& dir_path);
 };
+
 
 // Utility functions
 
@@ -444,16 +457,19 @@ class WebServer {
 /// \returns Pointer to the best matching LocConfig, or nullptr if no match.
 LocConfig *findBestMatch(const std::string &uri, std::vector<LocConfig> &locations);
 
+/** deprecated **/
 /// Checks if the given path refers to a directory.
 /// \param path The filesystem path to check.
 /// \returns True if path is a directory, false otherwise.
-bool isDirectory(const char *path);
+// bool isDirectory(const char *path);
 
+
+/** deprecated **/
 /// Checks if the given path refers to a regular file.
 /// \param path The filesystem path to check.
 /// \returns True if path is a regular file, false otherwise.
-bool isRegularFile(const char *path);
-bool isDirectoryRequest(std::string uri); // helene
+// bool isRegularFile(const char *path);
+
 
 /// Converts epoll event flags to human-readable string representation.
 /// \param ev The epoll event flags to describe.
@@ -466,6 +482,18 @@ std::string describeEpollEvents(uint32_t ev);
 /// \returns Position of CRLF sequence, or string::npos if not found.
 size_t findCRLF(const std::string &buffer, size_t start_pos);
 
+
+enum FileResult {
+	ISDIR,
+	ISREG,
+	NOT_FOUND_404,
+	PERMISSION_DENIED_403,
+	FILE_SYSTEM_ERROR_500
+};
+
+FileResult checkFileType(std::string path) ;
+
+std::string generateFileEntry(const std::string& filename, const struct stat& fileStat) ;
 
 
 #endif  /* end of include guard: __HTTPSERVER_HPP__*/
