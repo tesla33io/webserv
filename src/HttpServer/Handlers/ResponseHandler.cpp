@@ -45,77 +45,71 @@ bool WebServer::sendResponse(Connection *conn) {
 }
 
 
-Response WebServer::handleGetRequest(ClientRequest &req) {
+Response WebServer::handleGetRequest(ClientRequest &req, Connection *conn) {
 	_lggr.debug("Requested path: " + req.uri);
 	
-	Connection* conn = getConnection(req.clfd);
-	if (!conn || !conn->servConfig) {
-		_lggr.error("[Resp] Connection instance not found for client fd : " + su::to_string(req.clfd));
-		return Response::internalServerError(conn);
-	}
-	
-	// initialize the correct locConfig // defualt "/"
-	LocConfig *match = findBestMatch(req.uri, conn->servConfig->locations);
-	conn->locConfig = match; // Set location context
-	_lggr.error("[Resp] Matched location : " + match->path);
-	if (!match) {
-		_lggr.error("[Resp] No matched location for : " + req.uri);
-		return Response::internalServerError(conn);
-	}
-
-	// GET method allowed in the loc? 
-	if (!allowedMethod(req, conn)) {
-		_lggr.debug("GET method not allowed for location: " + match->path);
-		return Response::methodNotAllowed(conn);
-	}
+	// WE PASS CONNECTION AS ARGUMENT
+	// Connection* conn = getConnection(req.clfd);
+	// if (!conn || !conn->servConfig) {
+	// 	_lggr.error("[Resp] Connection instance not found for client fd : " + su::to_string(req.clfd));
+	// 	return Response::internalServerError(conn);
+	// }
 	
 	// Build file path
-	std::string fullPath = buildFullPath(req.uri, match);
+	std::string fullPath = buildFullPath(req.uri, conn->locConfig);
 
-	// does it exist as a DIRECTORY? stat
-	if (isDirectoryRequest(fullPath)) {
-		// TODO : is it possible to have a directory request wo the ending '/'?
-		if (!isDirectory(fullPath.c_str())) {
-			_lggr.error("Path not found: " + fullPath);
-			return Response::notFound(conn);
-		}
-		else // directory match found 
-			return handleDirectoryRequest(conn, fullPath);
+	// if (isDirectory(fullPath.c_str())) {
+	// 	_lggr.debug("Directory request : " + fullPath);
+	// 	return handleDirectoryRequest(conn, fullPath);
+	// }
+	// else if (isRegularFile(fullPath.c_str())) {
+	// 	_lggr.error("File request: " + fullPath);
+	// 	return handleFileRequest(conn, fullPath);
+	// }
+	// _lggr.error("Path not found: " + fullPath);
+	// return Response::notFound(conn);
+
+	if (checkFileType(fullPath) == NOT_FOUND_404){
+		_lggr.debug("Could not open : " + fullPath);
+		return Response::notFound(conn);
+	} else if (checkFileType(fullPath) == PERMISSION_DENIED_403){
+		_lggr.debug("Permission denied : " + fullPath);
+		return Response::forbidden(conn);
+	} else if (checkFileType(fullPath) == FILE_SYSTEM_ERROR_500){
+		_lggr.debug("Other file access problem : " + fullPath);
+		return Response::internalServerError(conn);
+	} 
+	
+	else if (checkFileType(fullPath) == ISDIR) {
+		_lggr.debug("Directory request : " + fullPath);
+		return handleDirectoryRequest(conn, fullPath);
 	}
-
-	else { // no directory request -> file request
-		if (!isRegularFile(fullPath.c_str())) {
-			_lggr.error("Path to file not found: " + fullPath);
-			return Response::notFound(conn);
-		}
-		else // directory match found 
-			return handleFileRequest(conn, fullPath);
+	else if (checkFileType(fullPath) == ISREG) {
+		_lggr.error("File request: " + fullPath);
+		return handleFileRequest(conn, fullPath);
 	}
-
-	_lggr.error("Path not found: " + fullPath);
-	return Response::notFound(conn);
+	return Response::internalServerError(conn);
 }
 
-
 // Serving the index file or listing if possible
-Response WebServer::handleDirectoryRequest(Connection* conn, const std::string& dir_path) {
-	_lggr.debug("Handling directory request: " + dir_path);
+Response WebServer::handleDirectoryRequest(Connection* conn, const std::string& fullDirPath) {
+	_lggr.debug("Handling directory request: " + fullDirPath);
 	
 	// Try to serve index file 
 	if (!conn->locConfig->index.empty()) {
-		std::string index_path = dir_path + conn->locConfig->index;
-		_lggr.debug("Trying index file: " + index_path);
-		if (isRegularFile(index_path.c_str())) {
-			_lggr.debug("Found index file, serving: " + index_path);
-			return handleFileRequest(conn, index_path);
+		std::string fullIndexPath = fullDirPath + conn->locConfig->index;
+		_lggr.debug("Trying index file: " + fullIndexPath);
+		if (checkFileType(fullIndexPath.c_str()) == ISREG) {
+			_lggr.debug("Found index file, serving: " + fullIndexPath);
+			return handleFileRequest(conn, fullIndexPath);
 		}
 	}
 	
-	// TODO : Handle autoindex 
-	// if (conn->locConfig->autoindex) {
-	// 	_lggr.debug("Autoindex on, generating directory listing");
-	// 	return generateDirectoryListing(conn, dir_path);
-	// }
+	// Handle autoindex 
+	if (conn->locConfig->autoindex) {
+		_lggr.debug("Autoindex on, generating directory listing");
+		return generateDirectoryListing(conn, fullDirPath);
+	}
 	
 	// No index file and no autoindex
 	_lggr.debug("No index file, autoindex disabled");
@@ -123,36 +117,22 @@ Response WebServer::handleDirectoryRequest(Connection* conn, const std::string& 
 }
 
 
-
 // serving the file if found
-Response WebServer::handleFileRequest(Connection* conn, const std::string& file_path) {
-	_lggr.debug("Handling file request: " + file_path);
+Response WebServer::handleFileRequest(Connection* conn, const std::string& fullFilePath) {
+	_lggr.debug("Handling file request: " + fullFilePath);
 	// Read file content
-	std::string content = getFileContent(file_path);
+	std::string content = getFileContent(fullFilePath);
 	if (content.empty()) {
-		_lggr.error("Failed to read file: " + file_path);
+		_lggr.error("Failed to read file: " + fullFilePath);
 		return Response::internalServerError(conn);
 	}
 	// Create response
 	Response resp(200, content);
 	resp.setContentType("text/html"); // TODO detectContentType? 
 	resp.setContentLength(content.length()); 
-	_lggr.debug("Successfully serving file: " + file_path + 
+	_lggr.debug("Successfully serving file: " + fullFilePath + 
 				" (" + su::to_string(content.length()) + " bytes)");
 	return resp;
-}
-
-
-bool WebServer::allowedMethod(const ClientRequest& req, Connection* conn) {
-
-	if (conn->locConfig->allowed_methods.empty())
-		return true;
-	if (!conn->locConfig->hasMethod(req.method)) {
-		_lggr.debug("Method " + req.method + " is not allowed for location " + 
-				conn->locConfig->path);
-		return false;
-	}
-	return true;
 }
 
 
@@ -164,4 +144,129 @@ std::string WebServer::detectContentType(const std::string &path) {
 	} else {
 		return "text/plain";
 	}
+}
+
+
+Response WebServer::handleReturnDirective(ClientRequest &req, Connection* conn) {
+	(void)req;
+	_lggr.debug("handleReturnDirective " );
+	return Response::notImplemented(conn);
+
+}
+
+// struct dirent {
+//     ino_t          d_ino;       // Inode number
+//     char           d_name[256]; // Name of the entry (file or subdirectory)
+//     unsigned char  d_type;      // Type of entry (optional, not always available)
+// };
+
+
+// Helper function to generate file entry with stat info
+std::string generateFileEntry(const std::string& filename, const struct stat& fileStat) {
+	std::string entry = "<tr>";
+	
+	// Name column with link
+	entry += "<td><a href=\"" + filename;
+	if (S_ISDIR(fileStat.st_mode)) {
+		entry += "/";  // Add slash for directories
+		entry += "\" class=\"dir\">";
+	} else {
+		entry += "\" class=\"file\">";
+	}
+	entry += filename + "</a></td>";
+	
+	// Type column
+	entry += "<td>";
+	if (S_ISDIR(fileStat.st_mode)) {
+		entry += "<span class=\"dir\">📁 Directory</span>";
+	} else if (S_ISREG(fileStat.st_mode)) {
+		entry += "<span class=\"file\">📄 File</span>";
+	} else {
+		entry += "❓ Other";
+	}
+	entry += "</td>";
+	
+	// Size column
+	entry += "<td class=\"size\">";
+	if (S_ISREG(fileStat.st_mode)) 
+		entry += su::to_string(fileStat.st_size);
+	else 
+		entry += "-";
+	entry += "</td>";
+	entry += "</tr>\n";
+	return entry;
+}
+
+
+Response WebServer::generateDirectoryListing(Connection* conn, const std::string &fullDirPath) {
+	_lggr.debug("Generating directory listing for: " + fullDirPath);
+	
+	// Open directory
+	DIR* dir = opendir(fullDirPath.c_str());
+	if (dir == NULL) {
+		_lggr.error("Failed to open directory: " + fullDirPath + " - " + std::string(strerror(errno)));
+		return Response::notFound(conn);
+	}
+	
+	// Generate HTML content
+	std::ostringstream htmlContent;
+	htmlContent << "<!DOCTYPE html>\n"
+				<< "<html>\n"
+				<< "<head>\n"
+				<< "<title>Directory Listing - " + fullDirPath + "</title>\n"
+				<< "<style>\n"
+				<< "@import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap');\n"
+				<< "body { font-family: 'Space Mono', monospace; background-color: #f8f9fa; margin: 0; padding: 40px; }\n"
+				<< "h1 { color: #ff5555; font-weight: 700; font-size: 2em; margin-bottom: 30px; }\n"
+				<< ".path { color: #6c757d; font-size: 16px; margin-bottom: 20px; }\n"
+				<< "table { border-collapse: collapse; width: 100%; background-color: white; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }\n"
+				<< "th { background-color: #343a40; color: white; padding: 15px; text-align: left; font-weight: 700; }\n"
+				<< "td { padding: 12px 15px; border-bottom: 1px solid #dee2e6; }\n"
+				<< "tr:last-child td { border-bottom: none; }\n"
+				<< "tr:hover { background-color: #f8f9fa; }\n"
+				<< "a { text-decoration: none; color: #007bff; font-weight: 400; }\n"
+				<< "a:hover { text-decoration: underline; color: #0056b3; }\n"
+				<< ".dir { color: #ff6b35; font-weight: 700; }\n"
+				<< ".file { color: #28a745; }\n"
+				<< ".size { color: #6c757d; font-size: 0.9em; }\n"
+				<< "footer { color: #6c757d; text-align: center; margin-top: 40px; font-size: 0.9em; }\n"
+				<< "</style>\n</head>\n<body>\n"
+				<< "<h1>Directory Listing</h1>\n"
+				<< "<div class=\"path\">" + fullDirPath + "</div>\n"
+				<< "<table>\n"
+				<< "<tr><th>Name</th><th>Type</th><th>Size</th></tr>\n";
+	
+	struct dirent* entry;
+	while ((entry = readdir(dir)) != NULL) {
+		std::string filename = entry->d_name;
+		std::string fullPath = fullDirPath;
+		if (fullPath[fullDirPath.size() - 1] != '/') fullPath += "/";
+		fullPath += filename;
+		
+		// Get file information
+		struct stat fileStat;
+		if (stat(fullPath.c_str(), &fileStat) == 0) 
+			htmlContent << generateFileEntry(filename, fileStat);
+		else // If stat fails, still show the entry but with unknown info
+			htmlContent << "<tr>"
+						<< "<td><a href=\"" + filename + "\">" + filename + "</a></td>"
+						<< "<td>Unknown</td>"
+						<< "<td>-</td>"
+						<< "</tr>\n";
+	
+	}
+	
+	closedir(dir);
+
+	// footer
+	htmlContent << "</table>\n<footer>" + std::string(__WEBSERV_VERSION__) + "</footer>\n</body>\n</html>\n";
+	
+	// Create response
+	std::string body = htmlContent.str();
+	Response resp(200, body);
+	resp.setContentType("text/html");
+	resp.setContentLength(body.length());
+	
+	_lggr.debug("Generated directory listing (" + su::to_string(body.length()) + " bytes)");
+	return resp;
 }

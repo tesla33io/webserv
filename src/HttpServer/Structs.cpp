@@ -161,15 +161,46 @@ Response Response::badRequest() {
 	return resp;
 }
 
+Response Response::forbidden() {
+	Response resp(403);
+	resp.setContentType("text/html");
+	return resp;
+}
+
 Response Response::methodNotAllowed() {
 	Response resp(405);
 	resp.setContentType("text/html");
 	return resp;
 }
 
+Response Response::notImplemented() {
+	Response resp(501);
+	resp.setContentType("text/html");
+	return resp;
+}
+
 // OVErLOAD
+
+Response Response::badRequest(Connection *conn) {
+	Response resp(400, conn);
+	resp.setContentType("text/html");
+	return resp;
+}
+
+Response Response::forbidden(Connection *conn) {
+	Response resp(403, conn);
+	resp.setContentType("text/html");
+	return resp;
+}
+
 Response Response::notFound(Connection *conn) {
 	Response resp(404, conn);
+	resp.setContentType("text/html");
+	return resp;
+}
+
+Response Response::methodNotAllowed(Connection *conn) {
+	Response resp(405, conn);
 	resp.setContentType("text/html");
 	return resp;
 }
@@ -180,14 +211,8 @@ Response Response::internalServerError(Connection *conn) {
 	return resp;
 }
 
-Response Response::badRequest(Connection *conn) {
-	Response resp(400, conn);
-	resp.setContentType("text/html");
-	return resp;
-}
-
-Response Response::methodNotAllowed(Connection *conn) {
-	Response resp(405, conn);
+Response Response::notImplemented(Connection *conn) {
+	Response resp(501, conn);
 	resp.setContentType("text/html");
 	return resp;
 }
@@ -268,10 +293,8 @@ void Response::initFromCustomErrorPage(uint16_t code, Connection *conn) {
 void Response::initFromStatusCode(uint16_t code) {
 	reason_phrase = getReasonPhrase(code);
 	if (code >= 400) {
-		// TODO: check conf for error pages
-		// Using built-in error pages
 		if (body.empty()) {
-			tmplogg_.logWithPrefix(Logger::DEBUG, "Response", "No custom error page for" + su::to_string(code) + " could be used or exist. Generating the default page now.");
+			tmplogg_.logWithPrefix(Logger::DEBUG, "Response", "No custom error page for " + su::to_string(code) + " could be used or exist. Generating the default page now.");
 			std::ostringstream html;
 			html << "<!DOCTYPE html>\n"
 			     << "<html>\n"

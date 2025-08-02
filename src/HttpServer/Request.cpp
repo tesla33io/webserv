@@ -72,6 +72,34 @@ void WebServer::processRequest(Connection *conn) {
 	_lggr.debug("FD " + su::to_string(req.clfd) + " ClientRequest {" + req.toString() + "}");
 	std::string response;
 
+
+	// initialize the correct locConfig // default "/"
+	LocConfig *match = findBestMatch(req.uri, conn->servConfig->locations);
+	if (!match) {
+		_lggr.error("[Resp] No matched location for : " + req.uri);
+		prepareResponse(conn, Response::internalServerError(conn));
+		return;
+	}
+	conn->locConfig = match; // Set location context
+	_lggr.error("[Resp] Matched location : " + match->path);
+
+
+	// check if RETURN directive in the matched location
+	if (conn->locConfig->hasReturn()) {
+		_lggr.error("[Resp] The matched location has a return directive.");
+		prepareResponse(conn, handleReturnDirective(req, conn));
+		return;
+	}
+
+
+	// Is the method allowed?
+	if (!conn->locConfig->hasMethod(req.method)) {
+		_lggr.warn("Method " + req.method + " is not allowed for location " + 
+				conn->locConfig->path);
+		prepareResponse(conn, Response::methodNotAllowed(conn));
+		return ;
+	}
+
 	if (req.CGI) {
 		if (!CGIUtils::handle_CGI_request(req, conn->fd)) {
 			_lggr.error("Handling the CGI request failed.");
@@ -82,11 +110,11 @@ void WebServer::processRequest(Connection *conn) {
 	} else {
 		if (req.method == "GET") {
 			// TODO: do some check if handleGetRequest did not encounter any issues
-			prepareResponse(conn, handleGetRequest(req));
+			prepareResponse(conn, handleGetRequest(req, conn));
 		} else if (req.method == "POST" || req.method == "DELETE_") {
 			prepareResponse(conn, Response(501, conn));
 		} else {
-			prepareResponse(conn, Response::methodNotAllowed(conn));
+			prepareResponse(conn, Response::notImplemented(conn)); // ? maybe internal error ?
 		}
 	}
 }
