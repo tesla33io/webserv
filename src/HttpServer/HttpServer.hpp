@@ -399,18 +399,10 @@ class WebServer {
 	/// \returns Response object containing the requested resource or error.
 	Response handleGetRequest(ClientRequest &req, Connection *conn);
 
-
 	/// Handles Return directives.
 	/// \param req The GET request to process.
 	/// \returns Response object containing the requested resource or error.
 	Response handleReturnDirective(ClientRequest &req, Connection* conn);
-
-
-	/// Determines appropriate Content-Type header based on file extension.
-	/// \param path The file path to analyze.
-	/// \returns Content-Type string (e.g., "text/html", "text/plain").
-	std::string detectContentType(const std::string &path);
-
 
 	// Request validation methods - allowed methods and maxbodysize
 	bool validateBodySize(Connection* conn, size_t bytes); // // Helene TODO
@@ -462,8 +454,6 @@ LocConfig *findBestMatch(const std::string &uri, std::vector<LocConfig> &locatio
 /// \param path The filesystem path to check.
 /// \returns True if path is a directory, false otherwise.
 // bool isDirectory(const char *path);
-
-
 /** deprecated **/
 /// Checks if the given path refers to a regular file.
 /// \param path The filesystem path to check.
@@ -481,6 +471,19 @@ std::string describeEpollEvents(uint32_t ev);
 /// \param start_pos The position to start searching from.
 /// \returns Position of CRLF sequence, or string::npos if not found.
 size_t findCRLF(const std::string &buffer, size_t start_pos);
+
+
+/// Determines appropriate Content-Type header based on file extension.
+/// \param path The file path to analyze.
+/// \returns Content-Type string. Default : "application/octet-stream" (for arbitrary binary data)
+std::string detectContentType(const std::string &path);
+
+
+/// Determinesthe extension from a file path (no . allowed in the path).
+/// \param path The file path to analyze.
+/// \returns extension string (.html, .png, ...). Not found: returns "".
+std::string getExtension(const std::string& path);
+
 
 
 enum FileResult {
