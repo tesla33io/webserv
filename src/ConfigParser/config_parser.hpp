@@ -89,6 +89,7 @@ class ConfigParser {
 		// utils for the struct
 		void handleListen(const ConfigNode& node, ServerConfig& server);
 		void handleRoot(const ConfigNode &node, LocConfig &location);
+		void handleIndex(const ConfigNode &node, LocConfig &location);
 		void handleErrorPage(const ConfigNode& node, ServerConfig& server);
 		void handleBodySize(const ConfigNode& node, ServerConfig& server);
 		void handleLocationBlock(const ConfigNode &locNode, LocConfig &location);
@@ -123,11 +124,13 @@ class ConfigParser {
 		void initValidDirectives();
 		std::vector<std::string> makeVector(const std::string &a, const std::string &b) const;
 		static bool isValidIPv4(const std::string &ip);
-		static bool isHttp(const std::string& url) ;
-		static bool hasQuotes(const std::string& str) ;
-		static bool hasDotDot(const std::string& str) ;
-		static bool unknownCode(uint16_t code) ;
-		static bool hasExtension(const std::string& filepath) ;
+		static bool isValidUri(const std::string& str);
+		static bool isHttp(const std::string& url);
+		static bool hasQuotes(const std::string& str);
+		static bool hasDot(const std::string& str);
+		static bool hasDotDot(const std::string& str);
+		static bool unknownCode(uint16_t code);
+		static bool hasExtension(const std::string& filepath);
 
 
 

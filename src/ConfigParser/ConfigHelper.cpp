@@ -52,6 +52,23 @@ bool ConfigParser::isValidIPv4(const std::string& ip) {
 	return (count == 4);
 }
 
+// location path , return target uri, upload_path, root, alias
+bool ConfigParser::isValidUri(const std::string& str) {
+	if (str[0] == '/') {
+		// Basic URI validation - no spaces, valid characters
+		for (size_t i = 0; i < str.length(); ++i) {
+			char c = str[i];
+			// Allow alphanumeric, common URI characters
+			if (!std::isalnum(c) && c != '/' && c != '-' && c != '_' && 
+				c != '?' && c != '&' && c != '=' && c != '#' && 
+				c != '%' && c != ':' && c != '@' && c != '~') {
+				return false;
+			}
+		}
+		return true;
+	}
+	return false;
+}
 
 // check if string contains "quotes"
 bool ConfigParser::hasQuotes(const std::string& str) {
@@ -63,11 +80,20 @@ bool ConfigParser::hasDotDot(const std::string& str) {
 	return str.find("..") != std::string::npos;
 }
 
+// check if string contains "."
+bool ConfigParser::hasDot(const std::string& str) {
+	return str.find(".") != std::string::npos;
+}
+
 // check if URL is HTTP/HTTPS
 bool ConfigParser::isHttp(const std::string& url) {
 	if (url.empty()) 
 		return false;
-	return su::starts_with(url, "http://") || su::starts_with(url, "https://");
+	if (su::starts_with(url, "http://") && url.size() > 7) 
+		return true;
+	if (su::starts_with(url, "https://") && url.size() > 8) 
+		return true;
+	return false;
 }
 
 
@@ -79,7 +105,7 @@ const int http_status_codes[] = {
 	500, 501, 502, 503, 504, 505, 506, 507, 508, 510, 511
 };
 
-// Helper function to check if file ends with .html
+// Helper function to check if code is in the list
 bool ConfigParser::unknownCode(uint16_t code) {
 	size_t count = sizeof(http_status_codes) / sizeof(http_status_codes[0]);
 	for (size_t i = 0; i < count; ++i) {

@@ -137,7 +137,8 @@ bool ConfigParser::validateReturn(const ConfigNode& node)  {
 		 + " on line " + su::to_string(node.line_));
 		return false;
 	}
-	if (!su::starts_with(node.args_[1], "/") && !isHttp(node.args_[1]) ) {
+	// second arg : uri or url
+	if (!isValidUri(node.args_[1]) && !isHttp(node.args_[1]) ) {
 		logg_.logWithPrefix(Logger::WARNING, "Configuration file", "redirection URI or URL "
 			 + node.args_[1] + " is invalid on line "+ su::to_string(node.line_));
 		return false;
@@ -196,45 +197,30 @@ bool ConfigParser::validateMaxBody(const ConfigNode& node) {
 // duplicates path not allowed
 bool ConfigParser::validateLocation(const ConfigNode& node) {
 	const std::string& path = node.args_[0];
-
-	if (path.empty()
-		|| !su::starts_with(path, "/") 
-		|| !su::ends_with(path, "/")
-		|| hasDotDot(path)
-		|| hasQuotes(path))	{
+	if (path.empty() || !isValidUri(path)  || !su::ends_with(path, "/")) {
 		logg_.logWithPrefix(Logger::WARNING, "Configuration file", 
 			"Invalid location path: " + path + " on line " + su::to_string(node.line_));
 		return false;
 	}
-
-	
-
 	return true;	
 }
 
 
 // root: starts with /
 bool ConfigParser::validateRoot(const ConfigNode& node) {
-	if (node.args_[0].empty()
-		|| !su::starts_with(node.args_[0], "/")
-		|| hasDotDot(node.args_[0])
-		|| hasQuotes(node.args_[0])	) {
+	if (node.args_[0].empty() || !isValidUri(node.args_[0])) {
  		logg_.logWithPrefix(Logger::WARNING, "Configuration file", 
-			"Invalid root : " + node.args_[0] + "on line "+ su::to_string(node.line_));
+			"Invalid root : " + node.args_[0] + " on line "+ su::to_string(node.line_));
 		return false;
 	}
 	return true;	
 }
 
-// upload path : same as root, starts with /, not end with / // to double check
+// upload path : starts with /, // to double check
 bool ConfigParser::validateUploadPath(const ConfigNode& node) {
-	if (node.args_[0].empty()
-		|| !su::starts_with(node.args_[0], "/")
-		|| su::ends_with(node.args_[0], "/")
-		|| hasDotDot(node.args_[0])
-		|| hasQuotes(node.args_[0])	) {
+	if (node.args_[0].empty() || !isValidUri(node.args_[0])) {
  		logg_.logWithPrefix(Logger::WARNING, "Configuration file", 
-			"Invalid upload path : " + node.args_[0] + "on line "+ su::to_string(node.line_));
+			"Invalid upload path : " + node.args_[0] + " on line "+ su::to_string(node.line_));
 		return false;
 	}
 	return true;	
@@ -243,13 +229,9 @@ bool ConfigParser::validateUploadPath(const ConfigNode& node) {
 
 // alias must be valid uri - starts and ends with /
 bool ConfigParser::validateAlias(const ConfigNode& node) {
-	if (node.args_[0].empty() 
-		|| !su::starts_with(node.args_[0], "/") 
-		|| !su::ends_with(node.args_[0], "/")
-		|| hasDotDot(node.args_[0])
-		|| hasQuotes(node.args_[0]) ) {
+	if (node.args_[0].empty() || !isValidUri(node.args_[0])) {
  		logg_.logWithPrefix(Logger::WARNING, "Configuration file", 
-			"Invalid alias path : " + node.args_[0] + "on line "+ su::to_string(node.line_));
+			"Invalid alias path : " + node.args_[0] + " on line "+ su::to_string(node.line_));
 		return false;
 	}
 	return true;	
@@ -259,12 +241,11 @@ bool ConfigParser::validateAlias(const ConfigNode& node) {
 bool ConfigParser::validateIndex(const ConfigNode& node) {
 
 	if (node.args_[0].empty() 
-		|| su::starts_with(node.args_[0], "/") 
-		|| !su::ends_with(node.args_[0], ".html")
+		|| !hasExtension(node.args_[0])		
 		|| hasDotDot(node.args_[0])
 		|| hasQuotes(node.args_[0]) ) {
  		logg_.logWithPrefix(Logger::WARNING, "Configuration file", 
-			"Invalid index : " + node.args_[0] + "on line "+ su::to_string(node.line_));
+			"Invalid index : " + node.args_[0] + " on line "+ su::to_string(node.line_));
 		return false;
 	}
 	return true;	

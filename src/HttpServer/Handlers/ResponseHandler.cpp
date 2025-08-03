@@ -160,57 +160,45 @@ std::string getExtension(const std::string& path) {
 }
 
 
-Response WebServer::handleReturnDirective(ClientRequest &req, Connection* conn) {
-	(void)req;
-	_lggr.debug("handleReturnDirective " );
-	return Response::notImplemented(conn);
+Response WebServer::handleReturnDirective(Connection* conn) {
 
+	uint16_t code = conn->locConfig->return_code;
+	std::string target = conn->locConfig->return_target;
+	_lggr.debug("Handling return directive '" + su::to_string(code) + "' to " + target);
+	if (code == 0 || target.empty()) {
+		_lggr.error("Problem with the return directive - not properly configured");
+		return Response::internalServerError(conn);
+	}
+	
+	Response resp(code);
+	resp.setHeader("Location", target);
+	std::ostringstream html;
+	html << "<!DOCTYPE html>\n"
+		 << "<html>\n"
+		 << "<head>\n"
+		 << "<title>Redirecting...</title>\n"
+		 << "</head>\n"
+		 << "<body>\n"
+		 << "<h1>Redirecting</h1>\n"
+		 << "<p>The document has moved <a href=\"#\">here</a>.</p>\n"
+		 << "</body>\n"
+		 << "</html>\n";
+	resp.body = html.str();
+	resp.setContentType("text/html");
+	resp.setContentLength(resp.body.length());
+	_lggr.debug("Generated redirect response");
+	
+	return resp;
 }
+
+
+
 
 // struct dirent {
 //     ino_t          d_ino;       // Inode number
 //     char           d_name[256]; // Name of the entry (file or subdirectory)
 //     unsigned char  d_type;      // Type of entry (optional, not always available)
 // };
-
-
-// Helper function to generate file entry with stat info
-std::string generateFileEntry(const std::string& filename, const struct stat& fileStat) {
-	std::string entry = "<tr>";
-	
-	// Name column with link
-	entry += "<td><a href=\"" + filename;
-	if (S_ISDIR(fileStat.st_mode)) {
-		entry += "/";  // Add slash for directories
-		entry += "\" class=\"dir\">";
-	} else {
-		entry += "\" class=\"file\">";
-	}
-	entry += filename + "</a></td>";
-	
-	// Type column
-	entry += "<td>";
-	if (S_ISDIR(fileStat.st_mode)) {
-		entry += "<span class=\"dir\"> Directory</span>";
-	} else if (S_ISREG(fileStat.st_mode)) {
-		entry += "<span class=\"file\"> File</span>";
-	} else {
-		entry += " Other";
-	}
-	entry += "</td>";
-	
-	// Size column
-	entry += "<td class=\"size\">";
-	if (S_ISREG(fileStat.st_mode)) 
-		entry += su::to_string(fileStat.st_size);
-	else 
-		entry += "-";
-	entry += "</td>";
-	entry += "</tr>\n";
-	return entry;
-}
-
-
 Response WebServer::generateDirectoryListing(Connection* conn, const std::string &fullDirPath) {
 	_lggr.debug("Generating directory listing for: " + fullDirPath);
 	
@@ -226,7 +214,7 @@ Response WebServer::generateDirectoryListing(Connection* conn, const std::string
 	htmlContent << "<!DOCTYPE html>\n"
 				<< "<html>\n"
 				<< "<head>\n"
-				<< "<title>Directory Listing - " + fullDirPath + "</title>\n"
+				<< "<title>Directory Listing - " << fullDirPath << "</title>\n"
 				<< "<style>\n"
 				<< "@import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap');\n"
 				<< "body { font-family: 'Space Mono', monospace; background-color: #f8f9fa; margin: 0; padding: 40px; }\n"
@@ -245,7 +233,7 @@ Response WebServer::generateDirectoryListing(Connection* conn, const std::string
 				<< "footer { color: #6c757d; text-align: center; margin-top: 40px; font-size: 0.9em; }\n"
 				<< "</style>\n</head>\n<body>\n"
 				<< "<h1>Directory Listing</h1>\n"
-				<< "<div class=\"path\">" + fullDirPath + "</div>\n"
+				<< "<div class=\"path\">" << fullDirPath << "</div>\n"
 				<< "<table>\n"
 				<< "<tr><th>Name</th><th>Type</th><th>Size</th></tr>\n";
 	
@@ -261,16 +249,46 @@ Response WebServer::generateDirectoryListing(Connection* conn, const std::string
 		
 		// Get file information
 		struct stat fileStat;
-		if (stat(fullPath.c_str(), &fileStat) == 0) 
-			htmlContent << generateFileEntry(filename, fileStat);
-		else // If stat fails, still show the entry but with unknown info
+		if (stat(fullPath.c_str(), &fileStat) == 0) {
 			htmlContent << "<tr>"
-						<< "<td><a href=\"" + filename + "\">" + filename + "</a></td>"
+						<< "<td><a href=\"" << filename; // Name column with link
+			if (S_ISDIR(fileStat.st_mode)) {
+				htmlContent << "/"; // Add slash for directories
+				htmlContent << "\" class=\"dir\">";
+			} else {
+				htmlContent << "\" class=\"file\">";
+			}
+			htmlContent << filename << "</a></td>"
+						<< "<td>"; // Type column
+			if (S_ISDIR(fileStat.st_mode)) {
+				htmlContent << "<span class=\"dir\">Directory</span>";
+			} else if (S_ISREG(fileStat.st_mode)) {
+				htmlContent << "<span class=\"file\">File</span>";
+			} else {
+				htmlContent << "Other";
+			}
+			htmlContent << "</td>"
+						<< "<td class=\"size\">"; // Size column
+			if (S_ISREG(fileStat.st_mode)) {
+				htmlContent << su::to_string(fileStat.st_size);
+			} else {
+				htmlContent << "-";
+			}
+			htmlContent << "</td>"
+						<< "</tr>\n";
+		}
+		else { // If stat fails, still show the entry but with unknown info
+			htmlContent << "<tr>"
+						<< "<td><a href=\"" << filename << "\">" << filename << "</a></td>"
 						<< "<td>Unknown</td>"
 						<< "<td>-</td>"
 						<< "</tr>\n";
-	
+		}
 	}
+	
+	htmlContent << "</table>\n"
+				<< "<footer>Generated by WebServer</footer>\n"
+				<< "</body>\n</html>";
 	
 	closedir(dir);
 

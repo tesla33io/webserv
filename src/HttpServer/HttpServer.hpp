@@ -402,7 +402,7 @@ class WebServer {
 	/// Handles Return directives.
 	/// \param req The GET request to process.
 	/// \returns Response object containing the requested resource or error.
-	Response handleReturnDirective(ClientRequest &req, Connection* conn);
+	Response handleReturnDirective(Connection* conn);
 
 	// Request validation methods - allowed methods and maxbodysize
 	bool validateBodySize(Connection* conn, size_t bytes); // // Helene TODO
