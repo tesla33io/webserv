@@ -5,6 +5,7 @@ locust/
 webserv
 .cache/
 www/uploads
+Response
 
 # Prerequisites
 *.d

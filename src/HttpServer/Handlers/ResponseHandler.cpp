@@ -58,17 +58,6 @@ Response WebServer::handleGetRequest(ClientRequest &req, Connection *conn) {
 	// Build file path
 	std::string fullPath = buildFullPath(req.uri, conn->locConfig);
 
-	// if (isDirectory(fullPath.c_str())) {
-	// 	_lggr.debug("Directory request : " + fullPath);
-	// 	return handleDirectoryRequest(conn, fullPath);
-	// }
-	// else if (isRegularFile(fullPath.c_str())) {
-	// 	_lggr.error("File request: " + fullPath);
-	// 	return handleFileRequest(conn, fullPath);
-	// }
-	// _lggr.error("Path not found: " + fullPath);
-	// return Response::notFound(conn);
-
 	if (checkFileType(fullPath) == NOT_FOUND_404){
 		_lggr.debug("Could not open : " + fullPath);
 		return Response::notFound(conn);
@@ -94,7 +83,7 @@ Response WebServer::handleGetRequest(ClientRequest &req, Connection *conn) {
 // Serving the index file or listing if possible
 Response WebServer::handleDirectoryRequest(Connection* conn, const std::string& fullDirPath) {
 	_lggr.debug("Handling directory request: " + fullDirPath);
-	
+		
 	// Try to serve index file 
 	if (!conn->locConfig->index.empty()) {
 		std::string fullIndexPath = fullDirPath + conn->locConfig->index;
@@ -128,7 +117,7 @@ Response WebServer::handleFileRequest(Connection* conn, const std::string& fullF
 	}
 	// Create response
 	Response resp(200, content);
-	resp.setContentType("text/html"); // TODO detectContentType? 
+	resp.setContentType(detectContentType(fullFilePath)); 
 	resp.setContentLength(content.length()); 
 	_lggr.debug("Successfully serving file: " + fullFilePath + 
 				" (" + su::to_string(content.length()) + " bytes)");
@@ -136,14 +125,38 @@ Response WebServer::handleFileRequest(Connection* conn, const std::string& fullF
 }
 
 
-std::string WebServer::detectContentType(const std::string &path) {
-	std::string ft_html = ".html";
-	if (path.length() > ft_html.length() &&
-		std::equal(ft_html.rbegin(), ft_html.rend(), path.rbegin())) {
-		return "text/html";
-	} else {
-		return "text/plain";
-	}
+std::string detectContentType(const std::string &path) {
+
+	std::map<std::string, std::string> cTypes ;
+	cTypes[".css"]  = "text/css";
+	cTypes[".js"]   = "application/javascript";
+	cTypes[".html"] = "text/html";
+	cTypes[".htm"]  = "text/html";
+	cTypes[".css"]  = "text/css";
+	cTypes[".js"]   = "application/javascript";
+	cTypes[".json"] = "application/json";
+	cTypes[".png"]  = "image/png";
+	cTypes[".jpg"]  = "image/jpeg";
+	cTypes[".jpeg"] = "image/jpeg";
+	cTypes[".gif"]  = "image/gif";
+	cTypes[".svg"]  = "image/svg+xml";
+	cTypes[".ico"]  = "image/x-icon";
+	cTypes[".txt"]  = "text/plain";
+	cTypes[".pdf"]  = "application/pdf";
+	cTypes[".zip"]  = "application/zip";
+
+	std::string ext = getExtension(path);
+	std::map<std::string, std::string>::const_iterator it = cTypes.find(ext); 
+	if (it != cTypes.end()) 
+		return it->second;
+	return "application/octet-stream"; // default binary stream
+}
+
+std::string getExtension(const std::string& path) {
+	std::size_t dot_pos = path.find('.');
+	if (dot_pos != std::string::npos)
+		return path.substr(dot_pos);
+	return "";
 }
 
 
@@ -178,11 +191,11 @@ std::string generateFileEntry(const std::string& filename, const struct stat& fi
 	// Type column
 	entry += "<td>";
 	if (S_ISDIR(fileStat.st_mode)) {
-		entry += "<span class=\"dir\">📁 Directory</span>";
+		entry += "<span class=\"dir\"> Directory</span>";
 	} else if (S_ISREG(fileStat.st_mode)) {
-		entry += "<span class=\"file\">📄 File</span>";
+		entry += "<span class=\"file\"> File</span>";
 	} else {
-		entry += "❓ Other";
+		entry += " Other";
 	}
 	entry += "</td>";
 	
@@ -242,6 +255,9 @@ Response WebServer::generateDirectoryListing(Connection* conn, const std::string
 		std::string fullPath = fullDirPath;
 		if (fullPath[fullDirPath.size() - 1] != '/') fullPath += "/";
 		fullPath += filename;
+
+		if (filename == ".")
+			continue;
 		
 		// Get file information
 		struct stat fileStat;

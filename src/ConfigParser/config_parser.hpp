@@ -227,10 +227,15 @@ class ServerConfig {
 
 	// GETTERS
 	const std::string& getHost() const { return host; }
+
 	int getPort() const { return port; }
+
 	const std::map<uint16_t, std::string>& getErrorPages() const { return error_pages; } ;
+
 	size_t getMaxBodySize() const { return client_max_body_size; }
+
 	const std::string& getRootPrefix() const { return root_prefix; } ;
+	
 	std::string getErrorPage(uint16_t status) const {
 		std::map<uint16_t, std::string>::const_iterator it = error_pages.find(status);
 		return (it != error_pages.end()) ? it->second : "";

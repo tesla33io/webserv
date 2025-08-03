@@ -102,7 +102,6 @@ Response::Response(uint16_t code, const std::string &response_body)
       status_code(code),
       body(response_body) {
 	initFromStatusCode(code);
-	setContentLength(body.length());
 }
 
 Response::Response(uint16_t code, Connection* conn)
@@ -143,79 +142,33 @@ Response Response::continue_() { return Response(100); }
 
 Response Response::ok(const std::string &body) { return Response(200, body); }
 
-Response Response::notFound() {
-	Response resp(404);
-	resp.setContentType("text/html");
-	return resp;
-}
+Response Response::badRequest() { return Response(400); }
 
-Response Response::internalServerError() {
-	Response resp(500);
-	resp.setContentType("text/html");
-	return resp;
-}
+Response Response::forbidden() { return Response(403); }
 
-Response Response::badRequest() {
-	Response resp(400);
-	resp.setContentType("text/html");
-	return resp;
-}
+Response Response::notFound() { return Response(404); }
 
-Response Response::forbidden() {
-	Response resp(403);
-	resp.setContentType("text/html");
-	return resp;
-}
+Response Response::methodNotAllowed() { return Response(405); }
 
-Response Response::methodNotAllowed() {
-	Response resp(405);
-	resp.setContentType("text/html");
-	return resp;
-}
+Response Response::internalServerError() { return Response(500); }
 
-Response Response::notImplemented() {
-	Response resp(501);
-	resp.setContentType("text/html");
-	return resp;
-}
+Response Response::notImplemented() { return Response(501); }
+
 
 // OVErLOAD
 
-Response Response::badRequest(Connection *conn) {
-	Response resp(400, conn);
-	resp.setContentType("text/html");
-	return resp;
-}
+Response Response::badRequest(Connection *conn) { return Response(400, conn); }
 
-Response Response::forbidden(Connection *conn) {
-	Response resp(403, conn);
-	resp.setContentType("text/html");
-	return resp;
-}
+Response Response::forbidden(Connection *conn) { return Response(403, conn); }
 
-Response Response::notFound(Connection *conn) {
-	Response resp(404, conn);
-	resp.setContentType("text/html");
-	return resp;
-}
+Response Response::notFound(Connection *conn) { return Response(404, conn); }
 
-Response Response::methodNotAllowed(Connection *conn) {
-	Response resp(405, conn);
-	resp.setContentType("text/html");
-	return resp;
-}
+Response Response::methodNotAllowed(Connection *conn) { return Response(405, conn); }
 
-Response Response::internalServerError(Connection *conn) {
-	Response resp(500, conn);
-	resp.setContentType("text/html");
-	return resp;
-}
+Response Response::internalServerError(Connection *conn) { return Response(500, conn); }
 
-Response Response::notImplemented(Connection *conn) {
-	Response resp(501, conn);
-	resp.setContentType("text/html");
-	return resp;
-}
+Response Response::notImplemented(Connection *conn) { return Response(501, conn); }
+
 
 std::string Response::getReasonPhrase(uint16_t code) const {
 	switch (code) {
@@ -278,12 +231,11 @@ void Response::initFromCustomErrorPage(uint16_t code, Connection *conn) {
 		return;
 	}
 
-	std::ostringstream html;
-	html << errorFile.rdbuf();
-	body = html.str();
+	std::ostringstream errorPage;
+	errorPage << errorFile.rdbuf();
+	body = errorPage.str();
 	setContentLength(body.length());
-	// HELENE TODO: check for html valid content? - set other values for the response attri?
-	setContentType("text/html"); // ?
+	setContentType(detectContentType(fullPath));
 	errorFile.close();
 	tmplogg_.logWithPrefix(Logger::DEBUG, "Response", "Custom error page " + 
 		  su::to_string(code) + " has been loaded.");
@@ -328,6 +280,8 @@ void Response::initFromStatusCode(uint16_t code) {
 			     << "</html>\n";
 			body = html.str();
 			setContentLength(body.length());
+			setContentType("text/html");
+			 tmplogg_.logWithPrefix(Logger::DEBUG, "Response", "Content-Type set to: " + headers["Content-Type"]);
 		}
 	}
 }
