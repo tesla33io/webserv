@@ -93,10 +93,7 @@ Default: None
 Sets the root directory for requests.
 root /var/www;
 root /var/www/html;
-Rules:
-Must start with /
-Cannot end with /
-Cannot contain . or quotes
+Rules: Must start with /, Cannot contain . or quotes
 
 # allowed_methods
 Syntax: allowed_methods method1 [method2 method3];
@@ -106,6 +103,7 @@ allowed_methods GET;
 allowed_methods GET POST;
 allowed_methods GET POST DELETE;
 Valid methods: GET, POST, DELETE
+Directive not present -> all methods are allowed
 
 # upload_path
 Syntax: upload_path path;
@@ -169,25 +167,21 @@ location /private {
 }
 
 # return
-Syntax: return code [URI|URL];
+Syntax: return code [URI|URL] or return [URL];
 Context: location
-Returns a specific HTTP status code and optionally redirects. 
+Returns a specific HTTP status code and redirects. 
 location /old-path {
     return 301 /new-path;           # Permanent redirect
 }
 location /temp {
     return 302 https://example.com; # Temporary redirect
 }
-location /forbidden {
-    return 403;                     # Access denied
-}
-location /gone {
-    return 410;                     # Gone
+location /temp {
+    return https://example.com; # Temporary redirect - code set to 302
 }
 Rules:
-Status codes: 100-599
-Redirect codes (300-399) require a URL/URI
-Other codes must NOT have a URL/URI
+Status codes: 300, 301, 302, 303, 307, 308
+
 
 # alias
 Syntax: alias path;

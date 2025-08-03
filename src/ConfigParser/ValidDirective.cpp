@@ -123,38 +123,27 @@ bool ConfigParser::validateListen(const ConfigNode& node) {
 	return true;
 }
 
-// RETURN : 100 - 599. If redirection, second argument needed
+// RETURN : 300 - 399. If no code-> one arg (URL), otherwise code uri/url
 bool ConfigParser::validateReturn(const ConfigNode& node)  {
+	// first args is URL , no second arg = ok (will be code 302), otherwise pb
+	if (isHttp(node.args_[0]) && node.args_.size() == 1) {
+		return true;
+	}
 	std::istringstream ss(node.args_[0]);
 	uint16_t code;
-	if (!(ss >> code) || ss.fail() || !ss.eof() || code < 100 || code > 599 || unknownCode(code)) {
-		logg_.logWithPrefix(Logger::WARNING, "Configuration file", "Invalid return status code: " + node.args_[0]
+	// first arg: code
+	if (!(ss >> code) || ss.fail() || !ss.eof() || code < 300 || code > 399 || unknownCode(code) || node.args_.size() != 2) {
+		logg_.logWithPrefix(Logger::WARNING, "Configuration file", "Invalid return status code or URL: " + node.args_[0]
 		 + " on line " + su::to_string(node.line_));
 		return false;
 	}
-	if (code >= 300 && code < 400 ) { // redirections
-		if (node.args_.size() != 2) {
-			logg_.logWithPrefix(Logger::WARNING, "Configuration file", "return code " + su::to_string(code) 
-				+ " must include a URI or URL on line "+ su::to_string(node.line_));
-			return false;
-		}
-		if (!su::starts_with(node.args_[1], "/") && !isHttp(node.args_[1]) ) {
-			logg_.logWithPrefix(Logger::WARNING, "Configuration file", "redirection URI or URL "
-				 + node.args_[1] + " is invalid on line "+ su::to_string(node.line_));
-			return false;
-		}
-	} 
-	else {
-		if (node.args_.size() != 1) {
-			logg_.logWithPrefix(Logger::WARNING, "Configuration file", "return code " + su::to_string(code) 
-			+ " must NOT include a URI or URL on line "+ su::to_string(node.line_));
-			return false;
-		}
+	if (!su::starts_with(node.args_[1], "/") && !isHttp(node.args_[1]) ) {
+		logg_.logWithPrefix(Logger::WARNING, "Configuration file", "redirection URI or URL "
+			 + node.args_[1] + " is invalid on line "+ su::to_string(node.line_));
+		return false;
 	}
 	return true;
 }
-
-
 
 // ERROR: 400 - 599, last arg is file
 bool ConfigParser::validateError(const ConfigNode& node)  {
@@ -224,11 +213,10 @@ bool ConfigParser::validateLocation(const ConfigNode& node) {
 }
 
 
-// root: starts with /, not end with /
+// root: starts with /
 bool ConfigParser::validateRoot(const ConfigNode& node) {
 	if (node.args_[0].empty()
 		|| !su::starts_with(node.args_[0], "/")
-		|| su::ends_with(node.args_[0], "/")
 		|| hasDotDot(node.args_[0])
 		|| hasQuotes(node.args_[0])	) {
  		logg_.logWithPrefix(Logger::WARNING, "Configuration file", 
