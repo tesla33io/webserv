@@ -152,7 +152,7 @@ void ConfigParser::handleLocationBlock(const ConfigNode &locNode, LocConfig &loc
 		if (node->name_ == "allowed_methods") 
 			location.allowed_methods = node->args_;
 		else if (node->name_ == "root") 
-			location.root = node->args_[0];
+			handleRoot(*node, location);
 		else if (node->name_ == "alias") 
 			location.alias = node->args_[0];
 		else if (node->name_ == "autoindex") 
@@ -170,14 +170,17 @@ void ConfigParser::handleLocationBlock(const ConfigNode &locNode, LocConfig &loc
 
 // Return directive
 void ConfigParser::handleReturn(const ConfigNode &node, LocConfig &location) {
-	std::istringstream ss(node.args_[0]);
-	unsigned int code;
-	ss >> code;
-	location.return_code = code;
-	if (node.args_.size() == 2)
+	if (node.args_.size() == 1) {
+		location.return_code = 302;
+		location.return_target = node.args_[0];
+	}
+	else {
+		std::istringstream ss(node.args_[0]);
+		unsigned int code;
+		ss >> code;
+		location.return_code = code;
 		location.return_target = node.args_[1];
-	else
-		location.return_target.clear();
+	}
 }
 
 // CGI directive
@@ -188,6 +191,15 @@ void ConfigParser::handleCGI(const ConfigNode &node, LocConfig &location) {
 			}
 	}
 }
+
+// ROOT
+void ConfigParser::handleRoot(const ConfigNode &node, LocConfig &location) {
+	if (su::ends_with(node.args_[0], "/"))
+		location.root = node.args_[0].substr(0, node.args_[0].length() - 1);
+	else 
+		location.root = node.args_[0];
+}
+
 
 
 ////////////////////

@@ -88,6 +88,7 @@ class ConfigParser {
 
 		// utils for the struct
 		void handleListen(const ConfigNode& node, ServerConfig& server);
+		void handleRoot(const ConfigNode &node, LocConfig &location);
 		void handleErrorPage(const ConfigNode& node, ServerConfig& server);
 		void handleBodySize(const ConfigNode& node, ServerConfig& server);
 		void handleLocationBlock(const ConfigNode &locNode, LocConfig &location);
