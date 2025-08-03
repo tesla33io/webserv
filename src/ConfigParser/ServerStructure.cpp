@@ -157,8 +157,8 @@ void ConfigParser::handleLocationBlock(const ConfigNode &locNode, LocConfig &loc
 			location.alias = node->args_[0];
 		else if (node->name_ == "autoindex") 
 			location.autoindex = (node->args_[0] == "on");
-		else if (node->name_ == "index") 
-			location.index = node->args_[0];
+		else if (node->name_ == "index")
+			handleIndex(*node, location);
 		else if (node->name_ == "upload_path") 
 			location.upload_path = node->args_[0];
 		else if (node->name_ == "return") 
@@ -200,7 +200,13 @@ void ConfigParser::handleRoot(const ConfigNode &node, LocConfig &location) {
 		location.root = node.args_[0];
 }
 
-
+// Index
+void ConfigParser::handleIndex(const ConfigNode &node, LocConfig &location) {
+	if (su::starts_with(node.args_[0], "/"))
+		location.index = node.args_[0].substr(1, node.args_[0].length());
+	else 
+		location.index = node.args_[0];
+}
 
 ////////////////////
 // POST CHECKS AND VALIDATION AND MODIFICATION

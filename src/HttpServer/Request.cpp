@@ -87,7 +87,7 @@ void WebServer::processRequest(Connection *conn) {
 	// check if RETURN directive in the matched location
 	if (conn->locConfig->hasReturn()) {
 		_lggr.error("[Resp] The matched location has a return directive.");
-		prepareResponse(conn, handleReturnDirective(req, conn));
+		prepareResponse(conn, handleReturnDirective(conn));
 		return;
 	}
 

@@ -111,7 +111,7 @@ Context: server, location
 Sets the directory for file uploads.
 upload_path /var/uploads;
 upload_path /tmp/uploads;
-Rules: Same as root directive (must start with '/', not end with '/', no '..' or quotes)
+Rules: Must start with '/', no '..' or quotes
 
 # cgi_ext
 Syntax: cgi_ext extension1 interpreter1 [extension2 interpreter2 ...];
@@ -130,9 +130,7 @@ index index.html;
 index main.html;
 index home.php;
 Rules:
-Must be an html file
-Doesnot start with '/'
-Cannot contain quotes or slashes
+Cannot contain quotes
 
 
 # # Location-Only Directives # # 
