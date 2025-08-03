@@ -484,7 +484,11 @@ std::string detectContentType(const std::string &path);
 /// \returns extension string (.html, .png, ...). Not found: returns "".
 std::string getExtension(const std::string& path);
 
-
+enum MaxBody {
+		DEFAULT,
+		INFINITE,
+		SPECIFIED
+	} ;
 
 enum FileResult {
 	ISDIR,

@@ -101,8 +101,8 @@ bool WebServer::processReceivedData(Connection *conn, const char *buffer, ssize_
 		if (conn->chunked && conn->state == Connection::CONTINUE_SENT) {
 			return true;
 		}
-		// TODO: remove hard-coded limit
-		if (total_bytes_read > 4096) {
+		if (!conn->getServerConfig()->infiniteBodySize()
+	 		      && total_bytes_read > static_cast<ssize_t>(conn->getServerConfig()->getMaxBodySize())) {
 			_lggr.debug("Request is too large");
 			handleRequestTooLarge(conn, bytes_read);
 			return false;

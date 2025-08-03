@@ -70,10 +70,6 @@ bool ConfigParser::isHttp(const std::string& url) {
 	return su::starts_with(url, "http://") || su::starts_with(url, "https://");
 }
 
-// check if file ends with .html
-bool ConfigParser::isHtml(const std::string& path) {
-	return su::ends_with(path, ".html");
-}
 
 const int http_status_codes[] = {
 	100, 101, 102, 103,
@@ -104,6 +100,16 @@ std::vector<std::string> ConfigParser::makeVector(const std::string& a, const st
 	return v;
 }
 
+// has an extension (.xxx)
+bool ConfigParser::hasExtension(const std::string& filepath) {
+	std::size_t dot_pos = filepath.find('.');
+	if (dot_pos != std::string::npos) {
+		std::size_t slash_pos = (filepath.substr(dot_pos)).find('/');
+		if (slash_pos == std::string::npos)
+			return true;
+	}
+	return false;
+}
 
 /////////////
 // PRINT TREE
