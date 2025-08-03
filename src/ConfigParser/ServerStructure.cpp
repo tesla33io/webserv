@@ -109,18 +109,18 @@ void ConfigParser::handleBodySize(const ConfigNode &node, ServerConfig &server) 
 	int factor = 1;
 	char last = node.args_[0][node.args_[0].size() - 1];
 	if (std::tolower(last) == 'k')
-		factor = 1000;
+		factor = 1024;
 	else if (std::tolower(last) == 'm')
-		factor = 1000000;
+		factor = 1024*1024;
 	else if (std::tolower(last) == 'g')
-		factor = 1000000000;
+		factor = 1024*1024*1024;
 		
 	std::string maxBody = node.args_[0];
 	if (factor > 1)
 		maxBody = su::rtrim(maxBody.substr(0, maxBody.size() - 1));
 
 	std::istringstream iss(maxBody);
-	unsigned int maxBodyFactor;
+	size_t maxBodyFactor;
 	iss >> maxBodyFactor;
 	server.client_max_body_size = maxBodyFactor * factor;
 
@@ -262,7 +262,7 @@ void ConfigParser::addRootToErrorUri(ServerConfig& server) {
 		const std::string& root = defaultL->root;
 		for (std::map<uint16_t, std::string>::iterator it = server.error_pages.begin();
 		       it != server.error_pages.end(); ++it) {
-			it->second = root + "/" + it->second;
+			it->second = root + ((it->second[0] == '/' )? "" : "/") + it->second;
 		}
 	}
 }

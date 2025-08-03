@@ -63,12 +63,13 @@ Valid ports: 1-65535
 # client_max_body_size
 Syntax: client_max_body_size size;
 Context: server
-Default: 0 (unlimited)
+Default: 1MB (1048576 bytes)
 Sets the maximum allowed size of client request body.
 client_max_body_size 1024;      # 1024 bytes
 client_max_body_size 512K;      # 512 kilobytes
 client_max_body_size 2M;        # 2 megabytes
 client_max_body_size 1G;        # 1 gigabyte
+client_max_body_size 0;         # infinite
 Suffixes: K/k (kilobytes), M/m (megabytes), G/g (gigabytes)
 
 # error_page
@@ -78,11 +79,8 @@ Repeatable: Yes
 Defines custom error pages for HTTP status codes.
 error_page 404 404.html;
 error_page 500 502 503 error/50x.html;
-error_page 403 forbidden.html;
-Valid codes: 400-599
-Must be an html file
-URI cannot start with '/'
-
+error_page 403 /forbidden.html;
+Valid codes: the common error codes ranging 400-599
 
 
 # # Server or Location Level Directives # #

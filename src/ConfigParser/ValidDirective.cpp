@@ -155,6 +155,7 @@ bool ConfigParser::validateReturn(const ConfigNode& node)  {
 }
 
 
+
 // ERROR: 400 - 599, last arg is file
 bool ConfigParser::validateError(const ConfigNode& node)  {
 	for (size_t i = 0; i < node.args_.size() - 1; ++i) {
@@ -166,9 +167,8 @@ bool ConfigParser::validateError(const ConfigNode& node)  {
 			return false;
 		}
 	}
-	if (su::starts_with(node.args_[node.args_.size() - 1], "/") 
-		|| !su::ends_with(node.args_[node.args_.size() - 1], ".html")) {
-			logg_.logWithPrefix(Logger::WARNING, "Configuration file", "Error page must be an html file, not start with /. Received: " 
+	if (!hasExtension(node.args_[node.args_.size() - 1])) {
+			logg_.logWithPrefix(Logger::WARNING, "Configuration file", "Error page must be the path to a file. Received: " 
 				+ node.args_[node.args_.size() - 1]+ " on line " + su::to_string(node.line_));
 		return false;
 	}

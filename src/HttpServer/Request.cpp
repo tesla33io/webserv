@@ -15,7 +15,7 @@
 
 void WebServer::handleRequestTooLarge(Connection *conn, ssize_t bytes_read) {
 	_lggr.info("Reached max content length for fd: " + su::to_string(conn->fd) + ", " +
-	           su::to_string(bytes_read) + "/" + su::to_string(4096));
+	           su::to_string(bytes_read) + "/" + su::to_string(conn->getServerConfig()->getMaxBodySize()));
 	prepareResponse(conn, Response(413, conn));
 	// closeConnection(conn);
 }

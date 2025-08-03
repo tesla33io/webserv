@@ -121,12 +121,13 @@ class ConfigParser {
 		// utils for validity
 		void initValidDirectives();
 		std::vector<std::string> makeVector(const std::string &a, const std::string &b) const;
-		bool isValidIPv4(const std::string &ip);
-		bool isHtml(const std::string& path) ;
-		bool isHttp(const std::string& url) ;
-		bool hasQuotes(const std::string& str) ;
-		bool hasDotDot(const std::string& str) ;
-		bool unknownCode(uint16_t code) ;
+		static bool isValidIPv4(const std::string &ip);
+		static bool isHttp(const std::string& url) ;
+		static bool hasQuotes(const std::string& str) ;
+		static bool hasDotDot(const std::string& str) ;
+		static bool unknownCode(uint16_t code) ;
+		static bool hasExtension(const std::string& filepath) ;
+
 
 
 		// Debug print methods
@@ -223,28 +224,21 @@ class ServerConfig {
 	ServerConfig()
 	    : host("0.0.0.0"),
 	      port(8080),
-	      client_max_body_size(0) {}
+	      client_max_body_size(1048576) {}
 
 	// GETTERS
 	const std::string& getHost() const { return host; }
-
 	int getPort() const { return port; }
-
 	const std::map<uint16_t, std::string>& getErrorPages() const { return error_pages; } ;
-
 	size_t getMaxBodySize() const { return client_max_body_size; }
-
 	const std::string& getRootPrefix() const { return root_prefix; } ;
-	
 	std::string getErrorPage(uint16_t status) const {
 		std::map<uint16_t, std::string>::const_iterator it = error_pages.find(status);
 		return (it != error_pages.end()) ? it->second : "";
 	}
-	
-	// BOOL
-	bool hasErrorPage(uint16_t status) const { return error_pages.find(status) != error_pages.end(); }
-	bool hasMaxBodySize() const { return client_max_body_size > 0; }
 
+	bool hasErrorPage(uint16_t status) const { return error_pages.find(status) != error_pages.end(); }
+	bool infiniteBodySize() const { return (client_max_body_size == 0) ? true : false;}
 
 	// The default location
 	LocConfig* defaultLocation() { 
