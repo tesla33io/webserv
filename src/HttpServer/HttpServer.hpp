@@ -401,11 +401,10 @@ class WebServer {
 
 	/// Handles Return directives.
 	/// \param req The GET request to process.
+	/// \param code The status code to send back.
+	/// \param target The uri or url to send.
 	/// \returns Response object containing the requested resource or error.
-	Response handleReturnDirective(Connection* conn);
-
-	// Request validation methods - allowed methods and maxbodysize
-	bool validateBodySize(Connection* conn, size_t bytes); // // Helene TODO
+	Response handleReturnDirective(Connection* conn, uint16_t code, std::string target);
 
 	/// Handlers/FileHandler.cpp
 
@@ -479,7 +478,7 @@ size_t findCRLF(const std::string &buffer, size_t start_pos);
 std::string detectContentType(const std::string &path);
 
 
-/// Determinesthe extension from a file path (no . allowed in the path).
+/// Determines the extension from a file path (no . allowed in the path).
 /// \param path The file path to analyze.
 /// \returns extension string (.html, .png, ...). Not found: returns "".
 std::string getExtension(const std::string& path);
@@ -488,9 +487,9 @@ enum MaxBody {
 		DEFAULT,
 		INFINITE,
 		SPECIFIED
-	} ;
+} ;
 
-enum FileResult {
+enum FileType {
 	ISDIR,
 	ISREG,
 	NOT_FOUND_404,
@@ -498,10 +497,10 @@ enum FileResult {
 	FILE_SYSTEM_ERROR_500
 };
 
-FileResult checkFileType(std::string path) ;
-
-std::string generateFileEntry(const std::string& filename, const struct stat& fileStat) ;
-
+/// Determines the type of path: .
+/// \param path The path to analyze.
+/// \returns file type Directory, File, Denied access, Not found, Internal error.
+FileType checkFileType(std::string path) ;
 
 #endif  /* end of include guard: __HTTPSERVER_HPP__*/
 

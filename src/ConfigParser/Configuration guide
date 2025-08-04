@@ -93,7 +93,7 @@ Default: None
 Sets the root directory for requests.
 root /var/www;
 root /var/www/html;
-Rules: Must start with /, Cannot contain . or quotes
+Rules: Must start with /, check for invalid character (no '.' allowed)
 
 # allowed_methods
 Syntax: allowed_methods method1 [method2 method3];
@@ -111,7 +111,7 @@ Context: server, location
 Sets the directory for file uploads.
 upload_path /var/uploads;
 upload_path /tmp/uploads;
-Rules: Must start with '/', no '..' or quotes
+Rules: Must start with /, check for invalid character (no '.' allowed)
 
 # cgi_ext
 Syntax: cgi_ext extension1 interpreter1 [extension2 interpreter2 ...];
@@ -180,17 +180,6 @@ location /temp {
 Rules:
 Status codes: 300, 301, 302, 303, 307, 308
 
-
-# alias
-Syntax: alias path;
-Context: location
-Maps a location to a different filesystem path.
-location /downloads/ {
-    alias /var/files/;  # /downloads/file.txt → /var/files/file.txt
-}
-Rules:
-Must start and ends with '/'
-No quotes and '..'
 
 
 # # # # Configuration Examples # # # # 

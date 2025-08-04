@@ -81,13 +81,15 @@ void WebServer::processRequest(Connection *conn) {
 		return;
 	}
 	conn->locConfig = match; // Set location context
-	_lggr.error("[Resp] Matched location : " + match->path);
+	_lggr.debug("[Resp] Matched location : " + match->path);
 
 
 	// check if RETURN directive in the matched location
 	if (conn->locConfig->hasReturn()) {
-		_lggr.error("[Resp] The matched location has a return directive.");
-		prepareResponse(conn, handleReturnDirective(conn));
+		_lggr.debug("[Resp] The matched location has a return directive.");
+		uint16_t code = conn->locConfig->return_code;
+		std::string target = conn->locConfig->return_target;
+		prepareResponse(conn, handleReturnDirective(conn, code, target));
 		return;
 	}
 

@@ -23,42 +23,21 @@ std::string WebServer::getFileContent(std::string path) {
 	return content;
 }
 
-FileResult checkFileType(std::string path) {
+FileType checkFileType(std::string path) {
 	struct stat pathStat;
-		if (stat(path.c_str(), &pathStat) != 0) {
-		std::cout << "err number from check file" << errno << std::endl;
-			if (errno == ENOTDIR || errno == ENOENT) {
-				return NOT_FOUND_404;
-			} else if (errno == EACCES) {
-				return PERMISSION_DENIED_403;
-			} else {
-				return FILE_SYSTEM_ERROR_500;
-			}
+	if (stat(path.c_str(), &pathStat) != 0) {
+		if (errno == ENOTDIR || errno == ENOENT) {
+			return NOT_FOUND_404;
+		} else if (errno == EACCES) {
+			return PERMISSION_DENIED_403;
+		} else {
+			return FILE_SYSTEM_ERROR_500;
 		}
-		if S_ISDIR(pathStat.st_mode)
-			return ISDIR;
-		else if S_ISREG(pathStat.st_mode)
-			return ISREG;
-		return FILE_SYSTEM_ERROR_500;
+	}
+	if (S_ISDIR(pathStat.st_mode))
+		return ISDIR;
+	else if (S_ISREG(pathStat.st_mode))
+		return ISREG;
+	return FILE_SYSTEM_ERROR_500;
 }
-
-
-// bool isDirectory(const char *path) {
-// 	struct stat pathStat;
-// 	if (stat(path, &pathStat) != 0) {
-// 		// TODO: maybe handle this error here
-// 		return false;
-// 	}
-// 	return S_ISDIR(pathStat.st_mode);
-// }
-
-// bool isRegularFile(const char *path) {
-// 	struct stat pathStat;
-// 	if (stat(path, &pathStat) != 0) {
-// 		// TODO: maybe handle this error here
-// 		return false;
-// 	}
-// 	return S_ISREG(pathStat.st_mode);
-// }
-
 
