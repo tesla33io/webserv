@@ -48,37 +48,57 @@ bool WebServer::sendResponse(Connection *conn) {
 Response WebServer::handleGetRequest(ClientRequest &req, Connection *conn) {
 	_lggr.debug("Requested path: " + req.uri);
 	
-	// WE PASS CONNECTION AS ARGUMENT
-	// Connection* conn = getConnection(req.clfd);
-	// if (!conn || !conn->servConfig) {
-	// 	_lggr.error("[Resp] Connection instance not found for client fd : " + su::to_string(req.clfd));
-	// 	return Response::internalServerError(conn);
-	// }
-	
-	// Build file path
 	std::string fullPath = buildFullPath(req.uri, conn->locConfig);
+	// security check
+	if (fullPath.find("..") != std::string::npos)
+		return Response::forbidden(conn);
 
-	if (checkFileType(fullPath) == NOT_FOUND_404){
+	FileType ftype = checkFileType(fullPath);
+	
+	// Error checking
+	if (ftype == NOT_FOUND_404){
 		_lggr.debug("Could not open : " + fullPath);
 		return Response::notFound(conn);
-	} else if (checkFileType(fullPath) == PERMISSION_DENIED_403){
+	} 
+	if (ftype == PERMISSION_DENIED_403){
 		_lggr.debug("Permission denied : " + fullPath);
 		return Response::forbidden(conn);
-	} else if (checkFileType(fullPath) == FILE_SYSTEM_ERROR_500){
+	}
+	if (ftype == FILE_SYSTEM_ERROR_500){
 		_lggr.debug("Other file access problem : " + fullPath);
 		return Response::internalServerError(conn);
 	} 
 	
-	else if (checkFileType(fullPath) == ISDIR) {
-		_lggr.debug("Directory request : " + fullPath);
-		return handleDirectoryRequest(conn, fullPath);
+	// uri request ends with '/'
+	bool endSlash = (!req.uri.empty() && req.uri[req.uri.length() - 1] == '/');
+
+	// Directory requests
+	if (ftype == ISDIR) {
+		_lggr.debug("Directory request: " + fullPath);
+		if (!endSlash) {
+			_lggr.debug("Directory request without trailing slash, redirecting: " + req.uri);
+			std::string redirectPath = req.uri + "/";
+			return handleReturnDirective(conn, 302, redirectPath);
+		} else {
+			return handleDirectoryRequest(conn, fullPath);
+		}
 	}
-	else if (checkFileType(fullPath) == ISREG) {
-		_lggr.error("File request: " + fullPath);
-		return handleFileRequest(conn, fullPath);
+
+	// Handle file requests
+	if (ftype == ISREG) {
+		_lggr.debug("File request: " + fullPath);
+		if (endSlash) {
+			_lggr.debug("File request with trailing slash, redirecting: " + req.uri);
+			std::string redirectPath = req.uri.substr(0, req.uri.length() - 1);
+			return handleReturnDirective(conn, 302, redirectPath);
+		} else {
+			return handleFileRequest(conn, fullPath);
+		}
 	}
 	return Response::internalServerError(conn);
 }
+
+
 
 // Serving the index file or listing if possible
 Response WebServer::handleDirectoryRequest(Connection* conn, const std::string& fullDirPath) {
@@ -160,10 +180,9 @@ std::string getExtension(const std::string& path) {
 }
 
 
-Response WebServer::handleReturnDirective(Connection* conn) {
+Response WebServer::handleReturnDirective(Connection* conn, uint16_t code, std::string target) {
 
-	uint16_t code = conn->locConfig->return_code;
-	std::string target = conn->locConfig->return_target;
+
 	_lggr.debug("Handling return directive '" + su::to_string(code) + "' to " + target);
 	if (code == 0 || target.empty()) {
 		_lggr.error("Problem with the return directive - not properly configured");

@@ -153,8 +153,6 @@ void ConfigParser::handleLocationBlock(const ConfigNode &locNode, LocConfig &loc
 			location.allowed_methods = node->args_;
 		else if (node->name_ == "root") 
 			handleRoot(*node, location);
-		else if (node->name_ == "alias") 
-			location.alias = node->args_[0];
 		else if (node->name_ == "autoindex") 
 			location.autoindex = (node->args_[0] == "on");
 		else if (node->name_ == "index")
@@ -231,13 +229,8 @@ void ConfigParser::inheritGeneralConfig(ServerConfig& server, const LocConfig& f
 		
 		LocConfig& loc = server.locations[i];
 
-		// If location has alias, don't inherit root and clear rrot
-		if (!loc.alias.empty()) 
-			loc.root.clear();
-		else {
-			if (loc.root.empty())
-				loc.root = forInheritance.root;
-		}
+		if (loc.root.empty())
+			loc.root = forInheritance.root;
 		// Inherit methods if location doesn't specify any
 		if (loc.allowed_methods.empty())
 			loc.allowed_methods = forInheritance.allowed_methods;

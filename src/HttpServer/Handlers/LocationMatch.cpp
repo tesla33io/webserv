@@ -37,14 +37,21 @@ static bool isPrefixMatch(const std::string &uri, const std::string &location_pa
 	return next_char == '/' || location_path[location_path.length() - 1] == '/';
 }
 
-
 std::string WebServer::buildFullPath(const std::string& uri, LocConfig *location) {
-	std::string full_path = _root_prefix_path + location->root + uri;
+	std::string prefix = (_root_prefix_path[_root_prefix_path.length() - 1] == '/') ? 
+						_root_prefix_path.substr(0, _root_prefix_path.length() - 1) :
+						_root_prefix_path;
+	std::string root = (location->root[location->root.length() - 1] == '/')? 
+					  location->root.substr(0, location->root.length() - 1) :
+					  location->root;
+	std::string slashedUri = (uri.empty() || uri[0] != '/') ? "/" + uri : uri;
+
+	std::string full_path = prefix + root + slashedUri;
 	_lggr.debug("Path building:");
 	_lggr.debug("  - prefix: '" + _root_prefix_path + "'");
 	_lggr.debug("  - root: '" + location->root + "'");
 	_lggr.debug("  - uri: '" + uri + "'");
 	_lggr.debug("  - result: '" + full_path + "'");
+
 	return full_path;
 }
-

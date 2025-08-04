@@ -27,7 +27,6 @@ void ConfigParser::initValidDirectives() {
 	// location only level
 	validDirectives_.push_back(Validity("autoindex",  std::vector<std::string>(1, "location"), false, 1, 1, &ConfigParser::validateAutoIndex));
 	validDirectives_.push_back(Validity("return", std::vector<std::string>(1, "location"), false, 1, 2, &ConfigParser::validateReturn));
-	validDirectives_.push_back(Validity("alias", std::vector<std::string>(1, "location"),  false, 1, 1, &ConfigParser::validateAlias));
 }
 
 // CHECK NB OF ARGS, CONTEXT, DUPLICATES, TAILORED VALIDITY FUNCTION
@@ -157,11 +156,6 @@ bool ConfigParser::validateError(const ConfigNode& node)  {
 			return false;
 		}
 	}
-	if (!hasExtension(node.args_[node.args_.size() - 1])) {
-			logg_.logWithPrefix(Logger::WARNING, "Configuration file", "Error page must be the path to a file. Received: " 
-				+ node.args_[node.args_.size() - 1]+ " on line " + su::to_string(node.line_));
-		return false;
-	}
  	return true;
 }
 
@@ -193,11 +187,11 @@ bool ConfigParser::validateMaxBody(const ConfigNode& node) {
 }
 
 
-// the path must start with /, ends with /, no ., no quotes
+// the path must start with /, ends with /, no invalid char
 // duplicates path not allowed
 bool ConfigParser::validateLocation(const ConfigNode& node) {
 	const std::string& path = node.args_[0];
-	if (path.empty() || !isValidUri(path)  || !su::ends_with(path, "/")) {
+	if (path.empty() || !isValidUri(path)) {
 		logg_.logWithPrefix(Logger::WARNING, "Configuration file", 
 			"Invalid location path: " + path + " on line " + su::to_string(node.line_));
 		return false;
@@ -226,24 +220,9 @@ bool ConfigParser::validateUploadPath(const ConfigNode& node) {
 	return true;	
 }
 
-
-// alias must be valid uri - starts and ends with /
-bool ConfigParser::validateAlias(const ConfigNode& node) {
-	if (node.args_[0].empty() || !isValidUri(node.args_[0])) {
- 		logg_.logWithPrefix(Logger::WARNING, "Configuration file", 
-			"Invalid alias path : " + node.args_[0] + " on line "+ su::to_string(node.line_));
-		return false;
-	}
-	return true;	
-}
-
-// must be a file: no ", no /, one . not at the end
+// must be a file: no weird char, has extension, does not start with /
 bool ConfigParser::validateIndex(const ConfigNode& node) {
-
-	if (node.args_[0].empty() 
-		|| !hasExtension(node.args_[0])		
-		|| hasDotDot(node.args_[0])
-		|| hasQuotes(node.args_[0]) ) {
+	if (node.args_[0].empty() || !hasOKChar(node.args_[0]) || node.args_[0][0] == '/') {
  		logg_.logWithPrefix(Logger::WARNING, "Configuration file", 
 			"Invalid index : " + node.args_[0] + " on line "+ su::to_string(node.line_));
 		return false;

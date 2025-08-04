@@ -52,13 +52,12 @@ bool ConfigParser::isValidIPv4(const std::string& ip) {
 	return (count == 4);
 }
 
-// location path , return target uri, upload_path, root, alias
+// location path, return target uri, upload_path, root
+// starts with /, allow common char
 bool ConfigParser::isValidUri(const std::string& str) {
 	if (str[0] == '/') {
-		// Basic URI validation - no spaces, valid characters
 		for (size_t i = 0; i < str.length(); ++i) {
 			char c = str[i];
-			// Allow alphanumeric, common URI characters
 			if (!std::isalnum(c) && c != '/' && c != '-' && c != '_' && 
 				c != '?' && c != '&' && c != '=' && c != '#' && 
 				c != '%' && c != ':' && c != '@' && c != '~') {
@@ -70,19 +69,17 @@ bool ConfigParser::isValidUri(const std::string& str) {
 	return false;
 }
 
-// check if string contains "quotes"
-bool ConfigParser::hasQuotes(const std::string& str) {
-	return str.find('"') != std::string::npos;
-}
-
-// check if string contains ".."
-bool ConfigParser::hasDotDot(const std::string& str) {
-	return str.find("..") != std::string::npos;
-}
-
-// check if string contains "."
-bool ConfigParser::hasDot(const std::string& str) {
-	return str.find(".") != std::string::npos;
+// index basic validation - no spaces, valid characters
+bool ConfigParser::hasOKChar(const std::string& str) {
+	for (size_t i = 0; i < str.length(); ++i) {
+		char c = str[i];
+		if (!std::isalnum(c) && c != '/' && c != '-' && c != '_' && 
+			c != '?' && c != '.' && c != '&' && c != '=' && c != '#' && 
+			c != '%' && c != ':' && c != '@' && c != '~') {
+			return false;
+		}
+	}
+	return true;
 }
 
 // check if URL is HTTP/HTTPS
@@ -115,24 +112,12 @@ bool ConfigParser::unknownCode(uint16_t code) {
 	return true; 
 }
 
-
 // for multi-context directives (e.g. "server", "location")
 std::vector<std::string> ConfigParser::makeVector(const std::string& a, const std::string& b) const{
 	std::vector<std::string> v;
 	v.push_back(a);
 	v.push_back(b);
 	return v;
-}
-
-// has an extension (.xxx)
-bool ConfigParser::hasExtension(const std::string& filepath) {
-	std::size_t dot_pos = filepath.find('.');
-	if (dot_pos != std::string::npos) {
-		std::size_t slash_pos = (filepath.substr(dot_pos)).find('/');
-		if (slash_pos == std::string::npos)
-			return true;
-	}
-	return false;
 }
 
 /////////////
@@ -184,9 +169,6 @@ void ConfigParser::printLocationConfig(const LocConfig &loc, std::ostream &os) c
 	
 	if (!loc.root.empty())
 		os << "    Root: " << loc.root << "\n";
-	
-	if (!loc.alias.empty())
-		os << "    Alias: " << loc.alias << "\n";
 	
 	if (!loc.index.empty()) {
 		os << "    Index: " << loc.index << "\n";

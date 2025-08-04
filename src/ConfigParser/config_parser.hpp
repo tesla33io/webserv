@@ -117,7 +117,6 @@ class ConfigParser {
 		bool validateChunk(const ConfigNode& node) ;
 		bool validateUploadPath(const ConfigNode& node) ;
 		bool validateRoot(const ConfigNode& node);
-		bool validateAlias(const ConfigNode& node);
 		bool validateIndex(const ConfigNode& node);
 
 		// utils for validity
@@ -126,13 +125,8 @@ class ConfigParser {
 		static bool isValidIPv4(const std::string &ip);
 		static bool isValidUri(const std::string& str);
 		static bool isHttp(const std::string& url);
-		static bool hasQuotes(const std::string& str);
-		static bool hasDot(const std::string& str);
-		static bool hasDotDot(const std::string& str);
+		static bool hasOKChar(const std::string& str);
 		static bool unknownCode(uint16_t code);
-		static bool hasExtension(const std::string& filepath);
-
-
 
 		// Debug print methods
 		void printServers(const std::vector<ServerConfig> &servers, std::ostream &os) const;
@@ -170,7 +164,6 @@ class LocConfig {
 	uint16_t return_code;                     // HTTP redirection status (0 = no redirect)
 	std::string return_target;                // HTTP redirection target
 	std::string root;
-	std::string alias;
 	bool autoindex;                                    // directory listing
 	std::string index;                                 // default files for directories
 	std::string upload_path;                           // file upload directory
@@ -193,9 +186,6 @@ class LocConfig {
 				return true;
 		}
 		return false;
-	}
-	bool hasExtension(const std::string &ext) const {
-		return cgi_extensions.find(ext) != cgi_extensions.end();
 	}
 		
 	std::string getExtensionPath(const std::string &ext) const {

@@ -75,8 +75,6 @@ bool ConfigParser::parseTreeBlocks(std::ifstream &file, int &line_nb, ConfigNode
 			return false;
 		}
 
-		
-
 		std::string statement = accumulated_line;
 		accumulated_line.clear();
 
