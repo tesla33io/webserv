@@ -273,7 +273,8 @@ void ConfigParser::addRootToErrorUri(ServerConfig& server) {
 		const std::string& root = defaultL->root;
 		for (std::map<uint16_t, std::string>::iterator it = server.error_pages.begin();
 		       it != server.error_pages.end(); ++it) {
-			it->second = root + ((it->second[0] == '/' )? "" : "/") + it->second;
+			const std::string original = it->second;
+			it->second = root + ((original[0] == '/' )? "" : "/") + original;
 		}
 	}
 }
