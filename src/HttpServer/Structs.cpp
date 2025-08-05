@@ -284,7 +284,7 @@ void Response::initFromStatusCode(uint16_t code) {
 			body = html.str();
 			setContentLength(body.length());
 			setContentType("text/html");
-			 tmplogg_.logWithPrefix(Logger::DEBUG, "Response", "Content-Type set to: " + headers["Content-Type"]);
+			tmplogg_.logWithPrefix(Logger::DEBUG, "Response", "Content-Type set to: " + headers["Content-Type"]);
 		}
 	}
 }
