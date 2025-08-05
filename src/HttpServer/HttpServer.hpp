@@ -395,11 +395,12 @@ class WebServer {
 	/// \returns True if response was sent successfully, false otherwise.
 	bool sendResponse(Connection *conn);
 
+	// DEPRECATED
 	/// Handles HTTP GET requests by serving requested resources.
 	/// \param req The GET request to process.
 	/// \param conn The connection to send response to.
 	/// \returns Response object containing the requested resource or error.
-	Response handleGetRequest(ClientRequest &req, Connection *conn);
+	// Response handleGetRequest(ClientRequest &req, Connection *conn);
 
 	/// Handles Return directives.
 	/// \param req The GET request to process.
