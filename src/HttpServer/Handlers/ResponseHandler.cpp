@@ -45,58 +45,58 @@ bool WebServer::sendResponse(Connection *conn) {
 }
 
 
-Response WebServer::handleGetRequest(ClientRequest &req, Connection *conn) {
-	_lggr.debug("Requested path: " + req.uri);
+// Response WebServer::handleGetRequest(ClientRequest &req, Connection *conn) {
+// 	_lggr.debug("Requested path: " + req.uri);
 	
-	std::string fullPath = buildFullPath(req.uri, conn->locConfig);
-	// security check
-	if (fullPath.find("..") != std::string::npos)
-		return Response::forbidden(conn);
+// 	std::string fullPath = buildFullPath(req.uri, conn->locConfig);
+// 	// security check
+// 	if (fullPath.find("..") != std::string::npos)
+// 		return Response::forbidden(conn);
 
-	FileType ftype = checkFileType(fullPath);
+// 	FileType ftype = checkFileType(fullPath);
 	
-	// Error checking
-	if (ftype == NOT_FOUND_404){
-		_lggr.debug("Could not open : " + fullPath);
-		return Response::notFound(conn);
-	} 
-	if (ftype == PERMISSION_DENIED_403){
-		_lggr.debug("Permission denied : " + fullPath);
-		return Response::forbidden(conn);
-	}
-	if (ftype == FILE_SYSTEM_ERROR_500){
-		_lggr.debug("Other file access problem : " + fullPath);
-		return Response::internalServerError(conn);
-	} 
+// 	// Error checking
+// 	if (ftype == NOT_FOUND_404){
+// 		_lggr.debug("Could not open : " + fullPath);
+// 		return Response::notFound(conn);
+// 	} 
+// 	if (ftype == PERMISSION_DENIED_403){
+// 		_lggr.debug("Permission denied : " + fullPath);
+// 		return Response::forbidden(conn);
+// 	}
+// 	if (ftype == FILE_SYSTEM_ERROR_500){
+// 		_lggr.debug("Other file access problem : " + fullPath);
+// 		return Response::internalServerError(conn);
+// 	} 
 	
-	// uri request ends with '/'
-	bool endSlash = (!req.uri.empty() && req.uri[req.uri.length() - 1] == '/');
+// 	// uri request ends with '/'
+// 	bool endSlash = (!req.uri.empty() && req.uri[req.uri.length() - 1] == '/');
 
-	// Directory requests
-	if (ftype == ISDIR) {
-		_lggr.debug("Directory request: " + fullPath);
-		if (!endSlash) {
-			_lggr.debug("Directory request without trailing slash, redirecting: " + req.uri);
-			std::string redirectPath = req.uri + "/";
-			return handleReturnDirective(conn, 302, redirectPath);
-		} else {
-			return handleDirectoryRequest(conn, fullPath);
-		}
-	}
+// 	// Directory requests
+// 	if (ftype == ISDIR) {
+// 		_lggr.debug("Directory request: " + fullPath);
+// 		if (!endSlash) {
+// 			_lggr.debug("Directory request without trailing slash, redirecting: " + req.uri);
+// 			std::string redirectPath = req.uri + "/";
+// 			return handleReturnDirective(conn, 302, redirectPath);
+// 		} else {
+// 			return handleDirectoryRequest(conn, fullPath);
+// 		}
+// 	}
 
-	// Handle file requests
-	if (ftype == ISREG) {
-		_lggr.debug("File request: " + fullPath);
-		if (endSlash) {
-			_lggr.debug("File request with trailing slash, redirecting: " + req.uri);
-			std::string redirectPath = req.uri.substr(0, req.uri.length() - 1);
-			return handleReturnDirective(conn, 302, redirectPath);
-		} else {
-			return handleFileRequest(conn, fullPath);
-		}
-	}
-	return Response::internalServerError(conn);
-}
+// 	// Handle file requests
+// 	if (ftype == ISREG) {
+// 		_lggr.debug("File request: " + fullPath);
+// 		if (endSlash) {
+// 			_lggr.debug("File request with trailing slash, redirecting: " + req.uri);
+// 			std::string redirectPath = req.uri.substr(0, req.uri.length() - 1);
+// 			return handleReturnDirective(conn, 302, redirectPath);
+// 		} else {
+// 			return handleFileRequest(conn, fullPath);
+// 		}
+// 	}
+// 	return Response::internalServerError(conn);
+// }
 
 
 
