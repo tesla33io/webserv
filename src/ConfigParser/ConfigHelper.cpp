@@ -113,7 +113,7 @@ bool ConfigParser::unknownCode(uint16_t code) {
 }
 
 // for multi-context directives (e.g. "server", "location")
-std::vector<std::string> ConfigParser::makeVector(const std::string& a, const std::string& b) const{
+std::vector<std::string> ConfigParser::makeVector(const std::string& a, const std::string& b) {
 	std::vector<std::string> v;
 	v.push_back(a);
 	v.push_back(b);
@@ -122,7 +122,7 @@ std::vector<std::string> ConfigParser::makeVector(const std::string& a, const st
 
 /////////////
 // PRINT TREE
-std::string ConfigParser::joinArgs(const std::vector<std::string>& args) const {
+std::string ConfigParser::joinArgs(const std::vector<std::string>& args) {
 	if (args.empty()) return "";
 	
 	std::string result = args[0];

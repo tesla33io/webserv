@@ -25,7 +25,6 @@ class ServerConfig;
 class LocConfig;
 class WebServer;
 
-// TODO: think about the interpreter path rules + upload rules, esp in the context of inheritance
 
 class ConfigParser {
 	
@@ -34,7 +33,7 @@ class ConfigParser {
 	
 		ConfigParser();
 		
-		typedef bool (ConfigParser::*ValidationFunction)(const ConfigNode&) ; // validation function pointer forward declaration
+		typedef bool (ConfigParser::*ValidationFunction)(const ConfigNode&) ;
 		
 		struct Validity {
 			std::string name_;
@@ -121,7 +120,7 @@ class ConfigParser {
 
 		// utils for validity
 		void initValidDirectives();
-		std::vector<std::string> makeVector(const std::string &a, const std::string &b) const;
+		static std::vector<std::string> makeVector(const std::string &a, const std::string &b);
 		static bool isValidIPv4(const std::string &ip);
 		static bool isValidUri(const std::string& str);
 		static bool isHttp(const std::string& url);
@@ -134,7 +133,7 @@ class ConfigParser {
 		void printLocationConfig(const LocConfig &loc, std::ostream &os) const;
 		void printTree(const ConfigNode &node, const std::string &prefix, bool isLast,
 					std::ostream &os) const;
-		std::string joinArgs(const std::vector<std::string> &args) const;
+		static std::string joinArgs(const std::vector<std::string> &args);
 };
 
 
@@ -160,14 +159,14 @@ class LocConfig {
 
   private:
 	std::string path;
-	std::vector<std::string> allowed_methods; // HTTP methods allowed
-	uint16_t return_code;                     // HTTP redirection status (0 = no redirect)
-	std::string return_target;                // HTTP redirection target
+	std::vector<std::string> allowed_methods; 
+	uint16_t return_code;
+	std::string return_target;
 	std::string root;
-	bool autoindex;                                    // directory listing
-	std::string index;                                 // default files for directories
-	std::string upload_path;                           // file upload directory
-	std::map<std::string, std::string> cgi_extensions; // .py -> /usr/bin/python
+	bool autoindex;
+	std::string index;
+	std::string upload_path;
+	std::map<std::string, std::string> cgi_extensions;
 
 
   public:
@@ -176,7 +175,11 @@ class LocConfig {
 	      autoindex(false) {}
 
 	inline std::string getPath() const { return path; }
-	bool hasReturn() const { return return_code != 0; }
+
+	inline std::string getUploadPath() const { return upload_path; }
+
+	inline bool hasReturn() const { return return_code != 0; }
+	
 	bool hasMethod(const std::string &method) const {
 		if (allowed_methods.empty())
 			return true;
@@ -187,7 +190,14 @@ class LocConfig {
 		}
 		return false;
 	}
-		
+	
+	bool acceptExtension(const std::string &ext) const { 
+		if (cgi_extensions.empty())
+			return false;
+		std::map<std::string, std::string>::const_iterator it = cgi_extensions.find(ext);
+		return (it != cgi_extensions.end());
+	} 
+
 	std::string getExtensionPath(const std::string &ext) const {
 		std::map<std::string, std::string>::const_iterator it = cgi_extensions.find(ext);
 		if (it != cgi_extensions.end()) 
@@ -208,11 +218,9 @@ class ServerConfig {
 	size_t client_max_body_size;
 	std::vector<LocConfig> locations;
 
-	std::string root_prefix;
+	std::string root_prefix; // can be removed probably 
 	int server_fd;
 
-
-	
   public:
 	
 	ServerConfig()
@@ -221,18 +229,18 @@ class ServerConfig {
 	      client_max_body_size(1048576) {}
 
 	// GETTERS
-	const std::string& getHost() const { return host; }
-	int getPort() const { return port; }
-	const std::map<uint16_t, std::string>& getErrorPages() const { return error_pages; } ;
-	size_t getMaxBodySize() const { return client_max_body_size; }
-	const std::string& getRootPrefix() const { return root_prefix; } ;
+	inline const std::string& getHost() const { return host; }
+	inline int getPort() const { return port; }
+	inline const std::map<uint16_t, std::string>& getErrorPages() const { return error_pages; } ;
+	inline size_t getMaxBodySize() const { return client_max_body_size; }
+	inline bool hasErrorPage(uint16_t status) const { return error_pages.find(status) != error_pages.end(); }
+	inline bool infiniteBodySize() const { return (client_max_body_size == 0) ? true : false;}
+	inline const std::string& getRootPrefix() const { return root_prefix; } ; // can probably be removed
+
 	std::string getErrorPage(uint16_t status) const {
 		std::map<uint16_t, std::string>::const_iterator it = error_pages.find(status);
 		return (it != error_pages.end()) ? it->second : "";
 	}
-
-	bool hasErrorPage(uint16_t status) const { return error_pages.find(status) != error_pages.end(); }
-	bool infiniteBodySize() const { return (client_max_body_size == 0) ? true : false;}
 
 	// The default location
 	LocConfig* defaultLocation() { 

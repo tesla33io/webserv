@@ -225,6 +225,7 @@ void Response::initFromCustomErrorPage(uint16_t code, Connection *conn) {
 		return ;
 	}
 	tmplogg_.logWithPrefix(Logger::DEBUG, "Response", "A custom error page exists for " + su::to_string(code));
+	// todo check path again
 	std::string fullPath = conn->getServerConfig()->getRootPrefix() + conn->getServerConfig()->getErrorPage(code); 
 	std::ifstream errorFile(fullPath.c_str());
  	if (!errorFile.is_open()) {
