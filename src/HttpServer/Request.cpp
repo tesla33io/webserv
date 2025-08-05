@@ -107,7 +107,7 @@ void WebServer::processRequest(Connection *conn) {
 	// security check
 	// TODO : normalize the path
 	if (fullPath.find("..") != std::string::npos) {
-		_lggr.warn("Uri " + req.method + " is not safe.");
+		_lggr.warn("Uri " + req.uri + " is not safe.");
 		prepareResponse(conn, Response::forbidden(conn));
 		return ;
 	}
