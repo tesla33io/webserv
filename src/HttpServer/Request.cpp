@@ -127,7 +127,6 @@ void WebServer::processRequest(Connection *conn) {
 	}
 	if (ftype == FILE_SYSTEM_ERROR_500){
 		_lggr.debug("Other file access problem : " + fullPath);
-		_lggr.debug("Permission denied : " + fullPath);
 		prepareResponse(conn, Response::internalServerError(conn));
 		return ;
 	} 
