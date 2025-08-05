@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   cgi.cpp                                            :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/27 11:49:38 by jalombar          #+#    #+#             */
-/*   Updated: 2025/07/25 11:09:07 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/05 17:30:19 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -81,9 +81,14 @@ void send_cgi_response(std::string &cgi_output, int clfd) {
 	send(clfd, raw_response.c_str(), raw_response.length(), 0);
 }
 
-bool CGIUtils::handle_CGI_request(ClientRequest &request, int clfd) {
+// helene: i added the locConfig as parameter for interpreter access and upload path
+// std::string extPath = conn->locConfig->getExtensionPath(getExtension(req.uri));
+// std::string uploadPath = conn->getUploadPath();
+bool CGIUtils::handle_CGI_request(ClientRequest &request, int clfd, LocConfig *location) {
 	Logger logger;
 
+	(void)location;
+	
 	// 1. Validate and construct script path
 	if (request.path.empty() || request.path.find("..") != std::string::npos) {
 		logger.logWithPrefix(Logger::WARNING, "CGI", "Invalid or potentially unsafe path");

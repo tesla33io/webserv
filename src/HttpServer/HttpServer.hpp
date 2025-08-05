@@ -6,6 +6,8 @@
 #include "../Logger/Logger.hpp"
 #include "../RequestParser/request_parser.hpp"
 #include "../Utils/StringUtils.hpp"
+#include "../Utils/GeneralUtils.hpp"
+
 #include "Response.hpp"
 
 #include <arpa/inet.h>
@@ -477,10 +479,9 @@ size_t findCRLF(const std::string &buffer, size_t start_pos);
 /// \returns Content-Type string. Default : "application/octet-stream" (for arbitrary binary data)
 std::string detectContentType(const std::string &path);
 
-
-/// Determines the extension from a file path (no . allowed in the path).
-/// \param path The file path to analyze.
-/// \returns extension string (.html, .png, ...). Not found: returns "".
+// /// Determines the extension from a file path (no . allowed in the path).
+// /// \param path The file path to analyze.
+// /// \returns extension string (.html, .png, ...). Not found: returns "".
 std::string getExtension(const std::string& path);
 
 enum MaxBody {

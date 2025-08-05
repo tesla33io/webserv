@@ -152,8 +152,6 @@ std::string detectContentType(const std::string &path) {
 	cTypes[".js"]   = "application/javascript";
 	cTypes[".html"] = "text/html";
 	cTypes[".htm"]  = "text/html";
-	cTypes[".css"]  = "text/css";
-	cTypes[".js"]   = "application/javascript";
 	cTypes[".json"] = "application/json";
 	cTypes[".png"]  = "image/png";
 	cTypes[".jpg"]  = "image/jpeg";
@@ -173,7 +171,7 @@ std::string detectContentType(const std::string &path) {
 }
 
 std::string getExtension(const std::string& path) {
-	std::size_t dot_pos = path.find('.');
+	std::size_t dot_pos = path.find_last_of('.');
 	if (dot_pos != std::string::npos)
 		return path.substr(dot_pos);
 	return "";

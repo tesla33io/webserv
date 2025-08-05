@@ -102,23 +102,95 @@ void WebServer::processRequest(Connection *conn) {
 		return ;
 	}
 
-	if (req.CGI) {
-		if (!CGIUtils::handle_CGI_request(req, conn->fd)) {
-			_lggr.error("Handling the CGI request failed.");
-			prepareResponse(conn, Response::badRequest(conn));
-			// closeConnection(conn);
+	
+	std::string fullPath = buildFullPath(req.uri, conn->locConfig);
+	// security check
+	// TODO : normalize the path
+	if (fullPath.find("..") != std::string::npos) {
+		_lggr.warn("Uri " + req.method + " is not safe.");
+		prepareResponse(conn, Response::forbidden(conn));
+		return ;
+	}
+
+	FileType ftype = checkFileType(fullPath);
+	
+	// Error checking
+	if (ftype == NOT_FOUND_404){
+		_lggr.debug("Could not open : " + fullPath);
+		prepareResponse(conn, Response::notFound(conn));
+		return ;
+	} 
+	if (ftype == PERMISSION_DENIED_403){
+		_lggr.debug("Permission denied : " + fullPath);
+		prepareResponse(conn, Response::forbidden(conn));
+		return ;
+	}
+	if (ftype == FILE_SYSTEM_ERROR_500){
+		_lggr.debug("Other file access problem : " + fullPath);
+		_lggr.debug("Permission denied : " + fullPath);
+		prepareResponse(conn, Response::internalServerError(conn));
+		return ;
+	} 
+	
+	// uri request ends with '/'
+	bool endSlash = (!req.uri.empty() && req.uri[req.uri.length() - 1] == '/');
+
+	// Directory requests
+	if (ftype == ISDIR) {
+		_lggr.debug("Directory request: " + fullPath);
+		if (!endSlash) {
+			_lggr.debug("Directory request without trailing slash, redirecting: " + req.uri);
+			std::string redirectPath = req.uri + "/";
+			handleReturnDirective(conn, 302, redirectPath);
+			return;
+		} else {
+			handleDirectoryRequest(conn, fullPath);
 			return;
 		}
-	} else {
-		if (req.method == "GET") {
-			// TODO: do some check if handleGetRequest did not encounter any issues
-			prepareResponse(conn, handleGetRequest(req, conn));
-		} else if (req.method == "POST" || req.method == "DELETE_") {
-			prepareResponse(conn, Response(501, conn));
-		} else {
-			prepareResponse(conn, Response::notImplemented(conn)); // ? maybe internal error ?
-		}
 	}
+
+	// Handle file requests with trailing /
+	_lggr.debug("File request: " + fullPath);
+	if (ftype == ISREG && endSlash) {
+		_lggr.debug("File request with trailing slash, redirecting: " + req.uri);
+		std::string redirectPath = req.uri.substr(0, req.uri.length() - 1);
+		handleReturnDirective(conn, 302, redirectPath);
+		return ;
+	}
+
+	// if we arrive here, this should be the only possible case
+	if (ftype == ISREG && !endSlash) {
+		
+		_lggr.debug("File request with following extension: " + getExtension(req.uri));
+
+		// check if it is a script with a language supported by the location
+		// this replaces the "if (req.CGI) {" statement
+		if (conn->locConfig->acceptExtension(getExtension(req.uri))) {
+			std::string extPath = conn->locConfig->getExtensionPath(getExtension(req.uri));
+			_lggr.debug("Extension path is : " + extPath);
+			if (!CGIUtils::handle_CGI_request(req, conn->fd, conn->locConfig)) {
+				_lggr.error("Handling the CGI request failed.");
+				prepareResponse(conn, Response::badRequest(conn));
+				// closeConnection(conn);
+				return;
+			}
+			return ;
+		}
+
+		if (req.method != "GET") {
+			_lggr.debug("POST or DELETE request not handled by CGI -> not implemented response.");
+			prepareResponse(conn, Response::notImplemented(conn));
+			return;
+		} else {
+			prepareResponse(conn, handleFileRequest(conn, fullPath));
+			return;
+		}
+
+		_lggr.debug("Should never be reached");
+		prepareResponse(conn, Response::internalServerError(conn));
+		return;
+	}
+
 }
 
 bool WebServer::parseRequest(Connection *conn, ClientRequest &req) {
