@@ -141,10 +141,10 @@ void WebServer::processRequest(Connection *conn) {
 		if (!endSlash) {
 			_lggr.debug("Directory request without trailing slash, redirecting: " + req.uri);
 			std::string redirectPath = req.uri + "/";
-			handleReturnDirective(conn, 302, redirectPath);
+			prepareResponse(conn, handleReturnDirective(conn, 302, redirectPath));
 			return;
 		} else {
-			handleDirectoryRequest(conn, fullPath);
+			prepareResponse(conn, handleDirectoryRequest(conn, fullPath));
 			return;
 		}
 	}
@@ -154,7 +154,7 @@ void WebServer::processRequest(Connection *conn) {
 	if (ftype == ISREG && endSlash) {
 		_lggr.debug("File request with trailing slash, redirecting: " + req.uri);
 		std::string redirectPath = req.uri.substr(0, req.uri.length() - 1);
-		handleReturnDirective(conn, 302, redirectPath);
+		prepareResponse(conn, handleReturnDirective(conn, 302, redirectPath));
 		return ;
 	}
 
