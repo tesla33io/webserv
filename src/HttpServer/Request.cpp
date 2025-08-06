@@ -32,7 +32,7 @@ bool WebServer::handleCompleteRequest(Connection *conn) {
 bool WebServer::handleCGIRequest(ClientRequest &req, Connection *conn) {
 	Logger _lggr;
 
-	CGI *cgi = CGIUtils::create_CGI(req, conn->locConfig);
+	CGI *cgi = CGIUtils::createCGI(req, conn->locConfig);
 	if (!cgi)
 		return (false);
 	_cgi_pool[cgi->getOutputFd()] = std::make_pair(cgi, conn);
@@ -114,7 +114,8 @@ void WebServer::processRequest(Connection *conn) {
 	}
 
 	
-	std::string fullPath = buildFullPath(req.uri, conn->locConfig);
+	std::string fullPath = buildFullPath(req.path, conn->locConfig);
+	conn->locConfig->setFullPath(fullPath);
 	// security check
 	// TODO : normalize the path
 	if (fullPath.find("..") != std::string::npos) {
@@ -123,9 +124,7 @@ void WebServer::processRequest(Connection *conn) {
 		return ;
 	}
 
-	std::string path2 = fullPath.substr(0, fullPath.find("?"));
-	FileType ftype = checkFileType(path2);
-	//FileType ftype = checkFileType(fullPath);
+	FileType ftype = checkFileType(fullPath);
 	
 	// Error checking
 	if (ftype == NOT_FOUND_404){
@@ -176,16 +175,15 @@ void WebServer::processRequest(Connection *conn) {
 		_lggr.debug("File request with following extension: " + getExtension(req.uri));
 
 		// check if it is a script with a language supported by the location
-		// this replaces the "if (req.CGI) {" statement
-		if (conn->locConfig->acceptExtension(getExtension(req.uri))) {
-			std::string extPath = conn->locConfig->getExtensionPath(getExtension(req.uri));
+		if (conn->locConfig->acceptExtension(getExtension(req.path))) {
+			std::string extPath = conn->locConfig->getExtensionPath(getExtension(req.path));
 			_lggr.debug("Extension path is : " + extPath);
-			req.interpreter = extPath;
+			req.extension = getExtension(req.path);
 			if (!handleCGIRequest(req, conn)) {
 				_lggr.error("Handling the CGI request failed.");
 				prepareResponse(conn, Response::badRequest());
-			// closeConnection(conn);
-				return;
+				// closeConnection(conn);
+				return ;
 			}
 			return ;
 		}

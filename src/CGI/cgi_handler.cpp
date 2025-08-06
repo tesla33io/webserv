@@ -6,13 +6,13 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/31 10:18:53 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/06 10:55:15 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/06 15:00:19 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "CGI.hpp"
 
-bool CGIUtils::run_CGI_script(ClientRequest &req, CGI &cgi) {
+bool CGIUtils::runCGIScript(ClientRequest &req, CGI &cgi) {
 	Logger logger;
 
 	// 2. Creates char **envp
@@ -78,6 +78,25 @@ bool CGIUtils::run_CGI_script(ClientRequest &req, CGI &cgi) {
 	// Free environment in parent (child has its own copy after fork)
 	cgi.freeEnvp(envp);
 
+	usleep(10000); // 10ms delay to let execve complete or fail
+
+	// Check if execve failed
+	int status;
+	pid_t wait_result = waitpid(pid, &status, WNOHANG);
+	if (wait_result > 0) {
+		// Child exited immediately - execve likely failed
+		logger.logWithPrefix(Logger::ERROR, "CGI", "CGI script failed to execute");
+		close(input_pipe[1]);
+		close(output_pipe[0]);
+		return (false);
+	} else if (wait_result == -1) {
+		// waitpid error
+		logger.logWithPrefix(Logger::ERROR, "CGI", "Error checking child process status");
+		close(input_pipe[1]);
+		close(output_pipe[0]);
+		return (false);
+	}
+
 	// 6. Send POST data if any
 	if (req.method == "POST") {
 		logger.logWithPrefix(Logger::INFO, "CGI", "Handling POST request");
@@ -100,50 +119,7 @@ bool CGIUtils::run_CGI_script(ClientRequest &req, CGI &cgi) {
 	return (true);
 }
 
-/* bool CGIUtils::CGI_handler(ClientRequest &req, int clfd) {
-	Logger logger;
-	bool chunked = false;
-	// 1. Validate and construct script path
-	if (req.path.empty() || req.path.find("..") != std::string::npos) {
-		logger.logWithPrefix(Logger::WARNING, "CGI", "Invalid or potentially unsafe path");
-		return (false);
-	}
-
-	/// Heap allocated
-	CGI cgi(req);
-	if (std::strcmp(cgi.getInterpreter(), "") == 0)
-		return (false);
-	if (!run_CGI_script(req, cgi))
-		return (false);
-
-	// 7. Read response from CGI script
-	if (chunked) {
-		if (!cgi.send_chunked_resp(cgi, clfd))
-			return (false);
-	} else {
-		if (!cgi.send_normal_resp(cgi, clfd))
-			return (false);
-	}
-
-	// 8. Wait for child process and check exit status
-	int status;
-	if (waitpid(cgi.getPid(), &status, 0) == -1) {
-		logger.logWithPrefix(Logger::ERROR, "CGI", "Failed to wait for CGI process");
-		close(cgi.getOutputFd());
-		return (false);
-	}
-
-	if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
-		logger.logWithPrefix(Logger::ERROR, "CGI", "CGI script failed or was terminated");
-		close(cgi.getOutputFd());
-		return (false);
-	}
-	// 9. Clean up
-	close(cgi.getOutputFd());
-	return (true);
-} */
-
-CGI *CGIUtils::create_CGI(ClientRequest &req, LocConfig *locConfig) {
+CGI *CGIUtils::createCGI(ClientRequest &req, LocConfig *locConfig) {
 	Logger logger;
 	// 1. Validate and construct script path
 	if (req.path.empty() || req.path.find("..") != std::string::npos) {
@@ -153,9 +129,7 @@ CGI *CGIUtils::create_CGI(ClientRequest &req, LocConfig *locConfig) {
 
 	// Heap allocated
 	CGI *cgi = new CGI(req, locConfig);
-	if (std::strcmp(cgi->getInterpreter(), "") == 0)
-		return (NULL);
-	if (!run_CGI_script(req, *cgi))
+	if (!runCGIScript(req, *cgi))
 		return (NULL);
 
 	return (cgi);

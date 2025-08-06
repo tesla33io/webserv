@@ -6,28 +6,12 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/25 10:33:32 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/01 08:50:24 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/06 15:53:30 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../Logger/Logger.hpp"
 #include "request_parser.hpp"
-
-/* Utils */
-bool RequestParsingUtils::assign_method(std::string &method, ClientRequest &request) {
-	// TODO: do not preforme method check in the req parsing
-	request.method = method;
-	return true;
-	// if (method == "GET")
-	// 	request.method = GET;
-	// else if (method == "POST")
-	// 	request.method = POST;
-	// else if (method == "DELETE")
-	// 	request.method = DELETE_;
-	// else
-	// 	return (false);
-	// return (true);
-}
 
 /* URI checks */
 static bool is_hex_digit(char ch) {
@@ -74,8 +58,7 @@ bool decode_and_validate_uri(const std::string &uri, std::string &decoded) {
 		} else {
 			unsigned char uch = static_cast<unsigned char>(ch);
 
-			// Disallow unescaped control characters, DEL, space, quotes,
-			// backslash
+			// Disallow unescaped control characters, DEL, space, quotes, backslash
 			if (uch <= 0x1F || uch == 0x7F || uch == ' ' || uch == '"' || uch == '\'' ||
 			    uch == '\\')
 				return (false);
@@ -117,7 +100,7 @@ bool RequestParsingUtils::check_req_line(ClientRequest &request) {
 		return (false);
 	}
 	request.uri = decoded_uri;
-	size_t qm = request.uri.find('?');
+	size_t qm = request.uri.find_first_of('?');
 	if (qm != std::string::npos) {
 		request.path = request.uri.substr(0, qm);
 		request.query = request.uri.substr(qm + 1);
@@ -125,9 +108,6 @@ bool RequestParsingUtils::check_req_line(ClientRequest &request) {
 		request.path = request.uri;
 		request.query = "";
 	}
-
-	if (request.path.find("cgi-bin") != std::string::npos)
-		request.CGI = true;
 
 	if (request.version != "HTTP/1.1") {
 		logger.logWithPrefix(Logger::WARNING, "HTTP", "Invalid HTTP version");

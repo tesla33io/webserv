@@ -6,7 +6,7 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/27 11:55:56 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/06 14:03:31 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/06 15:59:13 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,8 +36,7 @@ struct ClientRequest {
 	int clfd;
 
 	// CGI request
-	bool CGI;
-	std::string interpreter;
+	std::string extension;
 
 	std::string toString();
 };

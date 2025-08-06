@@ -6,7 +6,7 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/31 08:58:57 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/06 14:04:06 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/06 15:58:59 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -39,7 +39,6 @@ class CGI {
 	static void freeEnvp(char **envp);
 
 	// Getters/Setters
-	//void setInterpreter(std::string &path);
 	void setInterpreter(std::string &interpreter);
 	const char *getInterpreter() const;
 	const char *getScriptPath() const;
@@ -62,9 +61,8 @@ class CGI {
 };
 
 namespace CGIUtils {
-bool run_CGI_script(ClientRequest &req, CGI &cgi);
-bool CGI_handler(ClientRequest &req, int clfd);
-CGI *create_CGI(ClientRequest &req, LocConfig *locConfig);
+bool runCGIScript(ClientRequest &req, CGI &cgi);
+CGI *createCGI(ClientRequest &req, LocConfig *locConfig);
 } // namespace CGIUtils
 
 #endif

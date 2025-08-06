@@ -6,7 +6,7 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/17 15:32:36 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/01 08:50:41 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/06 15:02:57 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,7 +25,6 @@ const size_t MAX_HEADER_VALUE_LENGTH = 8000;
 namespace RequestParsingUtils {
 bool check_and_trim_line(std::string &line);
 const char *find_header(ClientRequest &request, const std::string &header);
-bool assign_method(std::string &method, ClientRequest &request);
 std::string trim_side(const std::string &s, int type);
 bool check_req_line(ClientRequest &request);
 bool parse_req_line(std::istringstream &stream, ClientRequest &request);
