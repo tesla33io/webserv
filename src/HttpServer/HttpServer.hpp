@@ -6,11 +6,11 @@
 #include "../ConfigParser/config_parser.hpp"
 #include "../Logger/Logger.hpp"
 #include "../RequestParser/request_parser.hpp"
-#include "../Utils/StringUtils.hpp"
 #include "../Utils/GeneralUtils.hpp"
+#include "../Utils/StringUtils.hpp"
 
-#include "Response.hpp"
 #include "../CGI/CGI.hpp"
+#include "Response.hpp"
 
 #include <arpa/inet.h>
 #include <climits>
@@ -57,17 +57,18 @@
 /// keep-alive functionality.
 class Connection {
 	friend class WebServer;
-	
+
 	int fd;
 
 	ServerConfig *servConfig;
-	LocConfig *locConfig; 
+	LocConfig *locConfig;
 
 	time_t last_activity;
 	bool keep_persistent_connection;
 
 	std::string read_buffer;
 	size_t body_bytes_read; // for client_max_body_size
+	ssize_t content_length; // ignore if -1
 
 	bool chunked;
 	size_t chunk_size;
@@ -82,6 +83,7 @@ class Connection {
 	/// Represents the current state of request processing.
 	enum State {
 		READING_HEADERS,  ///< Reading request headers
+		READING_BODY,     ///< Reading request body, when Content-Length > 0
 		REQUEST_COMPLETE, ///< Complete request received
 
 		CONTINUE_SENT,         ///< 100-Continue response sent
@@ -121,8 +123,8 @@ class Connection {
 
 	void resetForNewRequest(); // reset locConfig body_bytes_read, ...
 
-  public :
-	ServerConfig* getServerConfig() const { return servConfig; }
+  public:
+	ServerConfig *getServerConfig() const { return servConfig; }
 };
 
 /// HTTP web server implementation using epoll for event-driven I/O.
@@ -165,7 +167,7 @@ class WebServer {
 
 	static const int CONNECTION_TO = 30;   // seconds
 	static const int CLEANUP_INTERVAL = 5; // seconds
-	static const int BUFFER_SIZE = 4096 * 3;
+	static const int BUFFER_SIZE = 1024 * 16;
 
 	Logger _lggr;
 	static std::map<uint16_t, std::string> err_messages;
@@ -267,7 +269,7 @@ class WebServer {
 	/// \param client_fd The client socket file descriptor.
 	/// \param sc The configuaration struct for the matching host:port server
 	/// \returns Pointer to the newly created Connection object.
-	Connection *addConnection(int client_fd, ServerConfig *sc) ;
+	Connection *addConnection(int client_fd, ServerConfig *sc);
 
 	/// !!! DEPRECATED !!!
 	/// Updates the last activity time for a connection.
@@ -350,6 +352,10 @@ class WebServer {
 	/// \param conn The connection that received chunked data.
 	void reconstructChunkedRequest(Connection *conn);
 
+	/// Reconstructs a complete request from multiple `recv` calls (when Content-Length > 0)
+	/// \param conn The connection
+	bool reconstructRequest(Connection *conn);
+
 	/// Handlers/EpollEventHandler.cpp
 
 	/// Processes events returned by epoll_wait.
@@ -384,8 +390,7 @@ class WebServer {
 	/// \param bytes_read Number of bytes received in this call.
 	/// \param total_bytes_read Total bytes received for this request.
 	/// \returns True if processing succeeded, false on error.
-	bool processReceivedData(Connection *conn, const char *buffer, ssize_t bytes_read,
-	                         ssize_t total_bytes_read);
+	bool processReceivedData(Connection *conn, const char *buffer, ssize_t bytes_read);
 
 	/// Handlers/ResponseHandler.cpp
 
@@ -424,7 +429,7 @@ class WebServer {
 	/// \param code The status code to send back.
 	/// \param target The uri or url to send.
 	/// \returns Response object containing the requested resource or error.
-	Response handleReturnDirective(Connection* conn, uint16_t code, std::string target);
+	Response handleReturnDirective(Connection *conn, uint16_t code, std::string target);
 
 	/// Handlers/FileHandler.cpp
 
@@ -437,27 +442,26 @@ class WebServer {
 	/// \param conn The connection to send response to.
 	/// \param dir_path The full path to the file to send.
 	/// \returns Response object containing the requested resource or error.
-	Response handleFileRequest(Connection* conn, const std::string& dir_path);
+	Response handleFileRequest(Connection *conn, const std::string &dir_path);
 
 	/// Prepares response data when a directory is requested
 	/// \param conn The connection to send response to.
 	/// \param dir_path The response object containing the path
 	/// \returns Response object containing the requested resource or error.
-	Response handleDirectoryRequest(Connection* conn, const std::string& dir_path);
+	Response handleDirectoryRequest(Connection *conn, const std::string &dir_path);
 
 	/// Prepares response data for transmission to client : directory listing
 	/// \param conn The connection to send response to.
 	/// \param fullDirPath The response object containing the file directory.
 	/// \returns Response object containing the requested resource or error.
-	Response generateDirectoryListing(Connection* conn, const std::string &fullDirPath);
+	Response generateDirectoryListing(Connection *conn, const std::string &fullDirPath);
 
 	// Utility methods
 	void findPendingConnections(int fd);
 	static void initErrMessages();
-	std::string buildFullPath(const std::string& uri, LocConfig *Location);
+	std::string buildFullPath(const std::string &uri, LocConfig *Location);
 	void logConnectionStats();
 };
-
 
 // Utility functions
 
@@ -479,7 +483,6 @@ LocConfig *findBestMatch(const std::string &uri, std::vector<LocConfig> &locatio
 /// \returns True if path is a regular file, false otherwise.
 // bool isRegularFile(const char *path);
 
-
 /// Converts epoll event flags to human-readable string representation.
 /// \param ev The epoll event flags to describe.
 /// \returns String representation of the events (e.g., "EPOLLIN | EPOLLOUT").
@@ -491,7 +494,6 @@ std::string describeEpollEvents(uint32_t ev);
 /// \returns Position of CRLF sequence, or string::npos if not found.
 size_t findCRLF(const std::string &buffer, size_t start_pos);
 
-
 /// Determines appropriate Content-Type header based on file extension.
 /// \param path The file path to analyze.
 /// \returns Content-Type string. Default : "application/octet-stream" (for arbitrary binary data)
@@ -500,26 +502,16 @@ std::string detectContentType(const std::string &path);
 // /// Determines the extension from a file path (no . allowed in the path).
 // /// \param path The file path to analyze.
 // /// \returns extension string (.html, .png, ...). Not found: returns "".
-std::string getExtension(const std::string& path);
+std::string getExtension(const std::string &path);
 
-enum MaxBody {
-		DEFAULT,
-		INFINITE,
-		SPECIFIED
-} ;
+enum MaxBody { DEFAULT, INFINITE, SPECIFIED };
 
-enum FileType {
-	ISDIR,
-	ISREG,
-	NOT_FOUND_404,
-	PERMISSION_DENIED_403,
-	FILE_SYSTEM_ERROR_500
-};
+enum FileType { ISDIR, ISREG, NOT_FOUND_404, PERMISSION_DENIED_403, FILE_SYSTEM_ERROR_500 };
 
 /// Determines the type of path: .
 /// \param path The path to analyze.
 /// \returns file type Directory, File, Denied access, Not found, Internal error.
-FileType checkFileType(std::string path) ;
+FileType checkFileType(std::string path);
 
-#endif  /* end of include guard: __HTTPSERVER_HPP__*/
+#endif /* end of include guard: __HTTPSERVER_HPP__*/
 

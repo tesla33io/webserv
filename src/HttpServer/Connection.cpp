@@ -150,6 +150,5 @@ void WebServer::closeConnection(Connection *conn) {
 		_connections.erase(conn->fd);
 	}
 	_lggr.debug("Connection cleanup completed for fd: " + su::to_string(conn->fd));
-	delete conn;
 }
 

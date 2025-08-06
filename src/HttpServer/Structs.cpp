@@ -8,6 +8,8 @@
 Connection::Connection(int socket_fd)
     : fd(socket_fd),
       keep_persistent_connection(true),
+      body_bytes_read(0),
+      content_length(-1),
       chunked(false),
       chunk_size(0),
       chunk_bytes_read(0),
@@ -32,6 +34,8 @@ std::string Connection::stateToString(Connection::State state) {
 	switch (state) {
 	case Connection::READING_HEADERS:
 		return "READING_HEADERS";
+	case Connection::READING_BODY:
+		return "READING_BODY";
 	case Connection::READING_CHUNK_SIZE:
 		return "READING_CHUNK_SIZE";
 	case Connection::READING_CHUNK_DATA:
@@ -68,7 +72,8 @@ std::string Connection::toString() {
 	time_buf[24] = '\0';
 
 	oss << "last_activity: " << time_buf << ", ";
-	oss << "read_buffer: \"" << read_buffer << "\", ";
+	oss << "content_length: " << content_length << ", ";
+	oss << "read_buffer->size(): " << read_buffer.size() << ", ";
 	oss << "response_ready: " << (response_ready ? "true" : "false") << ", ";
 	oss << "response_status: "
 	    << (response_ready ? su::to_string(response.status_code) + " " + response.reason_phrase

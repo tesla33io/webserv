@@ -14,7 +14,8 @@
 
 void WebServer::handleRequestTooLarge(Connection *conn, ssize_t bytes_read) {
 	_lggr.info("Reached max content length for fd: " + su::to_string(conn->fd) + ", " +
-	           su::to_string(bytes_read) + "/" + su::to_string(conn->getServerConfig()->getMaxBodySize()));
+	           su::to_string(bytes_read) + "/" +
+	           su::to_string(conn->getServerConfig()->getMaxBodySize()));
 	prepareResponse(conn, Response(413, conn));
 	// closeConnection(conn);
 }
@@ -94,7 +95,6 @@ void WebServer::processRequest(Connection *conn) {
 	conn->locConfig = match; // Set location context
 	_lggr.debug("[Resp] Matched location : " + match->path);
 
-
 	// check if RETURN directive in the matched location
 	if (conn->locConfig->hasReturn()) {
 		_lggr.debug("[Resp] The matched location has a return directive.");
@@ -104,16 +104,14 @@ void WebServer::processRequest(Connection *conn) {
 		return;
 	}
 
-
 	// Is the method allowed?
 	if (!conn->locConfig->hasMethod(req.method)) {
-		_lggr.warn("Method " + req.method + " is not allowed for location " + 
-				conn->locConfig->path);
+		_lggr.warn("Method " + req.method + " is not allowed for location " +
+		           conn->locConfig->path);
 		prepareResponse(conn, Response::methodNotAllowed(conn));
-		return ;
+		return;
 	}
 
-	
 	std::string fullPath = buildFullPath(req.path, conn->locConfig);
 	conn->locConfig->setFullPath(fullPath);
 	// security check
@@ -121,28 +119,28 @@ void WebServer::processRequest(Connection *conn) {
 	if (fullPath.find("..") != std::string::npos) {
 		_lggr.warn("Uri " + req.uri + " is not safe.");
 		prepareResponse(conn, Response::forbidden(conn));
-		return ;
+		return;
 	}
 
 	FileType ftype = checkFileType(fullPath);
-	
+
 	// Error checking
-	if (ftype == NOT_FOUND_404){
+	if (ftype == NOT_FOUND_404) {
 		_lggr.debug("Could not open : " + fullPath);
 		prepareResponse(conn, Response::notFound(conn));
-		return ;
-	} 
-	if (ftype == PERMISSION_DENIED_403){
+		return;
+	}
+	if (ftype == PERMISSION_DENIED_403) {
 		_lggr.debug("Permission denied : " + fullPath);
 		prepareResponse(conn, Response::forbidden(conn));
-		return ;
+		return;
 	}
-	if (ftype == FILE_SYSTEM_ERROR_500){
+	if (ftype == FILE_SYSTEM_ERROR_500) {
 		_lggr.debug("Other file access problem : " + fullPath);
 		prepareResponse(conn, Response::internalServerError(conn));
-		return ;
-	} 
-	
+		return;
+	}
+
 	// uri request ends with '/'
 	bool endSlash = (!req.uri.empty() && req.uri[req.uri.length() - 1] == '/');
 
@@ -166,12 +164,12 @@ void WebServer::processRequest(Connection *conn) {
 		_lggr.debug("File request with trailing slash, redirecting: " + req.uri);
 		std::string redirectPath = req.uri.substr(0, req.uri.length() - 1);
 		prepareResponse(conn, handleReturnDirective(conn, 302, redirectPath));
-		return ;
+		return;
 	}
 
 	// if we arrive here, this should be the only possible case
 	if (ftype == ISREG && !endSlash) {
-		
+
 		_lggr.debug("File request with following extension: " + getExtension(req.uri));
 
 		// check if it is a script with a language supported by the location
@@ -183,9 +181,9 @@ void WebServer::processRequest(Connection *conn) {
 				_lggr.error("Handling the CGI request failed.");
 				prepareResponse(conn, Response::badRequest());
 				// closeConnection(conn);
-				return ;
+				return;
 			}
-			return ;
+			return;
 		}
 
 		if (req.method != "GET") {
@@ -201,7 +199,6 @@ void WebServer::processRequest(Connection *conn) {
 		prepareResponse(conn, Response::internalServerError(conn));
 		return;
 	}
-
 }
 
 bool WebServer::parseRequest(Connection *conn, ClientRequest &req) {
@@ -221,6 +218,18 @@ bool WebServer::isRequestComplete(Connection *conn) {
 	case Connection::READING_HEADERS:
 		_lggr.debug("isRequestComplete->READING_HEADERS");
 		return isHeadersComplete(conn);
+
+	case Connection::READING_BODY:
+		_lggr.debug("isRequestComplete->READING_BODY");
+		_lggr.debug(su::to_string(conn->content_length - conn->body_bytes_read) +
+		            " bytes left to receive");
+		if (static_cast<ssize_t>(conn->body_bytes_read) >= conn->content_length) {
+			_lggr.debug("Read full content-length");
+			conn->state = Connection::REQUEST_COMPLETE;
+			reconstructRequest(conn);
+			return true;
+		}
+		return false;
 
 	case Connection::CONTINUE_SENT:
 		_lggr.debug("isRequestComplete->CONTINUE_SENT");
@@ -258,10 +267,50 @@ bool WebServer::isHeadersComplete(Connection *conn) {
 
 	// Headers are complete, check if this is a chunked request
 	std::string headers = conn->read_buffer.substr(0, header_end + 4);
-
 	std::string headers_lower = su::to_lower(headers);
 
-	if (headers_lower.find("transfer-encoding: chunked") != std::string::npos) {
+	if (headers_lower.find("content-length: ") != std::string::npos) {
+		_lggr.debug("Found `Content-Length` header");
+		size_t cl_start = headers_lower.find("content-length: ") + 16;
+		size_t cl_end = headers_lower.find("\r\n", cl_start);
+
+		if (cl_end == std::string::npos) {
+			// TODO: handle malformed header
+			_lggr.error("Malformed header");
+			conn->content_length = -1;
+			conn->state = Connection::REQUEST_COMPLETE;
+			return true;
+		}
+
+		std::string cl_value = headers.substr(cl_start, cl_end - cl_start);
+
+		char *endptr;
+		long parsed_length = std::strtol(cl_value.c_str(), &endptr, 10);
+
+		if (*endptr != '\0' || parsed_length < 0) {
+			conn->content_length = -1;
+		} else {
+			conn->content_length = static_cast<ssize_t>(parsed_length);
+		}
+
+		conn->chunked = false;
+		conn->headers_buffer = headers;
+
+		std::string remaining_data = conn->read_buffer.substr(header_end + 4);
+		conn->read_buffer = remaining_data;
+
+		conn->body_bytes_read = remaining_data.size();
+
+		conn->state = Connection::READING_BODY;
+
+		if (static_cast<ssize_t>(conn->body_bytes_read) >= conn->content_length) {
+			conn->state = Connection::REQUEST_COMPLETE;
+			return true;
+		}
+
+		return false;
+
+	} else if (headers_lower.find("transfer-encoding: chunked") != std::string::npos) {
 		conn->chunked = true;
 		// conn->state = Connection::READING_CHUNK_SIZE;
 		conn->headers_buffer = headers;
@@ -294,6 +343,7 @@ bool WebServer::isHeadersComplete(Connection *conn) {
 		conn->state = Connection::REQUEST_COMPLETE;
 		return true;
 	}
+	return false;
 }
 
 bool WebServer::processChunkSize(Connection *conn) {
@@ -416,3 +466,26 @@ void WebServer::reconstructChunkedRequest(Connection *conn) {
 	_lggr.debug("Reconstructed chunked request, total body size: " +
 	            su::to_string(conn->chunk_data.length()));
 }
+
+bool WebServer::reconstructRequest(Connection *conn) {
+	std::string reconstructed_request;
+
+	if (conn->headers_buffer.empty()) {
+		_lggr.warn("Cannot reconstruct request: headers not available");
+		return false;
+	}
+
+	reconstructed_request = conn->headers_buffer;
+
+	if (conn->content_length > 0) {
+		size_t body_size =
+		    std::min(static_cast<size_t>(conn->content_length), conn->read_buffer.size());
+		reconstructed_request += conn->read_buffer.substr(0, body_size);
+	}
+
+	conn->read_buffer = reconstructed_request;
+	_lggr.debug("Reconstructed request:\n" + conn->read_buffer);
+
+	return true;
+}
+

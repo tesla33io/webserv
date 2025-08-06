@@ -141,14 +141,11 @@ void WebServer::handleClientRecv(Connection *conn) {
 	conn->updateActivity();
 
 	char buffer[BUFFER_SIZE];
-	ssize_t total_bytes_read = 0;
 
 	ssize_t bytes_read = receiveData(conn->fd, buffer, sizeof(buffer) - 1);
 
 	if (bytes_read > 0) {
-		total_bytes_read += bytes_read;
-
-		if (!processReceivedData(conn, buffer, bytes_read, total_bytes_read)) {
+		if (!processReceivedData(conn, buffer, bytes_read)) {
 			return;
 		}
 	} else if (bytes_read == 0) {
@@ -177,9 +174,13 @@ ssize_t WebServer::receiveData(int client_fd, char *buffer, size_t buffer_size) 
 	return bytes_read;
 }
 
-bool WebServer::processReceivedData(Connection *conn, const char *buffer, ssize_t bytes_read,
-                                    ssize_t total_bytes_read) {
+bool WebServer::processReceivedData(Connection *conn, const char *buffer, ssize_t bytes_read) {
 	conn->read_buffer += std::string(buffer);
+
+	if (conn->state == Connection::READING_BODY) {
+		conn->body_bytes_read += bytes_read;
+		_lggr.debug("Read " + su::to_string(conn->body_bytes_read) + " bytes so far");
+	}
 
 	_lggr.debug("Checking if request was completed");
 	if (isRequestComplete(conn)) {
@@ -190,14 +191,21 @@ bool WebServer::processReceivedData(Connection *conn, const char *buffer, ssize_
 		if (conn->chunked && conn->state == Connection::CONTINUE_SENT) {
 			return true;
 		}
-		if (!conn->getServerConfig()->infiniteBodySize()
-	 		      && total_bytes_read > static_cast<ssize_t>(conn->getServerConfig()->getMaxBodySize())) {
+		if (!conn->getServerConfig()->infiniteBodySize() &&
+		    conn->body_bytes_read > conn->getServerConfig()->getMaxBodySize()) {
 			_lggr.debug("Request is too large");
 			handleRequestTooLarge(conn, bytes_read);
 			return false;
 		}
 
 		return handleCompleteRequest(conn);
+	}
+
+	if (conn->state == Connection::READING_BODY && !conn->getServerConfig()->infiniteBodySize() &&
+	    conn->body_bytes_read > conn->getServerConfig()->getMaxBodySize()) {
+		_lggr.debug("Request body exceeds size limit");
+		handleRequestTooLarge(conn, bytes_read);
+		return false;
 	}
 
 	return true;
