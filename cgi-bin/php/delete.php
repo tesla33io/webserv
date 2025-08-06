@@ -1,7 +1,6 @@
 #!/usr/bin/php-cgi
 <?php
 
-//$upload_dir = "../../www/uploads/";
 $upload_dir = getenv('UPLOAD_DIR');
 $deleted = false;
 $error_message = '';

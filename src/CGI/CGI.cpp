@@ -6,7 +6,7 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/31 09:07:54 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/06 13:42:54 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/06 14:03:45 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,15 +21,13 @@ CGI::CGI(ClientRequest &request, LocConfig *locConfig) {
 		setEnv("CONTENT_TYPE", request.headers["content-type"]);
 		setEnv("CONTENT_LENGTH", request.headers["content-length"]);
 	}
-	if (request.method == "POST" || request.method == "DELETE") {
+	if (request.method == "POST" || request.method == "DELETE")
 		setEnv("UPLOAD_DIR", "../.." + locConfig->getUploadPath());
-		//setEnv("UPLOAD_DIR", "../../www/uploads/");
-	}
 	setEnv("SERVER_SOFTWARE", "CustomCGI/1.0");
 	setEnv("GATEWAY_INTERFACE", "CGI/1.1");
 	setEnv("REDIRECT_STATUS", "200");
-	script_path_ = std::string(std::getenv("PWD")) + "/" + request.path;
-	setInterpreter(script_path_);
+	setInterpreter(request.interpreter);
+	//setInterpreter(script_path_);
 }
 
 // Set or update an environment variable
@@ -77,7 +75,11 @@ void CGI::freeEnvp(char **envp) {
 
 /* SETTERS / GETTERS */
 
-void CGI::setInterpreter(std::string &path) {
+void CGI::setInterpreter(std::string &interpreter) {
+	interpreter_ = interpreter;
+}
+
+/* void CGI::setInterpreter(std::string &path) {
 	Logger logger;
 	std::ifstream file(path.c_str());
 	if (!file.is_open()) {
@@ -97,7 +99,7 @@ void CGI::setInterpreter(std::string &path) {
 		logger.logWithPrefix(Logger::WARNING, "CGI", "Empty cgi file");
 		interpreter_ = "";
 	}
-}
+} */
 const char *CGI::getInterpreter() const { return (interpreter_.c_str()); }
 
 const char *CGI::getScriptPath() const { return (script_path_.c_str()); }

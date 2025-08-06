@@ -92,8 +92,6 @@ void WebServer::processRequest(Connection *conn) {
 		return;
 	}
 	conn->locConfig = match; // Set location context
-	std::cout << "          PATH: " << match->getPath() << std::endl;
-	std::cout << "          UPLOAD PATH: " << match->getUploadPath() << std::endl;
 	_lggr.debug("[Resp] Matched location : " + match->path);
 
 
@@ -182,6 +180,7 @@ void WebServer::processRequest(Connection *conn) {
 		if (conn->locConfig->acceptExtension(getExtension(req.uri))) {
 			std::string extPath = conn->locConfig->getExtensionPath(getExtension(req.uri));
 			_lggr.debug("Extension path is : " + extPath);
+			req.interpreter = extPath;
 			if (!handleCGIRequest(req, conn)) {
 				_lggr.error("Handling the CGI request failed.");
 				prepareResponse(conn, Response::badRequest());

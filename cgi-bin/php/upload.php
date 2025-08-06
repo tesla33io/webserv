@@ -1,7 +1,6 @@
 #!/usr/bin/php-cgi
 <?php
 
-//$upload_dir = "../../www/uploads/";
 $upload_dir = getenv('UPLOAD_DIR');
 
 // Create upload directory if it doesn't exist
