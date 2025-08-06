@@ -16,7 +16,6 @@ http {
 		}
 
 		location /uploads {
-			#alias /up/www/
 			allowed_methods POST GET;
 			autoindex on;
 		}

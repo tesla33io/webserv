@@ -10,7 +10,8 @@ bool ConfigParser::loadConfig(const std::string& filePath, std::vector<ServerCon
 	if (!configparser.parseTree(filePath, tree))
 		return false;
 
-	configparser.convertTreeToStruct(tree, servers);
+	if (!configparser.convertTreeToStruct(tree, servers))
+		return false;
 
 	return true;
 }
@@ -44,7 +45,6 @@ bool ConfigParser::parseTreeBlocks(std::ifstream &file, int &line_nb, ConfigNode
 	std::string accumulated_line;
 	std::string line;
 	int statement_start_line = 0;
-	bool flag_error = false;
 
 	while (std::getline(file, line)) {
 
@@ -53,21 +53,27 @@ bool ConfigParser::parseTreeBlocks(std::ifstream &file, int &line_nb, ConfigNode
 		if (clean.empty())
 			continue;
 
-		if (accumulated_line.empty())
-			statement_start_line = line_nb;
-		if (!accumulated_line.empty())
-			accumulated_line += " " + clean;
-		else
+		// Traitement des lignes structurelles (blocs)
+		if (clean.find('{') != std::string::npos || clean.find('}') != std::string::npos) {
+			if (!accumulated_line.empty())
+				accumulated_line += " " + clean;
+			else {
+				accumulated_line = clean;
+				statement_start_line = line_nb;
+			}
+		}
+		// Traitement des directives simples (se terminant par ;)
+		else if (!clean.empty() && clean[clean.size() - 1] == ';') {
 			accumulated_line = clean;
-
-		bool complete_statement = false;
-		if (accumulated_line[accumulated_line.size() - 1] == ';' ||
-		    accumulated_line[accumulated_line.size() - 1] == '}' ||
-		    accumulated_line[accumulated_line.size() - 1] == '{')
-			complete_statement = true;
-		else
-			continue;
-		(void)complete_statement;
+			statement_start_line = line_nb;
+		}
+		// Ligne non reconnue (directive sans ;)
+		else {
+			logg_.logWithPrefix(Logger::ERROR, "CONFIG",
+			                    "Missing ';' at end of directive at line " +
+			                        su::to_string(line_nb) + ": \"" + clean + "\"");
+			return false;
+		}
 
 		std::string statement = accumulated_line;
 		accumulated_line.clear();
@@ -88,12 +94,6 @@ bool ConfigParser::parseTreeBlocks(std::ifstream &file, int &line_nb, ConfigNode
 				return false;
 
 			if (!parseTreeBlocks(file, line_nb, childNode)) {
-				if (flag_error == false) {
-					logg_.logWithPrefix(Logger::ERROR, "CONFIG",
-										"Unexpected token or structure at line " +
-											su::to_string(line_nb) + ": " + statement);
-					flag_error = true;
-				}
 				return false;
 			}
 			parent.children_.push_back(childNode);

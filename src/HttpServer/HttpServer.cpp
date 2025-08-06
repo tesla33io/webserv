@@ -30,6 +30,9 @@ WebServer::WebServer(std::vector<ServerConfig> &confs, std::string &prefix_path)
       _root_prefix_path(prefix_path),
       _confs(confs),
       _lggr("ws.log", Logger::DEBUG, true) {
+	 for (std::vector<ServerConfig>::iterator it = _confs.begin(); it != _confs.end(); ++it) {
+        it->root_prefix = _root_prefix_path;
+    }
 	_lggr.info("An instance of the Webserver was created.");
 }
 
@@ -169,7 +172,6 @@ bool WebServer::createAndConfigureSocket(ServerConfig &config, const struct addr
 
 // https://stackoverflow.com/questions/14388706/how-do-so-reuseaddr-and-so-reuseport-differ
 bool WebServer::setSocketOptions(int socket_fd, const std::string &host, const int port) {
-	return true; // disable non-blocking for now
 	int reuse_addr = 1;
 	if (setsockopt(socket_fd, SOL_SOCKET, SO_REUSEADDR, &reuse_addr, sizeof(reuse_addr)) == -1) {
 		_lggr.logWithPrefix(Logger::ERROR, host + ":" + su::to_string<int>(port),
@@ -268,23 +270,8 @@ inline time_t WebServer::getCurrentTime() const { return time(NULL); }
 
 bool WebServer::isConnectionExpired(const Connection *conn) const {
 	time_t current_time = getCurrentTime();
-	time_t timeout = conn->keep_alive ? KEEP_ALIVE_TO : CONNECTION_TO;
+	time_t timeout = CONNECTION_TO;
 	return (current_time - conn->last_activity) > timeout;
-}
-
-void WebServer::logConnectionStats() {
-	size_t active_connections = _connections.size();
-	size_t keep_alive_connections = 0;
-
-	for (std::map<int, Connection *>::const_iterator it = _connections.begin();
-	     it != _connections.end(); ++it) {
-		if (it->second->keep_alive) {
-			keep_alive_connections++;
-		}
-	}
-
-	_lggr.info("Connection Stats - Active: " + su::to_string(active_connections) +
-	           ", Keep-Alive: " + su::to_string(keep_alive_connections));
 }
 
 void WebServer::cleanup() {
@@ -323,6 +310,8 @@ void WebServer::cleanup() {
 //	}
 //}
 
+
+// DEPRECATED // to double check
 Connection *WebServer::getConnection(int client_fd) {
 	std::map<int, Connection *>::iterator conn_it = _connections.find(client_fd);
 	if (conn_it == _connections.end()) {
@@ -355,8 +344,6 @@ int main(int argc, char *argv[]) {
 		std::cerr << "Use --help for usage information." << std::endl;
 		return 1;
 	}
-
-	Logger lgger("config_prasing.log", Logger::INFO, true);
 
 	ConfigParser configparser;
 	std::vector<ServerConfig> servers;

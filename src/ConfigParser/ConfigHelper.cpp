@@ -52,57 +52,77 @@ bool ConfigParser::isValidIPv4(const std::string& ip) {
 	return (count == 4);
 }
 
-// valid uri: starts with /, pas de guillemets or ..
-bool ConfigParser::isValidUri(const std::string& uri) {
-	if (uri.empty())
-		return false;
-	if (uri[0] != '/')
-		return false;
-	if (uri.find('"') != std::string::npos)
-		return false;
-	if (uri.find("..") != std::string::npos)
-		return false;
-	return true;
-}
-
-// valid uri: starts with https:// or http:// - pas de guillemets or ..
-bool ConfigParser::isValidUrl(const std::string& url) {
-
-	if (url.empty())
-		return false;
-	if (url.find("http://") == 0 || url.find("https://") == 0) {
-		if (url.find('"') != std::string::npos)
-			return false;
-		if (url.find("..") != std::string::npos)
-			return false;
+// location path, return target uri, upload_path, root
+// starts with /, allow common char
+bool ConfigParser::isValidUri(const std::string& str) {
+	if (str[0] == '/') {
+		for (size_t i = 0; i < str.length(); ++i) {
+			char c = str[i];
+			if (!std::isalnum(c) && c != '/' && c != '-' && c != '_' && 
+				c != '?' && c != '&' && c != '=' && c != '#' && 
+				c != '%' && c != ':' && c != '@' && c != '~') {
+				return false;
+			}
+		}
 		return true;
 	}
 	return false;
 }
 
-// valid uri + pas de .. + pas de slash at the end
-bool ConfigParser::isValidPath(const std::string& path) {
-	if (!isValidUri(path))
-		return false;
-	if (path.find("..") != std::string::npos)  // Only reject ".."
-		return false;
-	if (path[path.size() - 1] == '/')
-		return false;
+// index basic validation - no spaces, valid characters
+bool ConfigParser::hasOKChar(const std::string& str) {
+	for (size_t i = 0; i < str.length(); ++i) {
+		char c = str[i];
+		if (!std::isalnum(c) && c != '/' && c != '-' && c != '_' && 
+			c != '?' && c != '.' && c != '&' && c != '=' && c != '#' && 
+			c != '%' && c != ':' && c != '@' && c != '~') {
+			return false;
+		}
+	}
 	return true;
 }
 
+// check if URL is HTTP/HTTPS
+bool ConfigParser::isHttp(const std::string& url) {
+	if (url.empty()) 
+		return false;
+	if (su::starts_with(url, "http://") && url.size() > 7) 
+		return true;
+	if (su::starts_with(url, "https://") && url.size() > 8) 
+		return true;
+	return false;
+}
+
+
+const int http_status_codes[] = {
+	300, 301, 302, 303, 307, 308,
+	400, 401, 402, 403, 404, 405, 406, 407, 408, 409,
+	410, 411, 412, 413, 414, 415, 416, 417, 418, 421,
+	422, 423, 424, 425, 426, 428, 429, 431, 451,
+	500, 501, 502, 503, 504, 505, 506, 507, 508, 510, 511
+};
+
+// Helper function to check if code is in the list
+bool ConfigParser::unknownCode(uint16_t code) {
+	size_t count = sizeof(http_status_codes) / sizeof(http_status_codes[0]);
+	for (size_t i = 0; i < count; ++i) {
+		if (http_status_codes[i] == code)
+			return false; 
+	}
+	return true; 
+}
+
 // for multi-context directives (e.g. "server", "location")
-std::vector<std::string> ConfigParser::makeVector(const std::string& a, const std::string& b) const{
+std::vector<std::string> ConfigParser::makeVector(const std::string& a, const std::string& b) {
 	std::vector<std::string> v;
 	v.push_back(a);
 	v.push_back(b);
 	return v;
 }
 
-
 /////////////
 // PRINT TREE
-std::string ConfigParser::joinArgs(const std::vector<std::string>& args) const {
+std::string ConfigParser::joinArgs(const std::vector<std::string>& args) {
 	if (args.empty()) return "";
 	
 	std::string result = args[0];
@@ -112,7 +132,7 @@ std::string ConfigParser::joinArgs(const std::vector<std::string>& args) const {
 	return result;
 }
 void ConfigParser::printTree(const ConfigNode& node, const std::string& prefix, 
-	                         bool isLast, std::ostream &os) const {
+							 bool isLast, std::ostream &os) const {
 	os << prefix;
 	os << (isLast ? "└── " : "├── ");
 	os << node.name_; 
@@ -149,9 +169,6 @@ void ConfigParser::printLocationConfig(const LocConfig &loc, std::ostream &os) c
 	
 	if (!loc.root.empty())
 		os << "    Root: " << loc.root << "\n";
-	
-	if (!loc.alias.empty())
-		os << "    Alias: " << loc.alias << "\n";
 	
 	if (!loc.index.empty()) {
 		os << "    Index: " << loc.index << "\n";
@@ -193,7 +210,7 @@ void ConfigParser::printServerConfig(const ServerConfig &server, std::ostream &o
 	
 	if (!server.error_pages.empty()) {
 		os << "  Error pages:\n";
-		for (std::map<int, std::string>::const_iterator it = server.error_pages.begin(); 
+		for (std::map<uint16_t, std::string>::const_iterator it = server.error_pages.begin(); 
 			 it != server.error_pages.end(); ++it) {
 			os << "    " << it->first << " -> " << it->second << "\n";
 		}

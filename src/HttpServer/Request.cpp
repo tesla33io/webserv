@@ -1,4 +1,5 @@
 #include "HttpServer.hpp"
+#include "src/CGI/cgi.hpp"
 #include "src/Logger/Logger.hpp"
 #include "src/RequestParser/request_parser.hpp"
 #include "src/Utils/StringUtils.hpp"
@@ -14,14 +15,15 @@
 
 void WebServer::handleRequestTooLarge(Connection *conn, ssize_t bytes_read) {
 	_lggr.info("Reached max content length for fd: " + su::to_string(conn->fd) + ", " +
-	           su::to_string(bytes_read) + "/" + su::to_string(4096));
-	prepareResponse(conn, Response(413));
+	           su::to_string(bytes_read) + "/" + su::to_string(conn->getServerConfig()->getMaxBodySize()));
+	prepareResponse(conn, Response(413, conn));
 	// closeConnection(conn);
 }
 
 bool WebServer::handleCompleteRequest(Connection *conn) {
 	processRequest(conn);
 
+	_lggr.debug("Request was processed. Read buffer will be cleaned");
 	conn->read_buffer.clear();
 	conn->request_count++;
 	conn->updateActivity();
@@ -52,13 +54,19 @@ void WebServer::processRequest(Connection *conn) {
 		return;
 	_lggr.debug("Request parsed sucsessfully");
 
+	// RFC 2068 Section 8.1 -- presistent connection unless client or server sets connection header
+	// to 'close' -- indicating that the socket for this connection may be closed
+	if (req.headers.find("connection") != req.headers.end()) {
+		if (req.headers["connection"] == "close") {
+			conn->keep_persistent_connection = false;
+		}
+	}
+
 	if (req.chunked_encoding && conn->state == Connection::READING_HEADERS) {
 		// Accept chunked requests sequence
 		_lggr.debug("Accepting a chunked request");
 		conn->state = Connection::READING_CHUNK_SIZE;
 		conn->chunked = true;
-		conn->keep_alive = true;
-		conn->force_close = false;
 		prepareResponse(conn, Response::continue_());
 		return;
 	}
@@ -77,24 +85,123 @@ void WebServer::processRequest(Connection *conn) {
 
 	_lggr.debug("FD " + su::to_string(req.clfd) + " ClientRequest {" + req.toString() + "}");
 	std::string response;
+	// initialize the correct locConfig // default "/"
+	LocConfig *match = findBestMatch(req.uri, conn->servConfig->locations);
+	if (!match) {
+		_lggr.error("[Resp] No matched location for : " + req.uri);
+		prepareResponse(conn, Response::internalServerError(conn));
+		return;
+	}
+	conn->locConfig = match; // Set location context
+	_lggr.debug("[Resp] Matched location : " + match->path);
 
-	if (req.CGI) {
-		if (!handleCGIRequest(req, conn)) {
-			_lggr.error("Handling the CGI request failed.");
-			prepareResponse(conn, Response::badRequest());
-			// closeConnection(conn);
+
+	// check if RETURN directive in the matched location
+	if (conn->locConfig->hasReturn()) {
+		_lggr.debug("[Resp] The matched location has a return directive.");
+		uint16_t code = conn->locConfig->return_code;
+		std::string target = conn->locConfig->return_target;
+		prepareResponse(conn, handleReturnDirective(conn, code, target));
+		return;
+	}
+
+
+	// Is the method allowed?
+	if (!conn->locConfig->hasMethod(req.method)) {
+		_lggr.warn("Method " + req.method + " is not allowed for location " + 
+				conn->locConfig->path);
+		prepareResponse(conn, Response::methodNotAllowed(conn));
+		return ;
+	}
+
+	
+	std::string fullPath = buildFullPath(req.uri, conn->locConfig);
+	// security check
+	// TODO : normalize the path
+	if (fullPath.find("..") != std::string::npos) {
+		_lggr.warn("Uri " + req.uri + " is not safe.");
+		prepareResponse(conn, Response::forbidden(conn));
+		return ;
+	}
+
+	FileType ftype = checkFileType(fullPath);
+	
+	// Error checking
+	if (ftype == NOT_FOUND_404){
+		_lggr.debug("Could not open : " + fullPath);
+		prepareResponse(conn, Response::notFound(conn));
+		return ;
+	} 
+	if (ftype == PERMISSION_DENIED_403){
+		_lggr.debug("Permission denied : " + fullPath);
+		prepareResponse(conn, Response::forbidden(conn));
+		return ;
+	}
+	if (ftype == FILE_SYSTEM_ERROR_500){
+		_lggr.debug("Other file access problem : " + fullPath);
+		prepareResponse(conn, Response::internalServerError(conn));
+		return ;
+	} 
+	
+	// uri request ends with '/'
+	bool endSlash = (!req.uri.empty() && req.uri[req.uri.length() - 1] == '/');
+
+	// Directory requests
+	if (ftype == ISDIR) {
+		_lggr.debug("Directory request: " + fullPath);
+		if (!endSlash) {
+			_lggr.debug("Directory request without trailing slash, redirecting: " + req.uri);
+			std::string redirectPath = req.uri + "/";
+			prepareResponse(conn, handleReturnDirective(conn, 302, redirectPath));
+			return;
+		} else {
+			prepareResponse(conn, handleDirectoryRequest(conn, fullPath));
 			return;
 		}
-	} else {
-		if (req.method == "GET") {
-			// TODO: do some check if handleGetRequest did not encounter any issues
-			prepareResponse(conn, handleGetRequest(req));
-		} else if (req.method == "POST" || req.method == "DELETE_") {
-			prepareResponse(conn, Response(501));
-		} else {
-			prepareResponse(conn, Response::methodNotAllowed());
-		}
 	}
+
+	// Handle file requests with trailing /
+	_lggr.debug("File request: " + fullPath);
+	if (ftype == ISREG && endSlash) {
+		_lggr.debug("File request with trailing slash, redirecting: " + req.uri);
+		std::string redirectPath = req.uri.substr(0, req.uri.length() - 1);
+		prepareResponse(conn, handleReturnDirective(conn, 302, redirectPath));
+		return ;
+	}
+
+	// if we arrive here, this should be the only possible case
+	if (ftype == ISREG && !endSlash) {
+		
+		_lggr.debug("File request with following extension: " + getExtension(req.uri));
+
+		// check if it is a script with a language supported by the location
+		// this replaces the "if (req.CGI) {" statement
+		if (conn->locConfig->acceptExtension(getExtension(req.uri))) {
+			std::string extPath = conn->locConfig->getExtensionPath(getExtension(req.uri));
+			_lggr.debug("Extension path is : " + extPath);
+			if (!CGIUtils::handle_CGI_request(req, conn->fd, conn->locConfig)) {
+				_lggr.error("Handling the CGI request failed.");
+				prepareResponse(conn, Response::badRequest(conn));
+				// closeConnection(conn);
+				return;
+			}
+			return ;
+		}
+
+		if (req.method != "GET") {
+			_lggr.debug("POST or DELETE request not handled by CGI -> not implemented response.");
+			prepareResponse(conn, Response::notImplemented(conn));
+			return;
+		} else {
+			prepareResponse(conn, handleFileRequest(conn, fullPath));
+			return;
+		}
+
+		_lggr.debug("Should never be reached");
+		prepareResponse(conn, Response::internalServerError(conn));
+		return;
+	}
+
 }
 
 bool WebServer::parseRequest(Connection *conn, ClientRequest &req) {
@@ -102,7 +209,7 @@ bool WebServer::parseRequest(Connection *conn, ClientRequest &req) {
 	if (!RequestParsingUtils::parse_request(conn->read_buffer, req)) {
 		_lggr.error("Parsing of the request failed.");
 		_lggr.debug("FD " + su::to_string(conn->fd) + " " + conn->toString());
-		prepareResponse(conn, Response::badRequest());
+		prepareResponse(conn, Response::badRequest(conn));
 		// closeConnection(conn);
 		return false;
 	}
@@ -160,8 +267,6 @@ bool WebServer::isHeadersComplete(Connection *conn) {
 		conn->headers_buffer = headers;
 
 		if (headers_lower.find("expect: 100-continue") != std::string::npos) {
-			conn->keep_alive = true;
-			conn->force_close = false;
 			prepareResponse(conn, Response::continue_());
 
 			conn->state = Connection::CONTINUE_SENT;

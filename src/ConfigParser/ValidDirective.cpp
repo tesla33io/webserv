@@ -27,7 +27,6 @@ void ConfigParser::initValidDirectives() {
 	// location only level
 	validDirectives_.push_back(Validity("autoindex",  std::vector<std::string>(1, "location"), false, 1, 1, &ConfigParser::validateAutoIndex));
 	validDirectives_.push_back(Validity("return", std::vector<std::string>(1, "location"), false, 1, 2, &ConfigParser::validateReturn));
-	validDirectives_.push_back(Validity("alias", std::vector<std::string>(1, "location"),  false, 1, 1, &ConfigParser::validateAlias));
 }
 
 // CHECK NB OF ARGS, CONTEXT, DUPLICATES, TAILORED VALIDITY FUNCTION
@@ -43,7 +42,8 @@ bool ConfigParser::validateDirective(const ConfigNode& node, const ConfigNode& p
 				}
 			}
 			if (!contextOK) {
-				logg_.logWithPrefix(Logger::WARNING, "Configuration file", "Directive '" + node.name_ + "' is not allowed in context '" + parent.name_ + "'.");
+				logg_.logWithPrefix(Logger::WARNING, "Configuration file", "Directive '" + node.name_ 
+					+ "' is not allowed in context '" + parent.name_ + "' on line "+ su::to_string(node.line_));
 				return false;
 			}
 			if (!it->repeatOK_) {
@@ -54,13 +54,15 @@ bool ConfigParser::validateDirective(const ConfigNode& node, const ConfigNode& p
 					}
 				}
 				if (count > 0) {
-					logg_.logWithPrefix(Logger::WARNING, "Configuration file", "Directive '" + node.name_ + "' cannot be repeated in context '" + parent.name_ + "'.");
+					logg_.logWithPrefix(Logger::WARNING, "Configuration file", "Directive '" + node.name_ 
+						+ "' cannot be repeated in context '" + parent.name_ + "' on line "+ su::to_string(node.line_));
 					return false;
 				}
 			}
 			if (node.args_.size() < it->minArgs_ || node.args_.size() > it->maxArgs_) {
 				logg_.logWithPrefix(Logger::WARNING, "Configuration file", "Directive '" + node.name_ + "' expects between " +
-					su::to_string(it->minArgs_) + " and " + su::to_string(it->maxArgs_) + " arguments, but got " + su::to_string(node.args_.size()) + ".");
+					su::to_string(it->minArgs_) + " and " + su::to_string(it->maxArgs_) + " arguments, but got " 
+					+ su::to_string(node.args_.size()) + " on line "+ su::to_string(node.line_));
 				return false;
 			}
 			if (it->validF_ != NULL) {
@@ -70,13 +72,14 @@ bool ConfigParser::validateDirective(const ConfigNode& node, const ConfigNode& p
 			return true;
 		}
 	}
-	logg_.logWithPrefix(Logger::WARNING, "Configuration file", "Unknown directive: '" + node.name_ + "'");
+	logg_.logWithPrefix(Logger::WARNING, "Configuration file", "Unknown directive: '" 
+		+ node.name_ + "' on line "+ su::to_string(node.line_));
 	return false;
 }
 
 
 // LISTEN: ipv4:port, or :port, or port ()
-bool ConfigParser::validateListen(const ConfigNode& node)  {
+bool ConfigParser::validateListen(const ConfigNode& node) {
 	std::string value = node.args_[0];
 	std::string host;
 	std::string portStr;
@@ -90,7 +93,8 @@ bool ConfigParser::validateListen(const ConfigNode& node)  {
 		host = value.substr(0, colonPos);
 		portStr = value.substr(colonPos + 1);
 		if (!isValidIPv4(host)) {
-			logg_.logWithPrefix(Logger::WARNING, "Configuration file", "Invalid IPv4 address in 'listen' directive: " + host);
+			logg_.logWithPrefix(Logger::WARNING, "Configuration file", "Invalid IPv4 address in 'listen' directive: " 
+				+ host + " on line "+ su::to_string(node.line_));
 			return false;
 		}
 	}
@@ -102,13 +106,15 @@ bool ConfigParser::validateListen(const ConfigNode& node)  {
 	if (!portStr.empty()) {
 		for (size_t i = 0; i < portStr.length(); ++i) {
 			if (!isdigit(portStr[i])) {
-				logg_.logWithPrefix(Logger::WARNING, "Configuration file", "Invalid port in 'listen' directive: " + portStr);
+				logg_.logWithPrefix(Logger::WARNING, "Configuration file", "Invalid port in 'listen' directive: " + portStr
+					+ " on line "+ su::to_string(node.line_));
 				return false;
 			}
 		}
 		int port = atoi(portStr.c_str());
 		if (port < 1 || port > 65535) {
-			logg_.logWithPrefix(Logger::WARNING, "Configuration file", "Port out of range in 'listen' directive: " + portStr);
+			logg_.logWithPrefix(Logger::WARNING, "Configuration file", "Port out of range in 'listen' directive: " + portStr
+				+ " on line "+ su::to_string(node.line_));
 			return false;
 		}
 	}
@@ -116,105 +122,111 @@ bool ConfigParser::validateListen(const ConfigNode& node)  {
 	return true;
 }
 
-// RETURN : 100 - 599. If redirection, second argument needed
+// RETURN : 300 - 399. If no code-> one arg (URL), otherwise code uri/url
 bool ConfigParser::validateReturn(const ConfigNode& node)  {
+	// first args is URL , no second arg = ok (will be code 302), otherwise pb
+	if (isHttp(node.args_[0]) && node.args_.size() == 1) {
+		return true;
+	}
 	std::istringstream ss(node.args_[0]);
-	unsigned int code;
-	if (!(ss >> code) || code < 100 || code > 599) {
-		logg_.logWithPrefix(Logger::WARNING, "Configuration file", "Invalid return status code: " + node.args_[0]);
+	uint16_t code;
+	// first arg: code
+	if (!(ss >> code) || ss.fail() || !ss.eof() || code < 300 || code > 399 || unknownCode(code) || node.args_.size() != 2) {
+		logg_.logWithPrefix(Logger::WARNING, "Configuration file", "Invalid return status code or URL: " + node.args_[0]
+		 + " on line " + su::to_string(node.line_));
 		return false;
 	}
-	if (code >= 300 && code < 400) {
-		if (node.args_.size() != 2) {
-			logg_.logWithPrefix(Logger::WARNING, "Configuration file", "return code " + su::to_string(code) + " must include a URI or URL.");
-			return false;
-		}
-		if (!isValidUri(node.args_[1]) && !isValidUrl(node.args_[1]) ) {
-			logg_.logWithPrefix(Logger::WARNING, "Configuration file", "redirection URI or URL " + su::to_string(node.args_[1]) + " is invalid.");
-			return false;
-		}
-	} 
-	else {
-		if (node.args_.size() != 1) {
-			logg_.logWithPrefix(Logger::WARNING, "Configuration file", "return code " + su::to_string(code) + " must NOT include a URI or URL.");
-			return false;
-		}
+	// second arg : uri or url
+	if (!isValidUri(node.args_[1]) && !isHttp(node.args_[1]) ) {
+		logg_.logWithPrefix(Logger::WARNING, "Configuration file", "redirection URI or URL "
+			 + node.args_[1] + " is invalid on line "+ su::to_string(node.line_));
+		return false;
 	}
 	return true;
 }
-
 
 // ERROR: 400 - 599, last arg is file
 bool ConfigParser::validateError(const ConfigNode& node)  {
 	for (size_t i = 0; i < node.args_.size() - 1; ++i) {
 		std::istringstream iss(node.args_[i]);
-		int code;
-		if (!(iss >> code) || code < 400 || code > 599) {
-			logg_.logWithPrefix(Logger::WARNING, "Configuration file", "Error page status code must be 400-599. Received: " + node.args_[i]);
+		uint16_t code;
+		if (!(iss >> code) || iss.fail() || !iss.eof() || code < 400 || code > 599 || unknownCode(code)) {
+			logg_.logWithPrefix(Logger::WARNING, "Configuration file", "Error page status code must exist (400-599). Received: " 
+				+ node.args_[i]+ " on line "+ su::to_string(node.line_));
 			return false;
 		}
 	}
-	if (!isValidUri(node.args_[node.args_.size() - 1]) ) 
-		return false;
  	return true;
 }
 
 // in bits - M, K ou G at the end accepted
 bool ConfigParser::validateMaxBody(const ConfigNode& node) {
-	// megabits or giga or kilo
 	std::string maxBody = node.args_[0];
-	char last = node.args_[0][node.args_[0].size() - 1];
+	if (maxBody.empty()) {
+		logg_.logWithPrefix(Logger::WARNING, "Configuration file", 
+			"client_max_body_size cannot be empty on line " + su::to_string(node.line_));
+		return false;
+	}
+	char last = maxBody[maxBody.size() - 1];
 	if (std::tolower(last) == 'k' || std::tolower(last) == 'm' || std::tolower(last) == 'g')
-		maxBody = su::rtrim(maxBody.substr(0, maxBody.size() - 1));
-
+		maxBody =  su::rtrim(maxBody.substr(0, maxBody.size() - 1));
+	if (maxBody.empty()) {
+		logg_.logWithPrefix(Logger::WARNING, "Configuration file", 
+			"client_max_body_size invalid format: '" + node.args_[0] + 
+			"' on line " + su::to_string(node.line_));
+		return false;
+	}
 	std::istringstream iss(maxBody);
 	unsigned int n;
-	iss >> n;
-	if (iss.fail() || !iss.eof()) {
-		logg_.logWithPrefix(Logger::WARNING, "Configuration file", "client_max_body_size is invalid: '" + node.args_[0] + "'.");
+	if (!(iss >> n) || iss.fail() || !iss.eof()) {  
+		logg_.logWithPrefix(Logger::WARNING, "Configuration file", "client_max_body_size is invalid: '" 
+			+ node.args_[0] + "' on line " + su::to_string(node.line_));
 		return false;
 	}
 	return true;
 }
 
-// the path must start with /
+
+// the path must start with /, ends with /, no invalid char
+// duplicates path not allowed
 bool ConfigParser::validateLocation(const ConfigNode& node) {
-	if (!isValidUri(node.args_[0]) ) 
+	const std::string& path = node.args_[0];
+	if (path.empty() || !isValidUri(path)) {
+		logg_.logWithPrefix(Logger::WARNING, "Configuration file", 
+			"Invalid location path: " + path + " on line " + su::to_string(node.line_));
 		return false;
+	}
 	return true;	
 }
 
-// upload path must be a valid path (not end with /)
-bool ConfigParser::validateUploadPath(const ConfigNode& node) {
-	if (!isValidPath(node.args_[0]) ) 
-		return false;
-	return true;	
-}
 
-// root must be a valid path (not end with /)
+// root: starts with /
 bool ConfigParser::validateRoot(const ConfigNode& node) {
-	if (!isValidPath(node.args_[0]) ) 
+	if (node.args_[0].empty() || !isValidUri(node.args_[0])) {
+ 		logg_.logWithPrefix(Logger::WARNING, "Configuration file", 
+			"Invalid root : " + node.args_[0] + " on line "+ su::to_string(node.line_));
 		return false;
+	}
 	return true;	
 }
 
-// alias must be valid uri
-bool ConfigParser::validateAlias(const ConfigNode& node) {
-	if (!isValidUri(node.args_[0]) ) 
+// upload path : starts with /, // to double check
+bool ConfigParser::validateUploadPath(const ConfigNode& node) {
+	if (node.args_[0].empty() || !isValidUri(node.args_[0])) {
+ 		logg_.logWithPrefix(Logger::WARNING, "Configuration file", 
+			"Invalid upload path : " + node.args_[0] + " on line "+ su::to_string(node.line_));
 		return false;
+	}
 	return true;	
 }
 
-// must be a file: no ", no /, one . not at the end
+// must be a file: no weird char, has extension, does not start with /
 bool ConfigParser::validateIndex(const ConfigNode& node) {
-	std::string index = node.args_[0];
-	if (index.find("/") != std::string::npos || index.find('"') != std::string::npos) 
+	if (node.args_[0].empty() || !hasOKChar(node.args_[0]) || node.args_[0][0] == '/') {
+ 		logg_.logWithPrefix(Logger::WARNING, "Configuration file", 
+			"Invalid index : " + node.args_[0] + " on line "+ su::to_string(node.line_));
 		return false;
-	size_t dot = index.find('.');
-	if (dot == std::string::npos || dot == index.size() - 1)
-		return false;
-	if (index.find('.', dot + 1) != std::string::npos)
-		return false;
+	}
 	return true;	
 }
 
@@ -234,7 +246,7 @@ bool ConfigParser::validateMethod(const ConfigNode& node)  {
 		}
 		if (!found) {
 			logg_.logWithPrefix(Logger::ERROR, "Configuration file",
-				"allowed_methods: unsupported method '" + node.args_[i] + "'.");
+				"allowed_methods: unsupported method '" + node.args_[i]  + " on line "+ su::to_string(node.line_));
 			return false;
 		}
 	}
@@ -243,7 +255,8 @@ bool ConfigParser::validateMethod(const ConfigNode& node)  {
 
 bool ConfigParser::validateAutoIndex(const ConfigNode& node)  {
 	if (node.args_[0] != "on" && node.args_[0] != "off") {
-		logg_.logWithPrefix(Logger::WARNING, "Configuration file", "autoindex must be 'on' or 'off'.");
+		logg_.logWithPrefix(Logger::WARNING, "Configuration file", "autoindex must be 'on' or 'off'. Value " 
+			+ node.args_[0] +" on line "+ su::to_string(node.line_));
 		return false;
 	}
 	return true;
@@ -255,7 +268,7 @@ bool ConfigParser::validateCGI(const ConfigNode& node) {
 	if (node.args_.size() % 2 != 0) {
 		logg_.logWithPrefix(Logger::WARNING, "Configuration file", 
 			"cgi_ext expects pairs of extension and interpreter path. Got " + 
-			su::to_string(node.args_.size()) + " arguments.");
+			su::to_string(node.args_.size()) + " arguments on line " + su::to_string(node.line_));
 		return false;
 	}
 	
@@ -277,18 +290,19 @@ bool ConfigParser::validateCGI(const ConfigNode& node) {
 		}
 		if (!found) {
 			logg_.logWithPrefix(Logger::WARNING, "Configuration file", 
-				"cgi_ext: unsupported extension '" + extension + "'.");
+				"cgi_ext: unsupported extension '" + extension + 
+				"' on line " + su::to_string(node.line_));
 			return false;
 		}
 		
 		// interpreter path not empty
 		if (interpreter.empty()) {
 			logg_.logWithPrefix(Logger::WARNING, "Configuration file", 
-				"cgi_ext: interpreter path cannot be empty for extension '" + extension + "'.");
+				"cgi_ext: interpreter path cannot be empty for extension '" + extension + 
+				"' on line " + su::to_string(node.line_));
 			return false;
 		}
 	}
-	
 	return true;
 }
 
