@@ -6,7 +6,7 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/31 08:58:57 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/01 11:45:10 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/06 10:54:17 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,6 +17,7 @@
 #include "../../includes/webserv.hpp"
 #include "../HttpServer/Response.hpp"
 #include "../Logger/Logger.hpp"
+#include "../ConfigParser/config_parser.hpp"
 
 class CGI {
   private:
@@ -28,7 +29,7 @@ class CGI {
 
   public:
 	// CGI();
-	CGI(ClientRequest &request);
+	CGI(ClientRequest &request, LocConfig *locConfig);
 	~CGI(){};
 
 	// ENV
@@ -63,7 +64,7 @@ class CGI {
 namespace CGIUtils {
 bool run_CGI_script(ClientRequest &req, CGI &cgi);
 bool CGI_handler(ClientRequest &req, int clfd);
-CGI *create_CGI(ClientRequest &req);
+CGI *create_CGI(ClientRequest &req, LocConfig *locConfig);
 } // namespace CGIUtils
 
 #endif

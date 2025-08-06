@@ -40,8 +40,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['filename'])) {
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title><?= $deleted ? 'Deleted' : 'Error' ?></title>
-    <link rel="stylesheet" href="/styles.css" />
-    <link rel="icon" type="image/x-icon" href="/favicon.png">
+    <link rel="stylesheet" href="/www/styles.css" />
+    <link rel="icon" type="image/x-icon" href="/www/favicon.png">
 </head>
 <body>
     <div class="floating-elements">

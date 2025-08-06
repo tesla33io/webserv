@@ -6,7 +6,7 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/31 10:18:53 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/01 11:44:43 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/06 10:55:15 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -100,7 +100,7 @@ bool CGIUtils::run_CGI_script(ClientRequest &req, CGI &cgi) {
 	return (true);
 }
 
-bool CGIUtils::CGI_handler(ClientRequest &req, int clfd) {
+/* bool CGIUtils::CGI_handler(ClientRequest &req, int clfd) {
 	Logger logger;
 	bool chunked = false;
 	// 1. Validate and construct script path
@@ -141,9 +141,9 @@ bool CGIUtils::CGI_handler(ClientRequest &req, int clfd) {
 	// 9. Clean up
 	close(cgi.getOutputFd());
 	return (true);
-}
+} */
 
-CGI *CGIUtils::create_CGI(ClientRequest &req) {
+CGI *CGIUtils::create_CGI(ClientRequest &req, LocConfig *locConfig) {
 	Logger logger;
 	// 1. Validate and construct script path
 	if (req.path.empty() || req.path.find("..") != std::string::npos) {
@@ -152,7 +152,7 @@ CGI *CGIUtils::create_CGI(ClientRequest &req) {
 	}
 
 	// Heap allocated
-	CGI *cgi = new CGI(req);
+	CGI *cgi = new CGI(req, locConfig);
 	if (std::strcmp(cgi->getInterpreter(), "") == 0)
 		return (NULL);
 	if (!run_CGI_script(req, *cgi))

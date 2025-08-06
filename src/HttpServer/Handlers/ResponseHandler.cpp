@@ -172,14 +172,15 @@ std::string detectContentType(const std::string &path) {
 
 std::string getExtension(const std::string& path) {
 	std::size_t dot_pos = path.find_last_of('.');
-	if (dot_pos != std::string::npos)
+	std::size_t qm_pos = path.find_first_of('?');
+	if (qm_pos != std::string::npos && dot_pos < qm_pos)
+		return path.substr(dot_pos, qm_pos - dot_pos);
+	else if (qm_pos == std::string::npos && dot_pos != std::string::npos)
 		return path.substr(dot_pos);
 	return "";
 }
 
-
 Response WebServer::handleReturnDirective(Connection* conn, uint16_t code, std::string target) {
-
 
 	_lggr.debug("Handling return directive '" + su::to_string(code) + "' to " + target);
 	if (code == 0 || target.empty()) {

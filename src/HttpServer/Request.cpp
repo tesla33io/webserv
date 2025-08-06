@@ -1,5 +1,4 @@
 #include "HttpServer.hpp"
-#include "src/CGI/cgi.hpp"
 #include "src/Logger/Logger.hpp"
 #include "src/RequestParser/request_parser.hpp"
 #include "src/Utils/StringUtils.hpp"
@@ -33,7 +32,7 @@ bool WebServer::handleCompleteRequest(Connection *conn) {
 bool WebServer::handleCGIRequest(ClientRequest &req, Connection *conn) {
 	Logger _lggr;
 
-	CGI *cgi = CGIUtils::create_CGI(req);
+	CGI *cgi = CGIUtils::create_CGI(req, conn->locConfig);
 	if (!cgi)
 		return (false);
 	_cgi_pool[cgi->getOutputFd()] = std::make_pair(cgi, conn);
@@ -93,6 +92,8 @@ void WebServer::processRequest(Connection *conn) {
 		return;
 	}
 	conn->locConfig = match; // Set location context
+	std::cout << "          PATH: " << match->getPath() << std::endl;
+	std::cout << "          UPLOAD PATH: " << match->getUploadPath() << std::endl;
 	_lggr.debug("[Resp] Matched location : " + match->path);
 
 
@@ -124,7 +125,9 @@ void WebServer::processRequest(Connection *conn) {
 		return ;
 	}
 
-	FileType ftype = checkFileType(fullPath);
+	std::string path2 = fullPath.substr(0, fullPath.find("?"));
+	FileType ftype = checkFileType(path2);
+	//FileType ftype = checkFileType(fullPath);
 	
 	// Error checking
 	if (ftype == NOT_FOUND_404){
@@ -179,10 +182,10 @@ void WebServer::processRequest(Connection *conn) {
 		if (conn->locConfig->acceptExtension(getExtension(req.uri))) {
 			std::string extPath = conn->locConfig->getExtensionPath(getExtension(req.uri));
 			_lggr.debug("Extension path is : " + extPath);
-			if (!CGIUtils::handle_CGI_request(req, conn->fd, conn->locConfig)) {
+			if (!handleCGIRequest(req, conn)) {
 				_lggr.error("Handling the CGI request failed.");
-				prepareResponse(conn, Response::badRequest(conn));
-				// closeConnection(conn);
+				prepareResponse(conn, Response::badRequest());
+			// closeConnection(conn);
 				return;
 			}
 			return ;

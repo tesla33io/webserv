@@ -6,13 +6,13 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/31 09:07:54 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/01 10:31:57 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/06 13:42:54 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "CGI.hpp"
 
-CGI::CGI(ClientRequest &request) {
+CGI::CGI(ClientRequest &request, LocConfig *locConfig) {
 	setEnv("SCRIPT_FILENAME", std::string(std::getenv("PWD")) + "/" + request.path);
 	setEnv("SCRIPT_NAME", "/" + request.path);
 	setEnv("REQUEST_METHOD", request.method);
@@ -21,8 +21,10 @@ CGI::CGI(ClientRequest &request) {
 		setEnv("CONTENT_TYPE", request.headers["content-type"]);
 		setEnv("CONTENT_LENGTH", request.headers["content-length"]);
 	}
-	if (request.method == "POST" || request.method == "DELETE")
-		setEnv("UPLOAD_DIR", "../../www/uploads/");
+	if (request.method == "POST" || request.method == "DELETE") {
+		setEnv("UPLOAD_DIR", "../.." + locConfig->getUploadPath());
+		//setEnv("UPLOAD_DIR", "../../www/uploads/");
+	}
 	setEnv("SERVER_SOFTWARE", "CustomCGI/1.0");
 	setEnv("GATEWAY_INTERFACE", "CGI/1.1");
 	setEnv("REDIRECT_STATUS", "200");

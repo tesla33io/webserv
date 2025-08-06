@@ -3,6 +3,7 @@
 #define RESPONSE_HPP
 
 #include "../Utils/StringUtils.hpp"
+#include "../Logger/Logger.hpp"
 #include <map>
 #include <stdint.h>
 #include <string>

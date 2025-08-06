@@ -34,8 +34,8 @@ if (isset($_GET['name'])) {
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Greeting</title>
-    <link rel="stylesheet" href="/styles.css" />
-    <link rel="icon" type="image/x-icon" href="/favicon.png">
+    <link rel="stylesheet" href="/www/styles.css" />
+    <link rel="icon" type="image/x-icon" href="/www/favicon.png">
 </head>
 <body>
     <div class="floating-elements">
@@ -49,7 +49,7 @@ if (isset($_GET['name'])) {
         <p class="subtitle">Nice to meet you and welcome to WhateverX :)</p>
         
         <div class="form-row" style="justify-content: center; margin-top: 40px;">
-            <a href="/index.html" class="button">Back to Home</a>
+            <a href="/www/index.html" class="button">Back to Home</a>
         </div>
     </div>
 </body>
