@@ -6,14 +6,14 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/31 09:07:54 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/06 14:03:45 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/06 16:05:59 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "CGI.hpp"
 
 CGI::CGI(ClientRequest &request, LocConfig *locConfig) {
-	setEnv("SCRIPT_FILENAME", std::string(std::getenv("PWD")) + "/" + request.path);
+	setEnv("SCRIPT_FILENAME", locConfig->getFullPath());
 	setEnv("SCRIPT_NAME", "/" + request.path);
 	setEnv("REQUEST_METHOD", request.method);
 	setEnv("QUERY_STRING", request.query);
@@ -26,8 +26,8 @@ CGI::CGI(ClientRequest &request, LocConfig *locConfig) {
 	setEnv("SERVER_SOFTWARE", "CustomCGI/1.0");
 	setEnv("GATEWAY_INTERFACE", "CGI/1.1");
 	setEnv("REDIRECT_STATUS", "200");
-	setInterpreter(request.interpreter);
-	//setInterpreter(script_path_);
+	std::string interpreter = locConfig->getExtensionPath(request.extension);
+	setInterpreter(interpreter);
 }
 
 // Set or update an environment variable
@@ -79,27 +79,6 @@ void CGI::setInterpreter(std::string &interpreter) {
 	interpreter_ = interpreter;
 }
 
-/* void CGI::setInterpreter(std::string &path) {
-	Logger logger;
-	std::ifstream file(path.c_str());
-	if (!file.is_open()) {
-		logger.logWithPrefix(Logger::WARNING, "CGI", "Invalid cgi file");
-		interpreter_ = "";
-	}
-	std::string first_line;
-	if (std::getline(file, first_line)) {
-		file.close();
-		if (first_line[0] == '#' && first_line[1] == '!')
-			interpreter_ = first_line.substr(2);
-		else {
-			logger.logWithPrefix(Logger::WARNING, "CGI", "No interpreter in cgi file");
-			interpreter_ = "";
-		}
-	} else {
-		logger.logWithPrefix(Logger::WARNING, "CGI", "Empty cgi file");
-		interpreter_ = "";
-	}
-} */
 const char *CGI::getInterpreter() const { return (interpreter_.c_str()); }
 
 const char *CGI::getScriptPath() const { return (script_path_.c_str()); }
@@ -199,13 +178,6 @@ bool CGI::send_normal_resp(CGI &cgi, int clfd) {
 	ssize_t bytes_read;
 
 	while ((bytes_read = read(cgi.getOutputFd(), buffer, sizeof(buffer))) > 0) {
-		// NOT CHUNKED
-		// Read until child proc is running || Read until end of body
-		// Separate headers (if any) from the CGI output
-		// Create Response
-		// Set headers
-		// Set body (CL will be calculated auto)
-		// Connection->response_ready = true
 		cgi_output.append(buffer, bytes_read);
 	}
 

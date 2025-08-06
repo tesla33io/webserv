@@ -6,7 +6,7 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/17 15:43:17 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/01 09:49:03 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/06 16:00:29 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -150,7 +150,7 @@ bool RequestParsingUtils::parse_request(const std::string &raw_request, ClientRe
 
 	request.chunked_encoding = false;
 	request.file_upload = false;
-	request.CGI = false;
+	request.extension = "";
 	std::istringstream stream(raw_request);
 
 	// Parse request line

@@ -159,6 +159,7 @@ class LocConfig {
 
   private:
 	std::string path;
+	std::string full_path;
 	std::vector<std::string> allowed_methods; 
 	uint16_t return_code;
 	std::string return_target;
@@ -175,6 +176,9 @@ class LocConfig {
 	      autoindex(false) {}
 
 	inline std::string getPath() const { return path; }
+
+	inline std::string getFullPath() const { return full_path; }
+	inline void setFullPath(std::string &path) { full_path = path; }
 
 	inline std::string getUploadPath() const { return upload_path; }
 

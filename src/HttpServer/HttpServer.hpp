@@ -10,7 +10,7 @@
 #include "../Utils/GeneralUtils.hpp"
 
 #include "Response.hpp"
-#include "src/CGI/CGI.hpp"
+#include "../CGI/CGI.hpp"
 
 #include <arpa/inet.h>
 #include <climits>

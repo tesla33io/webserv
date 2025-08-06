@@ -42,6 +42,7 @@ void WebServer::sendCGIResponse(std::string &cgi_output, CGI *cgi, Connection *c
 	conn->response_ready = true;
 	send(conn->fd, raw_response.c_str(), raw_response.length(), 0);
 	cgi->cleanup();
+	delete cgi;
 }
 
 void WebServer::chunkedResponse(CGI *cgi, Connection *conn) {
