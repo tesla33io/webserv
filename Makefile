@@ -1,15 +1,15 @@
-################################################################################
-#                  .,,,''''''',,                                               #
-#             .,,,/           ,~~~\.     /~~~\     \   \                       #
-#    /     __/               /      \_'''',,,/     ))  ))                      #
-#    \_O--/                  |       \    __ ",,  //  //                       #
-#        |                    /  \_  /     @)  ''//_ //                        #
-#       |                      ',,,/      ~~    //  ~~__                       #
-#       |          )             (           __//        ---___ _/OO           #
-#        \          )     /    )   ( ,,,,   (_Q   '''----_______,_/            #
-#          \       |--.-- #|   |,,,/\_   ~~\/                                  #
-#            \____________#| /    \_ ''\___                 ~O       O         #
-#             /  /    _/  /         ~~\ __ \                /\_     /\/        #
+# **************************************************************************** #
+#                                                                              #
+#                                                         :::      ::::::::    #
+#    Makefile                                           :+:      :+:    :+:    #
+#                                                     +:+ +:+         +:+      #
+#    By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+         #
+#                                                 +#+#+#+#+#+   +#+            #
+#    Created: Invalid date        by         __/       #+#    #+#              #
+#    Updated: 2025/08/07 13:51:28 by jalombar         ###   ########.fr        #
+#                                                                              #
+# **************************************************************************** #
+
 #            /__/   #|__/                 |##           _  /_   _  /_          #
 #            |##    ~~        -cfbd-                     \/  \,  \/  \,        #
 #     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~    #
@@ -35,7 +35,7 @@ SRC_DIR			:= ./
 
 #Source files
 SRC_FILES		+= src/CGI/CGI.cpp
-SRC_FILES		+= src/CGI/cgi_handler.cpp
+SRC_FILES		+= src/CGI/CGIHandler.cpp
 
 SRC_FILES		+= src/HttpServer/HttpServer.cpp
 SRC_FILES		+= src/HttpServer/Connection.cpp
@@ -46,10 +46,10 @@ SRC_FILES		+= src/HttpServer/Handlers/ResponseHandler.cpp
 SRC_FILES		+= src/HttpServer/Handlers/LocationMatch.cpp
 SRC_FILES		+= src/HttpServer/Handlers/EpollEventHandler.cpp
 
-SRC_FILES		+= src/RequestParser/request_parser.cpp
-SRC_FILES		+= src/RequestParser/request_line.cpp
-SRC_FILES		+= src/RequestParser/headers.cpp
-SRC_FILES		+= src/RequestParser/body.cpp
+SRC_FILES		+= src/RequestParser/RequestParser.cpp
+SRC_FILES		+= src/RequestParser/RequestLine.cpp
+SRC_FILES		+= src/RequestParser/Headers.cpp
+SRC_FILES		+= src/RequestParser/Body.cpp
 
 SRC_FILES		+= src/ConfigParser/ConfigParser.cpp
 SRC_FILES		+= src/ConfigParser/ServerStructure.cpp

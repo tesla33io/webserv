@@ -1,20 +1,19 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   request_line.cpp                                   :+:      :+:    :+:   */
+/*   RequestLine.cpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/25 10:33:32 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/06 15:53:30 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/07 14:18:14 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "../Logger/Logger.hpp"
-#include "request_parser.hpp"
+#include "RequestParser.hpp"
 
 /* URI checks */
-static bool is_hex_digit(char ch) {
+static bool isHexDigit(char ch) {
 	return (std::isdigit(ch) || (ch >= 'A' && ch <= 'F') || (ch >= 'a' && ch <= 'f'));
 }
 
@@ -28,7 +27,7 @@ static int hex_value(char ch) {
 	return (-1);
 }
 
-bool decode_and_validate_uri(const std::string &uri, std::string &decoded) {
+bool decodeNValidateUri(const std::string &uri, std::string &decoded) {
 	decoded.clear();
 	decoded.reserve(uri.length());
 
@@ -44,7 +43,7 @@ bool decode_and_validate_uri(const std::string &uri, std::string &decoded) {
 			char lo = uri[i + 2];
 
 			// Reject invalid hex digits
-			if (!is_hex_digit(hi) || !is_hex_digit(lo))
+			if (!isHexDigit(hi) || !isHexDigit(lo))
 				return (false);
 
 			int decoded_char = (hex_value(hi) << 4) | hex_value(lo);
@@ -75,7 +74,7 @@ bool decode_and_validate_uri(const std::string &uri, std::string &decoded) {
 }
 
 /* Checks */
-bool RequestParsingUtils::check_req_line(ClientRequest &request) {
+bool RequestParsingUtils::checkReqLine(ClientRequest &request) {
 	Logger logger;
 
 	if (request.method.empty() || request.uri.empty() || request.version.empty()) {
@@ -95,7 +94,7 @@ bool RequestParsingUtils::check_req_line(ClientRequest &request) {
 		return (false);
 	}
 	std::string decoded_uri;
-	if (!decode_and_validate_uri(request.uri, decoded_uri)) {
+	if (!decodeNValidateUri(request.uri, decoded_uri)) {
 		logger.logWithPrefix(Logger::WARNING, "HTTP", "Invalid uri");
 		return (false);
 	}
@@ -118,7 +117,7 @@ bool RequestParsingUtils::check_req_line(ClientRequest &request) {
 }
 
 /* Parsing */
-bool RequestParsingUtils::parse_req_line(std::istringstream &stream, ClientRequest &request) {
+bool RequestParsingUtils::parseReqLine(std::istringstream &stream, ClientRequest &request) {
 	Logger logger;
 	std::string line;
 	logger.logWithPrefix(Logger::DEBUG, "HTTP", "Parsing request line");
@@ -131,7 +130,7 @@ bool RequestParsingUtils::parse_req_line(std::istringstream &stream, ClientReque
 	if (!line.empty() && line[line.length() - 1] == '\r')
 		line.erase(line.length() - 1);
 
-	std::string trimmed_line = trim_side(line, 3);
+	std::string trimmed_line = trimSide(line, 3);
 
 	// Check for proper format: exactly one space between each component
 	size_t first_space = trimmed_line.find(' ');
@@ -164,5 +163,5 @@ bool RequestParsingUtils::parse_req_line(std::istringstream &stream, ClientReque
 	request.uri = trimmed_line.substr(first_space + 1, second_space - first_space - 1);
 	request.version = trimmed_line.substr(second_space + 1);
 
-	return (RequestParsingUtils::check_req_line(request));
+	return (RequestParsingUtils::checkReqLine(request));
 }

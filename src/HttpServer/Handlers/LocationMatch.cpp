@@ -1,14 +1,21 @@
-#include "ConfigParser/config_parser.hpp"
-#include "RequestParser/request_parser.hpp"
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   LocationMatch.cpp                                  :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2025/08/07 14:07:52 by jalombar          #+#    #+#             */
+/*   Updated: 2025/08/07 14:08:55 by jalombar         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #include "src/HttpServer/HttpServer.hpp"
-#include "src/Utils/StringUtils.hpp"
-#include <string>
-#include <vector>
 
 static bool isPrefixMatch(const std::string &uri, const std::string &location_path);
 
 // locations are sorted from longest path to shortest ("/")
-// every server has at least one 
+// every server has at least one
 LocConfig *findBestMatch(const std::string &uri, std::vector<LocConfig> &locations) {
 	for (std::vector<LocConfig>::iterator it = locations.begin(); it != locations.end(); ++it) {
 		if (isPrefixMatch(uri, it->getPath())) {
@@ -37,13 +44,13 @@ static bool isPrefixMatch(const std::string &uri, const std::string &location_pa
 	return next_char == '/' || location_path[location_path.length() - 1] == '/';
 }
 
-std::string WebServer::buildFullPath(const std::string& uri, LocConfig *location) {
-	std::string prefix = (_root_prefix_path[_root_prefix_path.length() - 1] == '/') ? 
-						_root_prefix_path.substr(0, _root_prefix_path.length() - 1) :
-						_root_prefix_path;
-	std::string root = (location->root[location->root.length() - 1] == '/')? 
-					  location->root.substr(0, location->root.length() - 1) :
-					  location->root;
+std::string WebServer::buildFullPath(const std::string &uri, LocConfig *location) {
+	std::string prefix = (_root_prefix_path[_root_prefix_path.length() - 1] == '/')
+	                         ? _root_prefix_path.substr(0, _root_prefix_path.length() - 1)
+	                         : _root_prefix_path;
+	std::string root = (location->root[location->root.length() - 1] == '/')
+	                       ? location->root.substr(0, location->root.length() - 1)
+	                       : location->root;
 	std::string slashedUri = (uri.empty() || uri[0] != '/') ? "/" + uri : uri;
 
 	std::string full_path = prefix + root + slashedUri;

@@ -1,8 +1,19 @@
-#include <cstdlib>
-#include <iostream>
-#include <string>
-#include <sys/stat.h>
-#include <vector>
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   ArgumentParser.hpp                                 :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2025/08/07 14:02:42 by jalombar          #+#    #+#             */
+/*   Updated: 2025/08/07 14:18:41 by jalombar         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
+#ifndef ARGUMENTPARSER_HPP
+#define ARGUMENTPARSER_HPP
+
+#include "includes/Webserv.hpp"
 
 struct ServerArgs {
 	std::string config_file;
@@ -12,7 +23,11 @@ struct ServerArgs {
 	int log_level; // 0=error, 1=warn, 2=info, 3=debug
 
 	ServerArgs()
-	    : config_file(""), prefix_path(""), show_help(false), show_version(false), log_level(2) {}
+	    : config_file(""),
+	      prefix_path(""),
+	      show_help(false),
+	      show_version(false),
+	      log_level(2) {}
 };
 
 class ArgumentParser {
@@ -170,3 +185,5 @@ class ArgumentParser {
 		return (stat(path.c_str(), &buffer) == 0 && S_ISREG(buffer.st_mode));
 	}
 };
+
+#endif

@@ -1,7 +1,16 @@
-#include "Utils/StringUtils.hpp"
-#include "src/HttpServer/HttpServer.hpp"
-#include <ctime>
-#include <string>
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   Structs.cpp                                        :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2025/08/07 14:11:23 by jalombar          #+#    #+#             */
+/*   Updated: 2025/08/07 14:17:25 by jalombar         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
+#include "HttpServer.hpp"
 
 //// Connection ////
 
@@ -75,7 +84,8 @@ std::string Connection::toString() {
 	                       : "not ready")
 	    << ", ";
 	oss << "chunked: " << (chunked ? "true" : "false") << ", ";
-	oss << "keep_presistent_connection: " << (keep_persistent_connection ? "true" : "false") << ", ";
+	oss << "keep_presistent_connection: " << (keep_persistent_connection ? "true" : "false")
+	    << ", ";
 	oss << "request_count: " << request_count << ", ";
 	oss << "state: " << stateToString(state) << "}";
 
@@ -84,7 +94,7 @@ std::string Connection::toString() {
 
 //// Response ////
 
-Logger Response::tmplogg_("Response", Logger::DEBUG); 
+Logger Response::tmplogg_("Response", Logger::DEBUG);
 
 Response::Response()
     : version("HTTP/1.1"),
@@ -104,9 +114,9 @@ Response::Response(uint16_t code, const std::string &response_body)
 	initFromStatusCode(code);
 }
 
-Response::Response(uint16_t code, Connection* conn)
-	: version("HTTP/1.1"),
-	  status_code(code) {
+Response::Response(uint16_t code, Connection *conn)
+    : version("HTTP/1.1"),
+      status_code(code) {
 	initFromCustomErrorPage(code, conn);
 }
 
@@ -165,7 +175,6 @@ Response Response::internalServerError() { return Response(500); }
 
 Response Response::notImplemented() { return Response(501); }
 
-
 // OVErLOAD
 
 Response Response::badRequest(Connection *conn) { return Response(400, conn); }
@@ -179,7 +188,6 @@ Response Response::methodNotAllowed(Connection *conn) { return Response(405, con
 Response Response::internalServerError(Connection *conn) { return Response(500, conn); }
 
 Response Response::notImplemented(Connection *conn) { return Response(501, conn); }
-
 
 std::string Response::getReasonPhrase(uint16_t code) const {
 	switch (code) {
@@ -224,23 +232,27 @@ std::string Response::getReasonPhrase(uint16_t code) const {
 	}
 }
 
-
 void Response::initFromCustomErrorPage(uint16_t code, Connection *conn) {
 
 	reason_phrase = getReasonPhrase(code);
 
 	if (!conn || !conn->getServerConfig() || !conn->getServerConfig()->hasErrorPage(code)) {
-		tmplogg_.logWithPrefix(Logger::DEBUG, "Response", "No custom error page for " + su::to_string(code));
-		tmplogg_.logWithPrefix(Logger::DEBUG, "Response", "Creating the default error page for " + su::to_string(code));
+		tmplogg_.logWithPrefix(Logger::DEBUG, "Response",
+		                       "No custom error page for " + su::to_string(code));
+		tmplogg_.logWithPrefix(Logger::DEBUG, "Response",
+		                       "Creating the default error page for " + su::to_string(code));
 		initFromStatusCode(code);
-		return ;
+		return;
 	}
-	tmplogg_.logWithPrefix(Logger::DEBUG, "Response", "A custom error page exists for " + su::to_string(code));
+	tmplogg_.logWithPrefix(Logger::DEBUG, "Response",
+	                       "A custom error page exists for " + su::to_string(code));
 	// todo check path again
-	std::string fullPath = conn->getServerConfig()->getRootPrefix() + conn->getServerConfig()->getErrorPage(code); 
+	std::string fullPath =
+	    conn->getServerConfig()->getRootPrefix() + conn->getServerConfig()->getErrorPage(code);
 	std::ifstream errorFile(fullPath.c_str());
- 	if (!errorFile.is_open()) {
-		tmplogg_.logWithPrefix(Logger::WARNING, "Response", "Custom error page " + fullPath + " could not be opened.");
+	if (!errorFile.is_open()) {
+		tmplogg_.logWithPrefix(Logger::WARNING, "Response",
+		                       "Custom error page " + fullPath + " could not be opened.");
 		initFromStatusCode(code);
 		return;
 	}
@@ -251,16 +263,17 @@ void Response::initFromCustomErrorPage(uint16_t code, Connection *conn) {
 	setContentLength(body.length());
 	setContentType(detectContentType(fullPath));
 	errorFile.close();
-	tmplogg_.logWithPrefix(Logger::DEBUG, "Response", "Custom error page " + 
-		  su::to_string(code) + " has been loaded.");
-
+	tmplogg_.logWithPrefix(Logger::DEBUG, "Response",
+	                       "Custom error page " + su::to_string(code) + " has been loaded.");
 }
 
 void Response::initFromStatusCode(uint16_t code) {
 	reason_phrase = getReasonPhrase(code);
 	if (code >= 400) {
 		if (body.empty()) {
-			tmplogg_.logWithPrefix(Logger::DEBUG, "Response", "No custom error page for " + su::to_string(code) + " could be used or exist. Generating the default page now.");
+			tmplogg_.logWithPrefix(Logger::DEBUG, "Response",
+			                       "No custom error page for " + su::to_string(code) +
+			                           " could be used or exist. Generating the default page now.");
 			std::ostringstream html;
 			html << "<!DOCTYPE html>\n"
 			     << "<html>\n"
@@ -295,7 +308,8 @@ void Response::initFromStatusCode(uint16_t code) {
 			body = html.str();
 			setContentLength(body.length());
 			setContentType("text/html");
-			tmplogg_.logWithPrefix(Logger::DEBUG, "Response", "Content-Type set to: " + headers["Content-Type"]);
+			tmplogg_.logWithPrefix(Logger::DEBUG, "Response",
+			                       "Content-Type set to: " + headers["Content-Type"]);
 		}
 	}
 }

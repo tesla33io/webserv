@@ -1,6 +1,16 @@
-#include "../HttpServer.hpp"
-#include <cstring>
-#include <string>
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   EpollEventHandler.cpp                              :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2025/08/07 14:06:48 by jalombar          #+#    #+#             */
+/*   Updated: 2025/08/07 14:09:00 by jalombar         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
+#include "src/HttpServer/HttpServer.hpp"
 
 void print_cgi_response(const std::string &cgi_output) {
 	std::istringstream response_stream(cgi_output);
@@ -25,7 +35,7 @@ void WebServer::sendCGIResponse(std::string &cgi_output, CGI *cgi, Connection *c
 	Response resp;
 	resp.setStatus(200);
 	resp.version = "HTTP/1.1";
-	resp.setContentType(cgi->extract_content_type(cgi_output));
+	resp.setContentType(cgi->extractContentType(cgi_output));
 
 	size_t header_end = cgi_output.find("\n\n");
 	if (header_end != std::string::npos) {
@@ -190,8 +200,8 @@ bool WebServer::processReceivedData(Connection *conn, const char *buffer, ssize_
 		if (conn->chunked && conn->state == Connection::CONTINUE_SENT) {
 			return true;
 		}
-		if (!conn->getServerConfig()->infiniteBodySize()
-	 		      && total_bytes_read > static_cast<ssize_t>(conn->getServerConfig()->getMaxBodySize())) {
+		if (!conn->getServerConfig()->infiniteBodySize() &&
+		    total_bytes_read > static_cast<ssize_t>(conn->getServerConfig()->getMaxBodySize())) {
 			_lggr.debug("Request is too large");
 			handleRequestTooLarge(conn, bytes_read);
 			return false;
@@ -202,4 +212,3 @@ bool WebServer::processReceivedData(Connection *conn, const char *buffer, ssize_
 
 	return true;
 }
-

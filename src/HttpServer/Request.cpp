@@ -1,20 +1,21 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   Request.cpp                                        :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2025/08/07 14:10:22 by jalombar          #+#    #+#             */
+/*   Updated: 2025/08/07 14:11:15 by jalombar         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #include "HttpServer.hpp"
-#include "src/Logger/Logger.hpp"
-#include "src/RequestParser/request_parser.hpp"
-#include "src/Utils/StringUtils.hpp"
-#include <cerrno>
-#include <cstddef>
-#include <cstdio>
-#include <cstdlib>
-#include <netdb.h>
-#include <sstream>
-#include <string>
-#include <sys/epoll.h>
-#include <sys/socket.h>
 
 void WebServer::handleRequestTooLarge(Connection *conn, ssize_t bytes_read) {
 	_lggr.info("Reached max content length for fd: " + su::to_string(conn->fd) + ", " +
-	           su::to_string(bytes_read) + "/" + su::to_string(conn->getServerConfig()->getMaxBodySize()));
+	           su::to_string(bytes_read) + "/" +
+	           su::to_string(conn->getServerConfig()->getMaxBodySize()));
 	prepareResponse(conn, Response(413, conn));
 	// closeConnection(conn);
 }
@@ -94,7 +95,6 @@ void WebServer::processRequest(Connection *conn) {
 	conn->locConfig = match; // Set location context
 	_lggr.debug("[Resp] Matched location : " + match->path);
 
-
 	// check if RETURN directive in the matched location
 	if (conn->locConfig->hasReturn()) {
 		_lggr.debug("[Resp] The matched location has a return directive.");
@@ -104,16 +104,14 @@ void WebServer::processRequest(Connection *conn) {
 		return;
 	}
 
-
 	// Is the method allowed?
 	if (!conn->locConfig->hasMethod(req.method)) {
-		_lggr.warn("Method " + req.method + " is not allowed for location " + 
-				conn->locConfig->path);
+		_lggr.warn("Method " + req.method + " is not allowed for location " +
+		           conn->locConfig->path);
 		prepareResponse(conn, Response::methodNotAllowed(conn));
-		return ;
+		return;
 	}
 
-	
 	std::string fullPath = buildFullPath(req.path, conn->locConfig);
 	conn->locConfig->setFullPath(fullPath);
 	// security check
@@ -121,28 +119,28 @@ void WebServer::processRequest(Connection *conn) {
 	if (fullPath.find("..") != std::string::npos) {
 		_lggr.warn("Uri " + req.uri + " is not safe.");
 		prepareResponse(conn, Response::forbidden(conn));
-		return ;
+		return;
 	}
 
 	FileType ftype = checkFileType(fullPath);
-	
+
 	// Error checking
-	if (ftype == NOT_FOUND_404){
+	if (ftype == NOT_FOUND_404) {
 		_lggr.debug("Could not open : " + fullPath);
 		prepareResponse(conn, Response::notFound(conn));
-		return ;
-	} 
-	if (ftype == PERMISSION_DENIED_403){
+		return;
+	}
+	if (ftype == PERMISSION_DENIED_403) {
 		_lggr.debug("Permission denied : " + fullPath);
 		prepareResponse(conn, Response::forbidden(conn));
-		return ;
+		return;
 	}
-	if (ftype == FILE_SYSTEM_ERROR_500){
+	if (ftype == FILE_SYSTEM_ERROR_500) {
 		_lggr.debug("Other file access problem : " + fullPath);
 		prepareResponse(conn, Response::internalServerError(conn));
-		return ;
-	} 
-	
+		return;
+	}
+
 	// uri request ends with '/'
 	bool endSlash = (!req.uri.empty() && req.uri[req.uri.length() - 1] == '/');
 
@@ -166,12 +164,12 @@ void WebServer::processRequest(Connection *conn) {
 		_lggr.debug("File request with trailing slash, redirecting: " + req.uri);
 		std::string redirectPath = req.uri.substr(0, req.uri.length() - 1);
 		prepareResponse(conn, handleReturnDirective(conn, 302, redirectPath));
-		return ;
+		return;
 	}
 
 	// if we arrive here, this should be the only possible case
 	if (ftype == ISREG && !endSlash) {
-		
+
 		_lggr.debug("File request with following extension: " + getExtension(req.uri));
 
 		// check if it is a script with a language supported by the location
@@ -183,9 +181,9 @@ void WebServer::processRequest(Connection *conn) {
 				_lggr.error("Handling the CGI request failed.");
 				prepareResponse(conn, Response::badRequest());
 				// closeConnection(conn);
-				return ;
+				return;
 			}
-			return ;
+			return;
 		}
 
 		if (req.method != "GET") {
@@ -201,12 +199,11 @@ void WebServer::processRequest(Connection *conn) {
 		prepareResponse(conn, Response::internalServerError(conn));
 		return;
 	}
-
 }
 
 bool WebServer::parseRequest(Connection *conn, ClientRequest &req) {
 	_lggr.debug("Parsing request: " + conn->toString());
-	if (!RequestParsingUtils::parse_request(conn->read_buffer, req)) {
+	if (!RequestParsingUtils::parseRequest(conn->read_buffer, req)) {
 		_lggr.error("Parsing of the request failed.");
 		_lggr.debug("FD " + su::to_string(conn->fd) + " " + conn->toString());
 		prepareResponse(conn, Response::badRequest(conn));

@@ -1,11 +1,19 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   GeneralUtils.hpp                                   :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2025/08/07 14:03:32 by jalombar          #+#    #+#             */
+/*   Updated: 2025/08/07 14:19:11 by jalombar         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
 
-#ifndef UTILS_HPP
-#define UTILS_HPP
+#ifndef GENERALUTILS_HPP
+#define GENERALUTILS_HPP
 
-#include <cstddef>
-#include <sys/epoll.h>
-#include <string>
-#include <vector>
+#include "includes/Webserv.hpp"
 
 inline std::string describeEpollEvents(uint32_t ev) {
 	std::vector<std::string> event_names;
@@ -39,8 +47,8 @@ inline std::string describeEpollEvents(uint32_t ev) {
 	return result;
 }
 
-inline size_t findCRLF(const std::string& buffer, size_t start_pos = 0) {
-    return buffer.find("\r\n", start_pos);
+inline size_t findCRLF(const std::string &buffer, size_t start_pos = 0) {
+	return buffer.find("\r\n", start_pos);
 }
 
 #endif

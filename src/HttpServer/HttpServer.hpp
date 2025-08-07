@@ -1,39 +1,27 @@
-#ifndef __HTTPSERVER_HPP__
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   HttpServer.hpp                                     :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2025/08/07 14:06:30 by jalombar          #+#    #+#             */
+/*   Updated: 2025/08/07 14:16:54 by jalombar         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
 
+#ifndef __HTTPSERVER_HPP__
 #define __HTTPSERVER_HPP__
 
-#include "../../includes/webserv.hpp"
-#include "../ConfigParser/config_parser.hpp"
-#include "../Logger/Logger.hpp"
-#include "../RequestParser/request_parser.hpp"
-#include "../Utils/StringUtils.hpp"
-#include "../Utils/GeneralUtils.hpp"
-
 #include "Response.hpp"
-#include "../CGI/CGI.hpp"
-
-#include <arpa/inet.h>
-#include <climits>
-#include <cstddef>
-#include <cstdio>
-#include <cstring>
-#include <dirent.h> // for directory listing
-#include <fcntl.h>
-#include <fstream>
-#include <iostream>
-#include <map>
-#include <netdb.h>
-#include <netinet/in.h>
-#include <signal.h>
-#include <sstream>
-#include <stdint.h>
-#include <string>
-#include <sys/epoll.h>
-#include <sys/socket.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <unistd.h>
-#include <vector>
+#include "includes/Webserv.hpp"
+#include "src/CGI/CGI.hpp"
+#include "src/ConfigParser/ConfigParser.hpp"
+#include "src/Logger/Logger.hpp"
+#include "src/RequestParser/RequestParser.hpp"
+#include "src/Utils/ArgumentParser.hpp"
+#include "src/Utils/GeneralUtils.hpp"
+#include "src/Utils/StringUtils.hpp"
 
 #define KEEP_ALIVE_TO 5 // seconds
 #define MAX_KEEP_ALIVE_REQS 100
@@ -57,11 +45,11 @@
 /// keep-alive functionality.
 class Connection {
 	friend class WebServer;
-	
+
 	int fd;
 
 	ServerConfig *servConfig;
-	LocConfig *locConfig; 
+	LocConfig *locConfig;
 
 	time_t last_activity;
 	bool keep_persistent_connection;
@@ -121,8 +109,8 @@ class Connection {
 
 	void resetForNewRequest(); // reset locConfig body_bytes_read, ...
 
-  public :
-	ServerConfig* getServerConfig() const { return servConfig; }
+  public:
+	ServerConfig *getServerConfig() const { return servConfig; }
 };
 
 /// HTTP web server implementation using epoll for event-driven I/O.
@@ -267,7 +255,7 @@ class WebServer {
 	/// \param client_fd The client socket file descriptor.
 	/// \param sc The configuaration struct for the matching host:port server
 	/// \returns Pointer to the newly created Connection object.
-	Connection *addConnection(int client_fd, ServerConfig *sc) ;
+	Connection *addConnection(int client_fd, ServerConfig *sc);
 
 	/// !!! DEPRECATED !!!
 	/// Updates the last activity time for a connection.
@@ -424,7 +412,7 @@ class WebServer {
 	/// \param code The status code to send back.
 	/// \param target The uri or url to send.
 	/// \returns Response object containing the requested resource or error.
-	Response handleReturnDirective(Connection* conn, uint16_t code, std::string target);
+	Response handleReturnDirective(Connection *conn, uint16_t code, std::string target);
 
 	/// Handlers/FileHandler.cpp
 
@@ -437,27 +425,26 @@ class WebServer {
 	/// \param conn The connection to send response to.
 	/// \param dir_path The full path to the file to send.
 	/// \returns Response object containing the requested resource or error.
-	Response handleFileRequest(Connection* conn, const std::string& dir_path);
+	Response handleFileRequest(Connection *conn, const std::string &dir_path);
 
 	/// Prepares response data when a directory is requested
 	/// \param conn The connection to send response to.
 	/// \param dir_path The response object containing the path
 	/// \returns Response object containing the requested resource or error.
-	Response handleDirectoryRequest(Connection* conn, const std::string& dir_path);
+	Response handleDirectoryRequest(Connection *conn, const std::string &dir_path);
 
 	/// Prepares response data for transmission to client : directory listing
 	/// \param conn The connection to send response to.
 	/// \param fullDirPath The response object containing the file directory.
 	/// \returns Response object containing the requested resource or error.
-	Response generateDirectoryListing(Connection* conn, const std::string &fullDirPath);
+	Response generateDirectoryListing(Connection *conn, const std::string &fullDirPath);
 
 	// Utility methods
 	void findPendingConnections(int fd);
 	static void initErrMessages();
-	std::string buildFullPath(const std::string& uri, LocConfig *Location);
+	std::string buildFullPath(const std::string &uri, LocConfig *Location);
 	void logConnectionStats();
 };
-
 
 // Utility functions
 
@@ -479,7 +466,6 @@ LocConfig *findBestMatch(const std::string &uri, std::vector<LocConfig> &locatio
 /// \returns True if path is a regular file, false otherwise.
 // bool isRegularFile(const char *path);
 
-
 /// Converts epoll event flags to human-readable string representation.
 /// \param ev The epoll event flags to describe.
 /// \returns String representation of the events (e.g., "EPOLLIN | EPOLLOUT").
@@ -491,7 +477,6 @@ std::string describeEpollEvents(uint32_t ev);
 /// \returns Position of CRLF sequence, or string::npos if not found.
 size_t findCRLF(const std::string &buffer, size_t start_pos);
 
-
 /// Determines appropriate Content-Type header based on file extension.
 /// \param path The file path to analyze.
 /// \returns Content-Type string. Default : "application/octet-stream" (for arbitrary binary data)
@@ -500,26 +485,15 @@ std::string detectContentType(const std::string &path);
 // /// Determines the extension from a file path (no . allowed in the path).
 // /// \param path The file path to analyze.
 // /// \returns extension string (.html, .png, ...). Not found: returns "".
-std::string getExtension(const std::string& path);
+std::string getExtension(const std::string &path);
 
-enum MaxBody {
-		DEFAULT,
-		INFINITE,
-		SPECIFIED
-} ;
+enum MaxBody { DEFAULT, INFINITE, SPECIFIED };
 
-enum FileType {
-	ISDIR,
-	ISREG,
-	NOT_FOUND_404,
-	PERMISSION_DENIED_403,
-	FILE_SYSTEM_ERROR_500
-};
+enum FileType { ISDIR, ISREG, NOT_FOUND_404, PERMISSION_DENIED_403, FILE_SYSTEM_ERROR_500 };
 
 /// Determines the type of path: .
 /// \param path The path to analyze.
 /// \returns file type Directory, File, Denied access, Not found, Internal error.
-FileType checkFileType(std::string path) ;
+FileType checkFileType(std::string path);
 
-#endif  /* end of include guard: __HTTPSERVER_HPP__*/
-
+#endif /* end of include guard: __HTTPSERVER_HPP__*/

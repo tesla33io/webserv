@@ -1,20 +1,19 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   types.hpp                                          :+:      :+:    :+:   */
+/*   Types.hpp                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/27 11:55:56 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/06 15:59:13 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/07 14:01:30 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #ifndef TYPES_HPP
 #define TYPES_HPP
 
-#include "./webserv.hpp"
-#include <string>
+#include "Webserv.hpp"
 
 struct ClientRequest {
 	// Request line

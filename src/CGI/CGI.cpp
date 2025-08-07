@@ -6,7 +6,7 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/31 09:07:54 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/06 16:05:59 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/07 13:39:04 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -75,9 +75,7 @@ void CGI::freeEnvp(char **envp) {
 
 /* SETTERS / GETTERS */
 
-void CGI::setInterpreter(std::string &interpreter) {
-	interpreter_ = interpreter;
-}
+void CGI::setInterpreter(std::string &interpreter) { interpreter_ = interpreter; }
 
 const char *CGI::getInterpreter() const { return (interpreter_.c_str()); }
 
@@ -93,7 +91,7 @@ int CGI::getOutputFd() const { return (output_fd_); }
 
 /* CGI HANDLER */
 
-void CGI::print_cgi_response(const std::string &cgi_output) {
+void CGI::printCGIResponse(const std::string &cgi_output) {
 	std::istringstream response_stream(cgi_output);
 	std::string line;
 	bool in_body = false;
@@ -112,7 +110,7 @@ void CGI::print_cgi_response(const std::string &cgi_output) {
 	}
 }
 
-std::string CGI::extract_content_type(std::string &cgi_headers) {
+std::string CGI::extractContentType(std::string &cgi_headers) {
 	std::string content_type = "text/html";
 	std::istringstream header_stream(cgi_headers);
 	std::string line;
@@ -159,11 +157,11 @@ bool CGI::cleanup() {
 
 /* NORMAL RESPONSE */
 
-void CGI::send_cgi_response(std::string &cgi_output, int clfd) {
+void CGI::sendCGIResponse(std::string &cgi_output, int clfd) {
 	Response resp;
 	resp.setStatus(200);
 	resp.version = "HTTP/1.1";
-	resp.setContentType(extract_content_type(cgi_output));
+	resp.setContentType(extractContentType(cgi_output));
 	resp.setContentLength(cgi_output.length());
 	size_t header_end = cgi_output.find("\n\n");
 	resp.body = cgi_output.substr(header_end);
@@ -171,7 +169,7 @@ void CGI::send_cgi_response(std::string &cgi_output, int clfd) {
 	send(clfd, raw_response.c_str(), raw_response.length(), 0);
 }
 
-bool CGI::send_normal_resp(CGI &cgi, int clfd) {
+bool CGI::sendNormalResp(CGI &cgi, int clfd) {
 	Logger logger;
 	std::string cgi_output;
 	char buffer[4096];
@@ -187,14 +185,14 @@ bool CGI::send_normal_resp(CGI &cgi, int clfd) {
 		waitpid(cgi.getPid(), NULL, 0);
 		return (false);
 	}
-	cgi.print_cgi_response(cgi_output);
-	cgi.send_cgi_response(cgi_output, clfd);
+	cgi.printCGIResponse(cgi_output);
+	cgi.sendCGIResponse(cgi_output, clfd);
 	return (true);
 }
 
 /* CHUNKED RESPONSE */
 
-void CGI::send_chunk(int clfd, const char *data, size_t size) {
+void CGI::sendChunk(int clfd, const char *data, size_t size) {
 	if (size == 0) {
 		const char *final_chunk = "0\r\n\r\n";
 		send(clfd, final_chunk, 5, 0);
@@ -217,8 +215,8 @@ void CGI::send_chunk(int clfd, const char *data, size_t size) {
 }
 
 // Extract and send CGI headers first, then start chunked body
-bool CGI::send_cgi_headers(CGI &cgi, int clfd, std::string &first_chunk,
-                           std::string &remaining_data) {
+bool CGI::sendCGIHeaders(CGI &cgi, int clfd, std::string &first_chunk,
+                         std::string &remaining_data) {
 	Logger logger;
 
 	// Find the end of headers (double newline)
@@ -240,7 +238,7 @@ bool CGI::send_cgi_headers(CGI &cgi, int clfd, std::string &first_chunk,
 	remaining_data = first_chunk.substr(header_end);
 
 	// Parse CGI headers to extract content-type
-	std::string content_type = cgi.extract_content_type(cgi_headers);
+	std::string content_type = cgi.extractContentType(cgi_headers);
 
 	// Build HTTP response headers with chunked encoding
 	Response resp;
@@ -256,7 +254,7 @@ bool CGI::send_cgi_headers(CGI &cgi, int clfd, std::string &first_chunk,
 	return (true);
 }
 
-bool CGI::send_chunked_resp(CGI &cgi, int clfd) {
+bool CGI::sendChunkedResp(CGI &cgi, int clfd) {
 	Logger logger;
 	char buffer[CHUNK_SIZE];
 	std::string accumulated_data;
@@ -269,18 +267,18 @@ bool CGI::send_chunked_resp(CGI &cgi, int clfd) {
 			accumulated_data.append(buffer, bytes_read);
 
 			std::string remaining_body;
-			if (cgi.send_cgi_headers(cgi, clfd, accumulated_data, remaining_body)) {
+			if (cgi.sendCGIHeaders(cgi, clfd, accumulated_data, remaining_body)) {
 				headers_sent = true;
 
 				// Send first chunk if there's body data
 				if (!remaining_body.empty()) {
-					cgi.send_chunk(clfd, remaining_body.c_str(), remaining_body.size());
+					cgi.sendChunk(clfd, remaining_body.c_str(), remaining_body.size());
 				}
 			}
 			// If headers not complete, continue reading
 		} else {
 			// Headers already sent, send this data as a chunk
-			cgi.send_chunk(clfd, buffer, bytes_read);
+			cgi.sendChunk(clfd, buffer, bytes_read);
 		}
 	}
 
@@ -293,7 +291,7 @@ bool CGI::send_chunked_resp(CGI &cgi, int clfd) {
 
 	// Send final chunk to indicate end of response
 	if (headers_sent) {
-		cgi.send_chunk(clfd, NULL, 0); // This sends "0\r\n\r\n"
+		cgi.sendChunk(clfd, NULL, 0); // This sends "0\r\n\r\n"
 	}
 	return (true);
 }
