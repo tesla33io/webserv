@@ -1,17 +1,16 @@
-#include "ConfigParser/config_parser.hpp"
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   HttpServer.cpp                                     :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2025/08/07 14:10:03 by jalombar          #+#    #+#             */
+/*   Updated: 2025/08/07 14:10:05 by jalombar         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #include "HttpServer.hpp"
-#include "src/Logger/Logger.hpp"
-#include "src/RequestParser/request_parser.hpp"
-#include "src/Utils/ArgumentParser.hpp"
-#include "src/Utils/StringUtils.hpp"
-#include <cstring>
-#include <exception>
-#include <netdb.h>
-#include <string>
-#include <sys/epoll.h>
-#include <sys/socket.h>
-#include <unistd.h>
-#include <vector>
 
 bool WebServer::_running;
 static bool interrupted = false;

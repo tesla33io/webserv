@@ -1,12 +1,16 @@
-#include "ConfigParser/config_parser.hpp"
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   Connection.cpp                                     :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2025/08/07 14:09:35 by jalombar          #+#    #+#             */
+/*   Updated: 2025/08/07 14:09:48 by jalombar         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #include "HttpServer.hpp"
-#include "src/Logger/Logger.hpp"
-#include "src/RequestParser/request_parser.hpp"
-#include "src/Utils/StringUtils.hpp"
-#include <cerrno>
-#include <cmath>
-#include <string>
-#include <vector>
 
 void WebServer::handleNewConnection(ServerConfig *sc) {
 	struct sockaddr_in client_addr;
@@ -76,10 +80,10 @@ void WebServer::cleanupExpiredConnections() {
 		}
 	}
 
-    for (size_t i = 0; i < expired.size(); ++i) {
-        closeConnection(expired[i]);
-    }
-    expired.clear();
+	for (size_t i = 0; i < expired.size(); ++i) {
+		closeConnection(expired[i]);
+	}
+	expired.clear();
 }
 
 void WebServer::handleConnectionTimeout(int client_fd) {
@@ -152,4 +156,3 @@ void WebServer::closeConnection(Connection *conn) {
 	_lggr.debug("Connection cleanup completed for fd: " + su::to_string(conn->fd));
 	delete conn;
 }
-

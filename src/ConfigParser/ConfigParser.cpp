@@ -1,8 +1,18 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   ConfigParser.cpp                                   :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2025/08/07 13:54:15 by jalombar          #+#    #+#             */
+/*   Updated: 2025/08/07 13:54:19 by jalombar         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
 
-#include "config_parser.hpp"
+#include "ConfigParser.hpp"
 
-
-bool ConfigParser::loadConfig(const std::string& filePath, std::vector<ServerConfig>& servers) {
+bool ConfigParser::loadConfig(const std::string &filePath, std::vector<ServerConfig> &servers) {
 
 	ConfigNode tree;
 	ConfigParser configparser;
@@ -16,9 +26,8 @@ bool ConfigParser::loadConfig(const std::string& filePath, std::vector<ServerCon
 	return true;
 }
 
-
 bool ConfigParser::parseTree(const std::string &filePath, ConfigNode &childNode) {
-	
+
 	std::ifstream confFile(filePath.c_str());
 	if (!confFile.is_open()) {
 		logg_.logWithPrefix(Logger::WARNING, "CONFIG", "Could not open file: " + filePath);
@@ -83,12 +92,13 @@ bool ConfigParser::parseTreeBlocks(std::ifstream &file, int &line_nb, ConfigNode
 			std::vector<std::string> tokens = ConfigParser::tokenize(trimmed);
 			if (tokens.empty()) {
 				logg_.logWithPrefix(Logger::ERROR, "CONFIG",
-				                     "Empty ConfigNode at line " +
-				                         su::to_string(statement_start_line));
+				                    "Empty ConfigNode at line " +
+				                        su::to_string(statement_start_line));
 				return false;
 			}
-			ConfigNode childNode(tokens[0], std::vector<std::string>(tokens.begin() + 1, tokens.end()),
-					statement_start_line);
+			ConfigNode childNode(tokens[0],
+			                     std::vector<std::string>(tokens.begin() + 1, tokens.end()),
+			                     statement_start_line);
 
 			if (!ConfigParser::validateDirective(childNode, parent))
 				return false;
@@ -109,12 +119,13 @@ bool ConfigParser::parseTreeBlocks(std::ifstream &file, int &line_nb, ConfigNode
 			std::vector<std::string> tokens = ConfigParser::tokenize(trimmed);
 			if (tokens.empty()) {
 				logg_.logWithPrefix(Logger::ERROR, "CONFIG",
-				                     "Empty directive at line " +
-				                         su::to_string(statement_start_line));
+				                    "Empty directive at line " +
+				                        su::to_string(statement_start_line));
 				return false;
 			}
-			ConfigNode directive (tokens[0], std::vector<std::string>(tokens.begin() + 1, tokens.end()),
-					statement_start_line);
+			ConfigNode directive(tokens[0],
+			                     std::vector<std::string>(tokens.begin() + 1, tokens.end()),
+			                     statement_start_line);
 			if (!ConfigParser::validateDirective(directive, parent))
 				return false;
 			parent.children_.push_back(directive);
@@ -122,22 +133,22 @@ bool ConfigParser::parseTreeBlocks(std::ifstream &file, int &line_nb, ConfigNode
 		}
 
 		logg_.logWithPrefix(Logger::ERROR, "CONFIG",
-		                     "Unexpected line at " + su::to_string(statement_start_line) + ": " +
-		                         statement);
+		                    "Unexpected line at " + su::to_string(statement_start_line) + ": " +
+		                        statement);
 		return false;
 	}
 
 	if (!accumulated_line.empty()) { // last line no closing statement
 		logg_.logWithPrefix(Logger::ERROR, "CONFIG",
-		                     "Incomplete statement at line " + su::to_string(statement_start_line) +
-		                         ": " + accumulated_line);
+		                    "Incomplete statement at line " + su::to_string(statement_start_line) +
+		                        ": " + accumulated_line);
 		return false;
 	}
 
 	if (parent.name_ != "main") {
 		logg_.logWithPrefix(Logger::ERROR, "CONFIG",
-		                     "Unexpected end of file: missing closing bracket for block '" +
-		                         parent.name_ + "'");
+		                    "Unexpected end of file: missing closing bracket for block '" +
+		                        parent.name_ + "'");
 		return false;
 	}
 

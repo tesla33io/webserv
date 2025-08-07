@@ -1,8 +1,16 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   FileHandler.cpp                                    :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2025/08/07 14:07:32 by jalombar          #+#    #+#             */
+/*   Updated: 2025/08/07 14:08:58 by jalombar         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #include "src/HttpServer/HttpServer.hpp"
-#include "src/Logger/Logger.hpp"
-#include "src/Utils/StringUtils.hpp"
-#include <fstream>
-#include <sys/stat.h>
 
 std::string WebServer::getFileContent(std::string path) {
 	std::string content;
@@ -40,4 +48,3 @@ FileType checkFileType(std::string path) {
 		return ISREG;
 	return FILE_SYSTEM_ERROR_500;
 }
-

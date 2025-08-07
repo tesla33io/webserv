@@ -1,20 +1,18 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   body.cpp                                           :+:      :+:    :+:   */
+/*   Body.cpp                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/25 10:46:18 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/01 09:00:08 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/07 14:18:09 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "../Logger/Logger.hpp"
-#include "../Utils/StringUtils.hpp"
-#include "request_parser.hpp"
+#include "RequestParser.hpp"
 
-bool RequestParsingUtils::check_and_trim_line(std::string &line) {
+bool RequestParsingUtils::checkNTrimLine(std::string &line) {
 	Logger logger;
 	// Check line ending (\r\n)
 	if (line.empty()) {
@@ -30,60 +28,11 @@ bool RequestParsingUtils::check_and_trim_line(std::string &line) {
 	return (true);
 }
 
-bool RequestParsingUtils::chunked_encoding(std::istringstream &stream, ClientRequest &request) {
-	Logger logger;
-	std::string line;
-	while (std::getline(stream, line)) {
-		if (!check_and_trim_line(line))
-			return (false);
-		std::istringstream chunk_length_stream(line);
-		int chunk_length;
-		if (!(chunk_length_stream >> chunk_length) || chunk_length < 0) {
-			logger.logWithPrefix(Logger::WARNING, "HTTP", "Invalid chunk length value");
-			return (false);
-		}
-		// Find final chunk
-		if (chunk_length == 0) {
-			if (!std::getline(stream, line)) {
-				logger.logWithPrefix(Logger::WARNING, "HTTP", "Invalid chunked encoding");
-			}
-			if (!check_and_trim_line(line))
-				return (false);
-			if (!line.empty()) {
-				logger.logWithPrefix(Logger::WARNING, "HTTP", "Missing end of chunked body");
-				return (false);
-			}
-			return (true);
-		}
-
-		// Parse chunk line
-		if (!std::getline(stream, line)) {
-			logger.logWithPrefix(Logger::WARNING, "HTTP", "Invalid chunked encoding");
-			return (false);
-		}
-		std::istringstream chunk_stream(line);
-		// Read exactly chunk_length bytes
-		std::string chunk(chunk_length, '\0');
-		chunk_stream.read(&chunk[0], chunk_length);
-		std::streamsize actually_read = chunk_stream.gcount();
-		if (actually_read != chunk_length) {
-			std::ostringstream msg;
-			msg << "Chunk length mismatch: expected " << chunk_length << " bytes, but read "
-			    << actually_read << " bytes";
-			logger.logWithPrefix(Logger::WARNING, "HTTP", msg.str());
-			return (false);
-		}
-		request.body.append(chunk);
-	}
-	logger.logWithPrefix(Logger::WARNING, "HTTP", "Invalid chunked encoding");
-	return (false);
-}
-
-bool RequestParsingUtils::parse_body(std::istringstream &stream, ClientRequest &request) {
+bool RequestParsingUtils::parseBody(std::istringstream &stream, ClientRequest &request) {
 	Logger logger;
 	logger.logWithPrefix(Logger::DEBUG, "HTTP", "Parsing message body");
 
-	const char *content_length_value = find_header(request, "content-length");
+	const char *content_length_value = findHeader(request, "content-length");
 
 	// Enforce Content-Length for POST even if body is empty
 	if (!content_length_value) {

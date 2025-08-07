@@ -6,18 +6,18 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/31 08:58:57 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/06 15:58:59 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/07 14:15:21 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #ifndef CGI_HPP
 #define CGI_HPP
 
-#include "../../includes/types.hpp"
-#include "../../includes/webserv.hpp"
-#include "../HttpServer/Response.hpp"
-#include "../Logger/Logger.hpp"
-#include "../ConfigParser/config_parser.hpp"
+#include "includes/Types.hpp"
+#include "includes/Webserv.hpp"
+#include "src/ConfigParser/ConfigParser.hpp"
+#include "src/HttpServer/Response.hpp"
+#include "src/Logger/Logger.hpp"
 
 class CGI {
   private:
@@ -48,16 +48,15 @@ class CGI {
 	int getOutputFd() const;
 
 	// CGI handler
-	void print_cgi_response(const std::string &cgi_output);
-	std::string extract_content_type(std::string &cgi_headers);
+	void printCGIResponse(const std::string &cgi_output);
+	std::string extractContentType(std::string &cgi_headers);
 	bool cleanup();
 
-	void send_cgi_response(std::string &cgi_output, int clfd);
-	bool send_normal_resp(CGI &cgi, int clfd);
-	void send_chunk(int clfd, const char *data, size_t size);
-	bool send_cgi_headers(CGI &cgi, int clfd, std::string &first_chunk,
-	                      std::string &remaining_data);
-	bool send_chunked_resp(CGI &cgi, int clfd);
+	void sendCGIResponse(std::string &cgi_output, int clfd);
+	bool sendNormalResp(CGI &cgi, int clfd);
+	void sendChunk(int clfd, const char *data, size_t size);
+	bool sendCGIHeaders(CGI &cgi, int clfd, std::string &first_chunk, std::string &remaining_data);
+	bool sendChunkedResp(CGI &cgi, int clfd);
 };
 
 namespace CGIUtils {

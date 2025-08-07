@@ -1,19 +1,16 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   request_parser.cpp                                 :+:      :+:    :+:   */
+/*   RequestParser.cpp                                  :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/17 15:43:17 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/06 16:00:29 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/07 14:12:49 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "request_parser.hpp"
-#include "../Logger/Logger.hpp"
-#include "../Utils/StringUtils.hpp"
-#include "includes/types.hpp"
+#include "RequestParser.hpp"
 
 std::string ClientRequest::toString() {
 	std::ostringstream oss;
@@ -45,7 +42,7 @@ std::string ClientRequest::toString() {
 }
 
 /* Utils */
-const char *RequestParsingUtils::find_header(ClientRequest &request, const std::string &header) {
+const char *RequestParsingUtils::findHeader(ClientRequest &request, const std::string &header) {
 	std::map<std::string, std::string>::iterator it = request.headers.find(header);
 	if (it == request.headers.end())
 		return (NULL);
@@ -53,7 +50,7 @@ const char *RequestParsingUtils::find_header(ClientRequest &request, const std::
 }
 
 // Trim type: 1=left side, 2=right side, 3=both
-std::string RequestParsingUtils::trim_side(const std::string &s, int type) {
+std::string RequestParsingUtils::trimSide(const std::string &s, int type) {
 	std::string result = s;
 	if (type == 1 || type == 3) {
 		while (!result.empty() && (result[0] == ' ' || result[0] == '\t'))
@@ -68,8 +65,7 @@ std::string RequestParsingUtils::trim_side(const std::string &s, int type) {
 }
 
 /* Trailing headers parser */
-bool RequestParsingUtils::parse_trailing_headers(std::istringstream &stream,
-                                                 ClientRequest &request) {
+bool RequestParsingUtils::parseTrailingHeaders(std::istringstream &stream, ClientRequest &request) {
 	Logger logger;
 	std::string line;
 	logger.logWithPrefix(Logger::INFO, "HTTP", "Parsing trailing headers");
@@ -87,8 +83,8 @@ bool RequestParsingUtils::parse_trailing_headers(std::istringstream &stream,
 			logger.logWithPrefix(Logger::WARNING, "HTTP", "Invalid trailing header");
 			return (false);
 		}
-		std::string name = trim_side(line.substr(0, colon), 1);
-		std::string value = trim_side(line.substr(colon + 1), 3);
+		std::string name = trimSide(line.substr(0, colon), 1);
+		std::string value = trimSide(line.substr(colon + 1), 3);
 
 		if (name.empty()) {
 			logger.logWithPrefix(Logger::WARNING, "HTTP", "Empty header name");
@@ -113,14 +109,14 @@ bool RequestParsingUtils::parse_trailing_headers(std::istringstream &stream,
 			logger.logWithPrefix(Logger::WARNING, "HTTP", "Invalid headers to be in trailing");
 			return (false);
 		}
-		if (!check_header(name, value, request))
+		if (!checkHeader(name, value, request))
 			return (false);
 		request.headers[su::to_lower(name)] = value;
 	}
 	return (true);
 }
 
-bool check_file_upload(ClientRequest &request) {
+bool checkFileUpload(ClientRequest &request) {
 	Logger logger;
 	bool type = false;
 	bool bound = false;
@@ -141,7 +137,7 @@ bool check_file_upload(ClientRequest &request) {
 }
 
 /* Parser */
-bool RequestParsingUtils::parse_request(const std::string &raw_request, ClientRequest &request) {
+bool RequestParsingUtils::parseRequest(const std::string &raw_request, ClientRequest &request) {
 	Logger logger;
 	if (raw_request.empty()) {
 		logger.logWithPrefix(Logger::WARNING, "HTTP", "No request received");
@@ -154,25 +150,25 @@ bool RequestParsingUtils::parse_request(const std::string &raw_request, ClientRe
 	std::istringstream stream(raw_request);
 
 	// Parse request line
-	if (!parse_req_line(stream, request))
+	if (!parseReqLine(stream, request))
 		return (false);
 
 	// Parse headers
-	if (!parse_headers(stream, request))
+	if (!parseHeaders(stream, request))
 		return (false);
 
 	// Parse body
-	if (!parse_body(stream, request))
+	if (!parseBody(stream, request))
 		return (false);
 
 	// Parse trailing headers (if any)
 	if (request.chunked_encoding) {
-		if (!parse_trailing_headers(stream, request))
+		if (!parseTrailingHeaders(stream, request))
 			return (false);
 	}
 
 	// Check if file upload
-	if (!check_file_upload(request))
+	if (!checkFileUpload(request))
 		return (false);
 
 	logger.logWithPrefix(Logger::INFO, "HTTP", "Request parsing completed");
