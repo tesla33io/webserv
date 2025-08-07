@@ -131,6 +131,10 @@ void WebServer::handleClientEvent(int fd, uint32_t event_mask) {
 			if (!conn->keep_persistent_connection)
 				closeConnection(conn);
 		}
+		if (event_mask & (EPOLLERR | EPOLLHUP)) {
+			_lggr.error("Error/hangup event for fd: " + su::to_string(fd));
+			closeConnection(conn);
+		}
 	} else {
 		_lggr.debug("Ignoring event for unknown fd: " + su::to_string(fd));
 	}
@@ -175,7 +179,10 @@ ssize_t WebServer::receiveData(int client_fd, char *buffer, size_t buffer_size) 
 }
 
 bool WebServer::processReceivedData(Connection *conn, const char *buffer, ssize_t bytes_read) {
+	static int i = 0;
 	conn->read_buffer += std::string(buffer);
+	std::cerr << i++ << " calls of preocessReceivedData" << std::endl << "Read_Buffer:\n";
+	std::cerr << conn->read_buffer << std::endl;
 
 	if (conn->state == Connection::READING_BODY) {
 		conn->body_bytes_read += bytes_read;
@@ -184,7 +191,7 @@ bool WebServer::processReceivedData(Connection *conn, const char *buffer, ssize_
 
 	_lggr.debug("Checking if request was completed");
 	if (isRequestComplete(conn)) {
-		if (!epollManage(EPOLL_CTL_MOD, conn->fd, EPOLLIN | EPOLLOUT)) {
+		if (!epollManage(EPOLL_CTL_MOD, conn->fd, EPOLLOUT)) {
 			return false;
 		}
 		_lggr.debug("Request was completed");

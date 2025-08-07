@@ -178,7 +178,7 @@ void WebServer::processRequest(Connection *conn) {
 			_lggr.debug("Extension path is : " + extPath);
 			req.extension = getExtension(req.path);
 			if (!handleCGIRequest(req, conn)) {
-				_lggr.error("Handling the CGI request failed.");
+				_lggr.logWithPrefix(Logger::ERROR, "BAD REQUEST", "Failed to invoke CGI.");
 				prepareResponse(conn, Response::badRequest());
 				// closeConnection(conn);
 				return;
@@ -204,8 +204,7 @@ void WebServer::processRequest(Connection *conn) {
 bool WebServer::parseRequest(Connection *conn, ClientRequest &req) {
 	_lggr.debug("Parsing request: " + conn->toString());
 	if (!RequestParsingUtils::parse_request(conn->read_buffer, req)) {
-		_lggr.error("Parsing of the request failed.");
-		_lggr.debug("FD " + su::to_string(conn->fd) + " " + conn->toString());
+		_lggr.logWithPrefix(Logger::ERROR, "BAD REQUEST", "Failed to parse the request.");
 		prepareResponse(conn, Response::badRequest(conn));
 		// closeConnection(conn);
 		return false;
@@ -279,6 +278,8 @@ bool WebServer::isHeadersComplete(Connection *conn) {
 			_lggr.error("Malformed header");
 			conn->content_length = -1;
 			conn->state = Connection::REQUEST_COMPLETE;
+			_lggr.logWithPrefix(Logger::ERROR, "BAD REQUEST", "Malformed headers");
+			prepareResponse(conn, Response::badRequest());
 			return true;
 		}
 
