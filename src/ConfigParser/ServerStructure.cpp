@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ServerStructure.cpp                                :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 13:55:04 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/07 13:55:14 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/07 16:12:36 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -254,7 +254,7 @@ void ConfigParser::inheritGeneralConfig(ServerConfig &server, const LocConfig &f
 	}
 }
 
-// HOST:SERVER dupliactes -> not accepted
+// HOST:SERVER pairs duplicates -> not accepted
 bool ConfigParser::isDuplicateServer(const std::vector<ServerConfig> &servers,
                                      const ServerConfig &newServer) {
 	for (std::vector<ServerConfig>::const_iterator it = servers.begin(); it != servers.end();
@@ -266,7 +266,7 @@ bool ConfigParser::isDuplicateServer(const std::vector<ServerConfig> &servers,
 	return false;
 }
 
-// LOCATION PATH dupliactes -> not accepted
+// LOCATION PATH duplicates -> not accepted
 bool ConfigParser::existentLocationDuplicate(const ServerConfig &server,
                                              const LocConfig &location) {
 	for (size_t i = 0; i < server.locations.size(); ++i) {

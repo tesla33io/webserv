@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ConfigHelper.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 13:54:29 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/07 13:54:31 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/07 16:15:24 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -132,10 +132,10 @@ std::string ConfigParser::joinArgs(const std::vector<std::string> &args) {
 	}
 	return result;
 }
-void ConfigParser::printTree(const ConfigNode &node, const std::string &prefix, bool isLast,
+void ConfigParser::printTree(const ConfigNode &node, const std::string &prefix, bool is_last,
                              std::ostream &os) const {
 	os << prefix;
-	os << (isLast ? "└── " : "├── ");
+	os << (is_last ? "└── " : "├── ");
 	os << node.name_;
 
 	if (!node.args_.empty()) {
@@ -144,11 +144,11 @@ void ConfigParser::printTree(const ConfigNode &node, const std::string &prefix, 
 
 	os << " " << node.line_ << std::endl;
 
-	std::string childPrefix = prefix + (isLast ? "    " : "│   ");
+	std::string childPrefix = prefix + (is_last ? "    " : "│   ");
 
 	for (size_t i = 0; i < node.children_.size(); ++i) {
-		bool childIsLast = (i == node.children_.size() - 1);
-		printTree(node.children_[i], childPrefix, childIsLast, os);
+		bool childis_last = (i == node.children_.size() - 1);
+		printTree(node.children_[i], childPrefix, childis_last, os);
 	}
 }
 
