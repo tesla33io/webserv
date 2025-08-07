@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ConfigParser.hpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 13:53:23 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/07 14:16:04 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/07 16:15:24 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -38,19 +38,19 @@ class ConfigParser {
 	struct Validity {
 		std::string name_;
 		std::vector<std::string> contexts_;
-		bool repeatOK_;
-		size_t minArgs_;
-		size_t maxArgs_;
-		ValidationFunction validF_;
+		bool repeat_OK_;
+		size_t min_args_;
+		size_t max_args_;
+		ValidationFunction valid_f_;
 
 		Validity(const std::string &n, const std::vector<std::string> &c, bool rep, size_t min,
 		         size_t max, ValidationFunction f)
 		    : name_(n),
 		      contexts_(c),
-		      repeatOK_(rep),
-		      minArgs_(min),
-		      maxArgs_(max),
-		      validF_(f) {}
+		      repeat_OK_(rep),
+		      min_args_(min),
+		      max_args_(max),
+		      valid_f_(f) {}
 	};
 
 	// PARSING THE CONFIGURATION FILE
@@ -124,7 +124,7 @@ class ConfigParser {
 	void printServers(const std::vector<ServerConfig> &servers, std::ostream &os) const;
 	void printServerConfig(const ServerConfig &server, std::ostream &os) const;
 	void printLocationConfig(const LocConfig &loc, std::ostream &os) const;
-	void printTree(const ConfigNode &node, const std::string &prefix, bool isLast,
+	void printTree(const ConfigNode &node, const std::string &prefix, bool is_last,
 	               std::ostream &os) const;
 	static std::string joinArgs(const std::vector<std::string> &args);
 };

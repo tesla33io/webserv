@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ValidDirective.cpp                                 :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 13:52:39 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/07 14:13:05 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/07 16:14:19 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -74,7 +74,7 @@ bool ConfigParser::validateDirective(const ConfigNode &node, const ConfigNode &p
 				                        parent.name_ + "' on line " + su::to_string(node.line_));
 				return false;
 			}
-			if (!it->repeatOK_) {
+			if (!it->repeat_OK_) {
 				int count = 0;
 				for (size_t i = 0; i < parent.children_.size(); ++i) {
 					if (parent.children_[i].name_ == node.name_) {
@@ -89,17 +89,17 @@ bool ConfigParser::validateDirective(const ConfigNode &node, const ConfigNode &p
 					return false;
 				}
 			}
-			if (node.args_.size() < it->minArgs_ || node.args_.size() > it->maxArgs_) {
+			if (node.args_.size() < it->min_args_ || node.args_.size() > it->max_args_) {
 				logg_.logWithPrefix(Logger::WARNING, "Configuration file",
 				                    "Directive '" + node.name_ + "' expects between " +
-				                        su::to_string(it->minArgs_) + " and " +
-				                        su::to_string(it->maxArgs_) + " arguments, but got " +
+				                        su::to_string(it->min_args_) + " and " +
+				                        su::to_string(it->max_args_) + " arguments, but got " +
 				                        su::to_string(node.args_.size()) + " on line " +
 				                        su::to_string(node.line_));
 				return false;
 			}
-			if (it->validF_ != NULL) {
-				if (!(this->*(it->validF_))(node))
+			if (it->valid_f_ != NULL) {
+				if (!(this->*(it->valid_f_))(node))
 					return false;
 			}
 			return true;
@@ -229,7 +229,7 @@ bool ConfigParser::validateMaxBody(const ConfigNode &node) {
 	return true;
 }
 
-// the path must start with /, ends with /, no invalid char
+// the path must start with /, no invalid char
 // duplicates path not allowed
 bool ConfigParser::validateLocation(const ConfigNode &node) {
 	const std::string &path = node.args_[0];
@@ -253,7 +253,7 @@ bool ConfigParser::validateRoot(const ConfigNode &node) {
 	return true;
 }
 
-// upload path : starts with /, // to double check
+// upload path : starts with /, 
 bool ConfigParser::validateUploadPath(const ConfigNode &node) {
 	if (node.args_[0].empty() || !isValidUri(node.args_[0])) {
 		logg_.logWithPrefix(Logger::WARNING, "Configuration file",
