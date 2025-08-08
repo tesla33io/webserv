@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Request.cpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:10:22 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/07 14:11:15 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/08 18:13:46 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -52,7 +52,7 @@ void WebServer::processRequest(Connection *conn) {
 
 	if (!parseRequest(conn, req))
 		return;
-	_lggr.debug("Request parsed sucsessfully");
+	_lggr.debug("Request parsed successfully");
 
 	// RFC 2068 Section 8.1 -- presistent connection unless client or server sets connection header
 	// to 'close' -- indicating that the socket for this connection may be closed
@@ -78,7 +78,7 @@ void WebServer::processRequest(Connection *conn) {
 		_lggr.debug("Parsing complete chunked request");
 		if (!parseRequest(conn, req))
 			return;
-		_lggr.debug("Chunked request parsed sucsessfully");
+		_lggr.debug("Chunked request parsed successfully");
 		_lggr.debug(conn->toString());
 		_lggr.debug(req.toString());
 	}
@@ -93,8 +93,50 @@ void WebServer::processRequest(Connection *conn) {
 		return;
 	}
 	conn->locConfig = match; // Set location context
-	_lggr.debug("[Resp] Matched location : " + match->path);
+	_lggr.debug("[Resp->getRoot()] Matched location : " + match->path);
 
+	
+	std::string full_path = buildFullPath(req.path, conn->locConfig);
+	
+	// parent directory (for the full path, removing filename if present)
+	std::string parent_dir;
+	if (full_path.find('/') != std::string::npos)
+		parent_dir = full_path.substr(0, full_path.find_last_of('/'));
+	else 
+		parent_dir = ".";
+	
+	// security check- resolve the full path, not just parent
+	char resolved[PATH_MAX];
+	if (realpath(parent_dir.c_str(), resolved) == NULL) {
+		_lggr.error("Could not resolve parent directory: " + full_path);
+		prepareResponse(conn, Response::forbidden(conn));
+		return;
+	}
+	std::string resolved_str(resolved);
+	std::string prefix = (_root_prefix_path[_root_prefix_path.length() - 1] == '/')
+				? _root_prefix_path.substr(0, _root_prefix_path.length() - 1)
+				: _root_prefix_path;
+	std::string full_root = prefix + match->root;
+	
+	
+	if (!conn->locConfig->root.empty() 
+	&& resolved_str.substr(0, full_root.length()) != full_root) {
+		_lggr.error("Resolved path trying to access parent directory: " + resolved_str);
+		prepareResponse(conn, Response::forbidden(conn));
+		return;
+	}
+	
+	
+		// uri request ends with '/'
+		bool end_slash = (!req.uri.empty() && req.uri[req.uri.length() - 1] == '/');
+	
+	// this should maybe be in the connection info, not in the locConfig
+	// or at least should be cleared when the request is processed
+	conn->locConfig->setFullPath(full_path);
+
+	
+	FileType ftype = checkFileType(full_path);
+	
 	// check if RETURN directive in the matched location
 	if (conn->locConfig->hasReturn()) {
 		_lggr.debug("[Resp] The matched location has a return directive.");
@@ -109,67 +151,54 @@ void WebServer::processRequest(Connection *conn) {
 		_lggr.warn("Method " + req.method + " is not allowed for location " +
 		           conn->locConfig->path);
 		prepareResponse(conn, Response::methodNotAllowed(conn));
+		// TODO: the response must include the methods allowed
 		return;
 	}
 
-	std::string fullPath = buildFullPath(req.path, conn->locConfig);
-	conn->locConfig->setFullPath(fullPath);
-	// security check
-	// TODO : normalize the path
-	if (fullPath.find("..") != std::string::npos) {
-		_lggr.warn("Uri " + req.uri + " is not safe.");
-		prepareResponse(conn, Response::forbidden(conn));
-		return;
-	}
-
-	FileType ftype = checkFileType(fullPath);
 
 	// Error checking
 	if (ftype == NOT_FOUND_404) {
-		_lggr.debug("Could not open : " + fullPath);
+		_lggr.debug("Could not open : " + full_path);
 		prepareResponse(conn, Response::notFound(conn));
 		return;
 	}
 	if (ftype == PERMISSION_DENIED_403) {
-		_lggr.debug("Permission denied : " + fullPath);
+		_lggr.debug("Permission denied : " + full_path);
 		prepareResponse(conn, Response::forbidden(conn));
 		return;
 	}
 	if (ftype == FILE_SYSTEM_ERROR_500) {
-		_lggr.debug("Other file access problem : " + fullPath);
+		_lggr.debug("Other file access problem : " + full_path);
 		prepareResponse(conn, Response::internalServerError(conn));
 		return;
 	}
 
-	// uri request ends with '/'
-	bool endSlash = (!req.uri.empty() && req.uri[req.uri.length() - 1] == '/');
 
 	// Directory requests
 	if (ftype == ISDIR) {
-		_lggr.debug("Directory request: " + fullPath);
-		if (!endSlash) {
+		_lggr.debug("Directory request: " + full_path);
+		if (!end_slash) {
 			_lggr.debug("Directory request without trailing slash, redirecting: " + req.uri);
 			std::string redirectPath = req.uri + "/";
-			prepareResponse(conn, handleReturnDirective(conn, 302, redirectPath));
+			prepareResponse(conn, handleReturnDirective(conn, 301, redirectPath));
 			return;
 		} else {
-			prepareResponse(conn, handleDirectoryRequest(conn, fullPath));
+			prepareResponse(conn, handleDirectoryRequest(conn, full_path));
 			return;
 		}
 	}
 
 	// Handle file requests with trailing /
-	_lggr.debug("File request: " + fullPath);
-	if (ftype == ISREG && endSlash) {
+	_lggr.debug("File request: " + full_path);
+	if (ftype == ISREG && end_slash) {
 		_lggr.debug("File request with trailing slash, redirecting: " + req.uri);
 		std::string redirectPath = req.uri.substr(0, req.uri.length() - 1);
-		prepareResponse(conn, handleReturnDirective(conn, 302, redirectPath));
+		prepareResponse(conn, handleReturnDirective(conn, 301, redirectPath));
 		return;
 	}
 
 	// if we arrive here, this should be the only possible case
-	if (ftype == ISREG && !endSlash) {
-
+	if (ftype == ISREG && !end_slash) {
 		_lggr.debug("File request with following extension: " + getExtension(req.uri));
 
 		// check if it is a script with a language supported by the location
@@ -180,26 +209,28 @@ void WebServer::processRequest(Connection *conn) {
 			if (!handleCGIRequest(req, conn)) {
 				_lggr.error("Handling the CGI request failed.");
 				prepareResponse(conn, Response::badRequest());
-				// closeConnection(conn);
 				return;
 			}
 			return;
 		}
 
-		if (req.method != "GET") {
-			_lggr.debug("POST or DELETE request not handled by CGI -> not implemented response.");
-			prepareResponse(conn, Response::notImplemented(conn));
+		if (req.method == "GET") {
+			_lggr.debug("GET request not handled by CGI.");
+			prepareResponse(conn, handleFileRequest(conn, full_path));
 			return;
 		} else {
-			prepareResponse(conn, handleFileRequest(conn, fullPath));
+			_lggr.debug("POST or DELETE request not handled by CGI -> not implemented response.");
+			prepareResponse(conn, Response::notImplemented(conn)); 
 			return;
 		}
-
-		_lggr.debug("Should never be reached");
-		prepareResponse(conn, Response::internalServerError(conn));
-		return;
 	}
+
+	// if we arrive here, this should be the only possible case
+	_lggr.debug("Should never be reached");
+	prepareResponse(conn, Response::internalServerError(conn));
+	return;
 }
+
 
 bool WebServer::parseRequest(Connection *conn, ClientRequest &req) {
 	_lggr.debug("Parsing request: " + conn->toString());

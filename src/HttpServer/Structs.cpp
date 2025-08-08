@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Structs.cpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:11:23 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/07 14:17:25 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/07 17:19:31 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -94,7 +94,7 @@ std::string Connection::toString() {
 
 //// Response ////
 
-Logger Response::tmplogg_("Response", Logger::DEBUG);
+Logger Response::resplogg_("Response", Logger::DEBUG);
 
 Response::Response()
     : version("HTTP/1.1"),
@@ -237,21 +237,21 @@ void Response::initFromCustomErrorPage(uint16_t code, Connection *conn) {
 	reason_phrase = getReasonPhrase(code);
 
 	if (!conn || !conn->getServerConfig() || !conn->getServerConfig()->hasErrorPage(code)) {
-		tmplogg_.logWithPrefix(Logger::DEBUG, "Response",
+		resplogg_.logWithPrefix(Logger::DEBUG, "Response",
 		                       "No custom error page for " + su::to_string(code));
-		tmplogg_.logWithPrefix(Logger::DEBUG, "Response",
+		resplogg_.logWithPrefix(Logger::DEBUG, "Response",
 		                       "Creating the default error page for " + su::to_string(code));
 		initFromStatusCode(code);
 		return;
 	}
-	tmplogg_.logWithPrefix(Logger::DEBUG, "Response",
+	resplogg_.logWithPrefix(Logger::DEBUG, "Response",
 	                       "A custom error page exists for " + su::to_string(code));
 	// todo check path again
 	std::string fullPath =
 	    conn->getServerConfig()->getRootPrefix() + conn->getServerConfig()->getErrorPage(code);
 	std::ifstream errorFile(fullPath.c_str());
 	if (!errorFile.is_open()) {
-		tmplogg_.logWithPrefix(Logger::WARNING, "Response",
+		resplogg_.logWithPrefix(Logger::WARNING, "Response",
 		                       "Custom error page " + fullPath + " could not be opened.");
 		initFromStatusCode(code);
 		return;
@@ -263,7 +263,7 @@ void Response::initFromCustomErrorPage(uint16_t code, Connection *conn) {
 	setContentLength(body.length());
 	setContentType(detectContentType(fullPath));
 	errorFile.close();
-	tmplogg_.logWithPrefix(Logger::DEBUG, "Response",
+	resplogg_.logWithPrefix(Logger::DEBUG, "Response",
 	                       "Custom error page " + su::to_string(code) + " has been loaded.");
 }
 
@@ -271,7 +271,7 @@ void Response::initFromStatusCode(uint16_t code) {
 	reason_phrase = getReasonPhrase(code);
 	if (code >= 400) {
 		if (body.empty()) {
-			tmplogg_.logWithPrefix(Logger::DEBUG, "Response",
+			resplogg_.logWithPrefix(Logger::DEBUG, "Response",
 			                       "No custom error page for " + su::to_string(code) +
 			                           " could be used or exist. Generating the default page now.");
 			std::ostringstream html;
@@ -308,7 +308,7 @@ void Response::initFromStatusCode(uint16_t code) {
 			body = html.str();
 			setContentLength(body.length());
 			setContentType("text/html");
-			tmplogg_.logWithPrefix(Logger::DEBUG, "Response",
+			resplogg_.logWithPrefix(Logger::DEBUG, "Response",
 			                       "Content-Type set to: " + headers["Content-Type"]);
 		}
 	}

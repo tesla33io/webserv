@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpServer.hpp                                     :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:06:30 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/07 14:16:54 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/07 16:26:58 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -396,19 +396,8 @@ class WebServer {
 	bool isCGIFd(int fd) const;
 	bool handleCGIRequest(ClientRequest &req, Connection *conn);
 
-	// HTTP request handlers
-	Response handleGetRequest(ClientRequest &req);
-	Response handlePostRequest(ClientRequest &req);   // TODO: Implement
-	Response handleDeleteRequest(ClientRequest &req); // TODO: Implement
-	// DEPRECATED
-	/// Handles HTTP GET requests by serving requested resources.
-	/// \param req The GET request to process.
-	/// \param conn The connection to send response to.
-	/// \returns Response object containing the requested resource or error.
-	// Response handleGetRequest(ClientRequest &req, Connection *conn);
-
 	/// Handles Return directives.
-	/// \param req The GET request to process.
+	/// \param conn The connection to send response to.
 	/// \param code The status code to send back.
 	/// \param target The uri or url to send.
 	/// \returns Response object containing the requested resource or error.
@@ -440,10 +429,13 @@ class WebServer {
 	Response generateDirectoryListing(Connection *conn, const std::string &fullDirPath);
 
 	// Utility methods
-	void findPendingConnections(int fd);
-	static void initErrMessages();
+
+	/// Builds the full path for the request : prefix + root + uri
+	/// \param uri The requested uri.
+	/// \param Location The matching location.
+	/// \returns The full path of the file or direcory.
 	std::string buildFullPath(const std::string &uri, LocConfig *Location);
-	void logConnectionStats();
+	
 };
 
 // Utility functions
@@ -454,17 +446,6 @@ class WebServer {
 /// \param locations Vector of location configurations to search.
 /// \returns Pointer to the best matching LocConfig, or nullptr if no match.
 LocConfig *findBestMatch(const std::string &uri, std::vector<LocConfig> &locations);
-
-/** deprecated **/
-/// Checks if the given path refers to a directory.
-/// \param path The filesystem path to check.
-/// \returns True if path is a directory, false otherwise.
-// bool isDirectory(const char *path);
-/** deprecated **/
-/// Checks if the given path refers to a regular file.
-/// \param path The filesystem path to check.
-/// \returns True if path is a regular file, false otherwise.
-// bool isRegularFile(const char *path);
 
 /// Converts epoll event flags to human-readable string representation.
 /// \param ev The epoll event flags to describe.
