@@ -6,13 +6,14 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/31 09:07:54 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/07 13:39:04 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/08 10:36:09 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "CGI.hpp"
 
-CGI::CGI(ClientRequest &request, LocConfig *locConfig) {
+CGI::CGI(ClientRequest &request, LocConfig *locConfig)
+    : script_path_(locConfig->getFullPath()) {
 	setEnv("SCRIPT_FILENAME", locConfig->getFullPath());
 	setEnv("SCRIPT_NAME", "/" + request.path);
 	setEnv("REQUEST_METHOD", request.method);

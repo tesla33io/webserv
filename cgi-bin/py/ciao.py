@@ -1,4 +1,3 @@
-import cgi
 import cgitb
 import html
 import re
@@ -25,8 +24,9 @@ if 'name' in params:
 		name = name[:50]
 	
 	# Allow only letters, numbers, spaces, periods, apostrophes, and hyphens
-	# This prevents script injections and unwanted symbols
-	if not re.match(r'^[\p{L}\p{N} .\'\-]+$', name, re.UNICODE):
+	# Using \w for Unicode letters/numbers plus space, ., ', -
+	# Excluding underscore manually
+	if not re.match(r'^[\w .\'\-]+$', name, re.UNICODE) or '_' in name:
 		name = 'Guest'  # Reset to default if input is invalid
 	
 	# Convert special HTML characters to safe entities (e.g., < becomes &lt;)
