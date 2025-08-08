@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:06:30 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/07 16:26:58 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/08 22:03:13 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -396,12 +396,46 @@ class WebServer {
 	bool isCGIFd(int fd) const;
 	bool handleCGIRequest(ClientRequest &req, Connection *conn);
 
+
+	/// Build the full path for the URI, check traversal access, build the response on error
+	/// \param req The client request
+	/// \param conn The connection to send response to.
+	/// \returns true if everything ran smoothly, false on error
+	bool setupRequestContext(ClientRequest &req, Connection *conn);
+
+	/// Process the validated request : check if path exist and handle it.
+	/// \param req The client request
+	/// \param conn The connection to send response to.
+	void processValidRequest(ClientRequest &req, Connection *conn);
+
 	/// Handles Return directives.
 	/// \param conn The connection to send response to.
 	/// \param code The status code to send back.
 	/// \param target The uri or url to send.
 	/// \returns Response object containing the requested resource or error.
-	Response handleReturnDirective(Connection *conn, uint16_t code, std::string target);
+	Response respReturnDirective(Connection *conn, uint16_t code, std::string target);
+
+
+	/// Determines the type of path: .
+	/// \param path The path to analyze.
+	/// \returns file type Directory, File, Denied access, Not found, Internal error.
+	enum FileType { ISDIR, ISREG, NOT_FOUND_404, PERMISSION_DENIED_403, FILE_SYSTEM_ERROR_500 };
+	FileType checkFileType(const std::string& path);
+	
+	/// Handles File system error. Create the response on error.
+	/// \param file_type The type of file.
+	/// \param full_path The full path of the requested uri.
+	/// \param conn The connection to send response to.
+	/// \returns True if no error, false on error (response created).
+	bool handleFileSystemErrors(FileType file_type, const std::string& full_path, Connection *conn);
+	
+	
+
+	
+	bool normalizeFullPath(const std::string& full_path, Connection* conn, std::string& norm_path);
+	void handleDirectoryRequest(ClientRequest &req, Connection *conn, bool end_slash);
+	void handleFileRequest(ClientRequest &req, Connection *conn, bool end_slash);
+
 
 	/// Handlers/FileHandler.cpp
 
@@ -414,13 +448,13 @@ class WebServer {
 	/// \param conn The connection to send response to.
 	/// \param dir_path The full path to the file to send.
 	/// \returns Response object containing the requested resource or error.
-	Response handleFileRequest(Connection *conn, const std::string &dir_path);
+	Response respFileRequest(Connection *conn, const std::string &dir_path);
 
 	/// Prepares response data when a directory is requested
 	/// \param conn The connection to send response to.
 	/// \param dir_path The response object containing the path
 	/// \returns Response object containing the requested resource or error.
-	Response handleDirectoryRequest(Connection *conn, const std::string &dir_path);
+	Response respDirectoryRequest(Connection *conn, const std::string &dir_path);
 
 	/// Prepares response data for transmission to client : directory listing
 	/// \param conn The connection to send response to.
@@ -470,11 +504,5 @@ std::string getExtension(const std::string &path);
 
 enum MaxBody { DEFAULT, INFINITE, SPECIFIED };
 
-enum FileType { ISDIR, ISREG, NOT_FOUND_404, PERMISSION_DENIED_403, FILE_SYSTEM_ERROR_500 };
-
-/// Determines the type of path: .
-/// \param path The path to analyze.
-/// \returns file type Directory, File, Denied access, Not found, Internal error.
-FileType checkFileType(std::string path);
 
 #endif /* end of include guard: __HTTPSERVER_HPP__*/

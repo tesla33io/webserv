@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:08:41 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/07 16:31:09 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/08 21:45:43 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -48,7 +48,7 @@ bool WebServer::sendResponse(Connection *conn) {
 
 
 // Serving the index file or listing if possible
-Response WebServer::handleDirectoryRequest(Connection *conn, const std::string &fullDirPath) {
+Response WebServer::respDirectoryRequest(Connection *conn, const std::string &fullDirPath) {
 	_lggr.debug("Handling directory request: " + fullDirPath);
 
 	// Try to serve index file
@@ -57,7 +57,7 @@ Response WebServer::handleDirectoryRequest(Connection *conn, const std::string &
 		_lggr.debug("Trying index file: " + fullIndexPath);
 		if (checkFileType(fullIndexPath.c_str()) == ISREG) {
 			_lggr.debug("Found index file, serving: " + fullIndexPath);
-			return handleFileRequest(conn, fullIndexPath);
+			return respFileRequest(conn, fullIndexPath);
 		}
 	}
 
@@ -73,7 +73,7 @@ Response WebServer::handleDirectoryRequest(Connection *conn, const std::string &
 }
 
 // serving the file if found
-Response WebServer::handleFileRequest(Connection *conn, const std::string &fullFilePath) {
+Response WebServer::respFileRequest(Connection *conn, const std::string &fullFilePath) {
 	_lggr.debug("Handling file request: " + fullFilePath);
 	// Read file content
 	std::string content = getFileContent(fullFilePath);
@@ -91,7 +91,7 @@ Response WebServer::handleFileRequest(Connection *conn, const std::string &fullF
 }
 
 
-Response WebServer::handleReturnDirective(Connection *conn, uint16_t code, std::string target) {
+Response WebServer::respReturnDirective(Connection *conn, uint16_t code, std::string target) {
 
 	_lggr.debug("Handling return directive '" + su::to_string(code) + "' to " + target);
 	if (code == 0 || target.empty()) {
