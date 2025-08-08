@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:07:32 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/07 16:31:19 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/08 21:59:15 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -31,41 +31,23 @@ std::string WebServer::getFileContent(std::string path) {
 	return content;
 }
 
-FileType checkFileType(std::string path) {
-	struct stat pathStat;
-	if (stat(path.c_str(), &pathStat) != 0) {
-		if (errno == ENOTDIR || errno == ENOENT) {
-			return NOT_FOUND_404;
-		} else if (errno == EACCES) {
-			return PERMISSION_DENIED_403;
-		} else {
-			return FILE_SYSTEM_ERROR_500;
-		}
-	}
-	if (S_ISDIR(pathStat.st_mode))
-		return ISDIR;
-	else if (S_ISREG(pathStat.st_mode))
-		return ISREG;
-	return FILE_SYSTEM_ERROR_500;
-}
-
 std::string detectContentType(const std::string &path) {
 
 	std::map<std::string, std::string> cTypes;
-	cTypes[".css"] = "text/css";
-	cTypes[".js"] = "application/javascript";
+	cTypes[".css"]  = "text/css";
+	cTypes[".js"]   = "application/javascript";
 	cTypes[".html"] = "text/html";
-	cTypes[".htm"] = "text/html";
+	cTypes[".htm"]  = "text/html";
 	cTypes[".json"] = "application/json";
-	cTypes[".png"] = "image/png";
-	cTypes[".jpg"] = "image/jpeg";
+	cTypes[".png"]  = "image/png";
+	cTypes[".jpg"]  = "image/jpeg";
 	cTypes[".jpeg"] = "image/jpeg";
-	cTypes[".gif"] = "image/gif";
-	cTypes[".svg"] = "image/svg+xml";
-	cTypes[".ico"] = "image/x-icon";
-	cTypes[".txt"] = "text/plain";
-	cTypes[".pdf"] = "application/pdf";
-	cTypes[".zip"] = "application/zip";
+	cTypes[".gif"]  = "image/gif";
+	cTypes[".svg"]  = "image/svg+xml";
+	cTypes[".ico"]  = "image/x-icon";
+	cTypes[".txt"]  = "text/plain";
+	cTypes[".pdf"]  = "application/pdf";
+	cTypes[".zip"]  = "application/zip";
 
 	std::string ext = getExtension(path);
 	std::map<std::string, std::string>::const_iterator it = cTypes.find(ext);

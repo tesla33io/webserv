@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:11:23 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/07 17:19:31 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/08 21:42:57 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -84,7 +84,7 @@ std::string Connection::toString() {
 	                       : "not ready")
 	    << ", ";
 	oss << "chunked: " << (chunked ? "true" : "false") << ", ";
-	oss << "keep_presistent_connection: " << (keep_persistent_connection ? "true" : "false")
+	oss << "keep_persistent_connection: " << (keep_persistent_connection ? "true" : "false")
 	    << ", ";
 	oss << "request_count: " << request_count << ", ";
 	oss << "state: " << stateToString(state) << "}";
