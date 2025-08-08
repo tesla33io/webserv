@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Response.hpp                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:05:50 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/07 14:17:15 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/07 17:19:48 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -76,7 +76,7 @@ class Response {
 	void initFromCustomErrorPage(uint16_t code, Connection *conn);
 
 	static Logger
-	    tmplogg_; // not sure this is the best logic for the logger but i wanted to be able to log
+		resplogg_;
 };
 
 #endif /* end of include guard: RESPONSE_HPP */
