@@ -6,26 +6,27 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:07:52 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/08 19:31:47 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/11 12:55:22 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "src/HttpServer/HttpServer.hpp"
 
-static bool isPrefixMatch(const std::string &uri, const std::string &location_path);
+static bool isPrefixMatch(const std::string &uri, const LocConfig &loc);
 
 // locations are sorted from longest path to shortest ("/")
 // every server has at least one
 LocConfig *findBestMatch(const std::string &uri, std::vector<LocConfig> &locations) {
 	for (std::vector<LocConfig>::iterator it = locations.begin(); it != locations.end(); ++it) {
-		if (isPrefixMatch(uri, it->getPath())) {
+		if (isPrefixMatch(uri, *it)) {
 			return &(*it);
 		}
 	}
 	return NULL;
 }
 
-static bool isPrefixMatch(const std::string &uri, const std::string &location_path) {
+static bool isPrefixMatch(const std::string &uri, const LocConfig &loc) {
+	const std::string &location_path = loc.getPath();
 	if (location_path.empty() || location_path == "/") {
 		return true;
 	}
@@ -38,6 +39,9 @@ static bool isPrefixMatch(const std::string &uri, const std::string &location_pa
 	}
 	if (uri.length() == location_path.length()) {
 		return true; // Exact match
+	}
+	 if (loc.is_exact_()) {
+		return false;
 	}
 	// Next character should be '/' or end of string
 	char next_char = uri[location_path.length()];

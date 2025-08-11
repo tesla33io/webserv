@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 13:52:39 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/07 16:14:19 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/11 12:28:57 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,7 +36,7 @@ void ConfigParser::initValidDirectives() {
 	                                    std::vector<std::string>(1, "server"), false, 1, 1,
 	                                    &ConfigParser::validateMaxBody));
 	validDirectives_.push_back(Validity("location", std::vector<std::string>(1, "server"), true, 1,
-	                                    1, &ConfigParser::validateLocation));
+	                                    2, &ConfigParser::validateLocation));
 	// server or location level  (will be inherited in the locations if not set in the location)
 	validDirectives_.push_back(Validity("root", makeVector("server", "location"), false, 1, 1,
 	                                    &ConfigParser::validateRoot));
@@ -232,7 +232,17 @@ bool ConfigParser::validateMaxBody(const ConfigNode &node) {
 // the path must start with /, no invalid char
 // duplicates path not allowed
 bool ConfigParser::validateLocation(const ConfigNode &node) {
-	const std::string &path = node.args_[0];
+	if (node.args_.size() == 2 && node.args_[0] != "=") {
+		logg_.logWithPrefix(Logger::WARNING, "Configuration file",
+		                    "Invalid location modifier: " + node.args_[0] + " on line " +
+		                        su::to_string(node.line_));
+		return false;
+	}
+	std::string path;
+	if (node.args_.size() == 2)
+		path = node.args_[1];
+	else 
+		path = node.args_[0];
 	if (path.empty() || !isValidUri(path)) {
 		logg_.logWithPrefix(Logger::WARNING, "Configuration file",
 		                    "Invalid location path: " + path + " on line " +

@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 13:54:29 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/07 16:15:24 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/11 12:35:29 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -167,7 +167,8 @@ void ConfigParser::printServers(const std::vector<ServerConfig> &servers, std::o
 void ConfigParser::printLocationConfig(const LocConfig &loc, std::ostream &os) const {
 	os << "  Location: " << loc.path;
 	os << "\n";
-
+	os << "    Exact match: " << (loc.exact_match ? "yes" : "no") << "\n";
+	
 	if (!loc.root.empty())
 		os << "    Root: " << loc.root << "\n";
 
