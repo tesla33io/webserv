@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:10:22 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/08 22:18:31 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/11 10:52:50 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -147,21 +147,11 @@ bool WebServer::setupRequestContext(ClientRequest &req, Connection *conn) {
 // validating parent directory = removing filename (if file !exist, we handle it later)
 bool WebServer::normalizeFullPath(const std::string& full_path, Connection* conn, std::string& norm_path) {
 
-	// extract parent
-	std::string parent_dir = full_path.substr(0, full_path.find_last_of('/'));
-	std::string filename = full_path.substr(full_path.find_last_of('/') + 1);
-	
 	// path normalisation
 	char resolved[PATH_MAX];
-	if (realpath(parent_dir.c_str(), resolved) == NULL) {
-		_lggr.error("Could not resolve parent directory: " + parent_dir);
-		prepareResponse(conn, Response::forbidden(conn));
-		return false;
-	}
-	// reconstruction
-	std::string resolved_parent(resolved);
-	norm_path = resolved_parent + '/' + filename;
-
+	realpath(full_path.c_str(), resolved);
+	std::string resolved_str(resolved);
+	norm_path = resolved_str;
 	// check it is in root
 	std::string prefix = (_root_prefix_path[_root_prefix_path.length() - 1] == '/')
 				? _root_prefix_path.substr(0, _root_prefix_path.length() - 1)
@@ -175,7 +165,6 @@ bool WebServer::normalizeFullPath(const std::string& full_path, Connection* conn
 		return false;
 	}
 
-	
 	return true;
 }
 
@@ -186,7 +175,7 @@ void WebServer::processValidRequest(ClientRequest &req, Connection *conn) {
 	const std::string& full_path = conn->locConfig->getFullPath();
 	
 	// check if RETURN directive in the matched location
-	if (conn->locConfig->hasReturn()) {
+	if (conn->locConfig->hasReturn() && req.uri == conn->locConfig->getFullPath()) {
 		_lggr.debug("[Resp] The matched location has a return directive.");
 		uint16_t code = conn->locConfig->return_code;
 		std::string target = conn->locConfig->return_target;
