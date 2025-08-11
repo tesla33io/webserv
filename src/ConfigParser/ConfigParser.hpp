@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 13:53:23 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/08 19:32:50 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/11 12:31:48 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -153,6 +153,7 @@ class LocConfig {
 
   private:
 	std::string path;
+	bool exact_match;
 	std::string full_path;
 	std::vector<std::string> allowed_methods;
 	uint16_t return_code;
@@ -165,10 +166,12 @@ class LocConfig {
 
   public:
 	LocConfig()
-	    : return_code(0),
+	    : exact_match(0),
+		  return_code(0),
 	      autoindex(false) {}
 
 	inline std::string getPath() const { return path; }
+	inline bool is_exact_() const { return exact_match; }
 	inline std::string getRoot() const { return path; }
 	inline std::string getFullPath() const { return full_path; }
 	inline void setFullPath(const std::string &path) { full_path = path; }

@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:10:22 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/11 10:52:50 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/11 13:27:08 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -131,51 +131,35 @@ bool WebServer::setupRequestContext(ClientRequest &req, Connection *conn) {
 	conn->locConfig->setFullPath("");
 	_lggr.debug("[Resp] Matched location : " + conn->locConfig->path);
 
+	// normalisation
 	std::string full_path = buildFullPath(req.path, conn->locConfig);
-	std::string normal_full_path;
-	if (!normalizeFullPath(full_path, conn, normal_full_path))
-		return false;
-	
-	// this should maybe be in the connection info, not in the locConfig
-	conn->locConfig->setFullPath(normal_full_path);
-	_lggr.debug("[Resp] Normalizzed path : " + conn->locConfig->path);
-
-	
-	return true;
-}
-
-// validating parent directory = removing filename (if file !exist, we handle it later)
-bool WebServer::normalizeFullPath(const std::string& full_path, Connection* conn, std::string& norm_path) {
-
-	// path normalisation
+	std::string root_full_path = buildFullPath("", conn->locConfig);
 	char resolved[PATH_MAX];
 	realpath(full_path.c_str(), resolved);
-	std::string resolved_str(resolved);
-	norm_path = resolved_str;
-	// check it is in root
-	std::string prefix = (_root_prefix_path[_root_prefix_path.length() - 1] == '/')
-				? _root_prefix_path.substr(0, _root_prefix_path.length() - 1)
-				: _root_prefix_path;
-	std::string full_root = prefix + conn->locConfig->root;
-	
+	std::string normal_full_path(resolved);
+	if (root_full_path == normal_full_path)
+		return true;
+	_lggr.debug("[Resp] Normalized full path : " + normal_full_path);
+	_lggr.debug("[Resp] Root full path : " + root_full_path);
+
 	if (!conn->locConfig->root.empty() 
-				&& norm_path.substr(0, full_root.length()) != full_root) {
-		_lggr.error("Resolved path is trying to access parent directory: " + norm_path);
+	        && normal_full_path.substr(0, root_full_path.length() - 1) != root_full_path.substr(0, root_full_path.length() - 1)) {
+		_lggr.error("Resolved path is trying to access parent directory: " + normal_full_path);
 		prepareResponse(conn, Response::forbidden(conn));
 		return false;
 	}
-
+	
+	// this should maybe be in the connection info, not in the locConfig
+	conn->locConfig->setFullPath(normal_full_path);
 	return true;
 }
-
-
 
 void WebServer::processValidRequest(ClientRequest &req, Connection *conn) {
 		
 	const std::string& full_path = conn->locConfig->getFullPath();
-	
+
 	// check if RETURN directive in the matched location
-	if (conn->locConfig->hasReturn() && req.uri == conn->locConfig->getFullPath()) {
+	if (conn->locConfig->hasReturn() && conn->locConfig->is_exact_()) {
 		_lggr.debug("[Resp] The matched location has a return directive.");
 		uint16_t code = conn->locConfig->return_code;
 		std::string target = conn->locConfig->return_target;
@@ -217,7 +201,7 @@ void WebServer::handleDirectoryRequest(ClientRequest &req, Connection *conn, boo
 
 	const std::string full_path =  conn->locConfig->getFullPath();
 	_lggr.debug("Directory request: " + full_path);
-	if (!end_slash) {
+	if (!end_slash && !conn->locConfig->is_exact_()) {
 		_lggr.debug("Directory request without trailing slash, redirecting: " + req.uri);
 		std::string redirectPath = req.uri + "/";
 		prepareResponse(conn, respReturnDirective(conn, 301, redirectPath));
@@ -234,7 +218,7 @@ void  WebServer::handleFileRequest(ClientRequest &req, Connection *conn, bool en
 	_lggr.debug("File request: " + full_path);
 	
 	// Trailing '/'? Redirect
-	if (end_slash) {
+	if (end_slash && !conn->locConfig->is_exact_()) {
 		_lggr.debug("File request with trailing slash, redirecting: " + req.uri);
 		std::string redirectPath = req.uri.substr(0, req.uri.length() - 1);
 		prepareResponse(conn, respReturnDirective(conn, 301, redirectPath));

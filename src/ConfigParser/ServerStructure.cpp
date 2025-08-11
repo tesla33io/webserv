@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 13:55:04 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/07 16:12:36 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/11 12:34:10 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -39,7 +39,13 @@ bool ConfigParser::convertTreeToStruct(const ConfigNode &tree, std::vector<Serve
 
 				else if (child->name_ == "location") {
 					LocConfig location;
-					location.path = child->args_[0];
+					if (child->args_.size() == 1)
+						location.path = child->args_[0];
+					else {
+						location.path = child->args_[1];
+						location.exact_match = true;
+					}
+					
 					handleLocationBlock(*child, location);
 					// check for duplicates locations
 					if (existentLocationDuplicate(server, location)) {
