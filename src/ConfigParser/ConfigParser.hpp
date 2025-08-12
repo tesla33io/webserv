@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 13:53:23 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/11 12:31:48 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/12 16:54:05 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -189,6 +189,16 @@ class LocConfig {
 				return true;
 		}
 		return false;
+	}
+
+	std::string getAllowedMethodsString() {
+		std::string allowed;
+		for (size_t i = 0; i < allowed_methods.size(); ++i) {
+			allowed += allowed_methods[i];
+			if (i != allowed_methods.size() - 1)
+				allowed += ", ";
+		}
+		return allowed;
 	}
 
 	bool acceptExtension(const std::string &ext) const {

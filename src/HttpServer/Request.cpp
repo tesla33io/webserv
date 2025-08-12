@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:10:22 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/11 13:27:08 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/12 17:00:23 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -124,7 +124,7 @@ bool WebServer::setupRequestContext(ClientRequest &req, Connection *conn) {
 	LocConfig *match = findBestMatch(req.uri, conn->servConfig->locations);
 	if (!match) {
 		_lggr.error("[Resp] No matched location for : " + req.uri);
-		prepareResponse(conn, Response::internalServerError(conn));
+		prepareResponse(conn, Response::notFound(conn));
 		return false;
 	}
 	conn->locConfig = match; 
@@ -171,8 +171,7 @@ void WebServer::processValidRequest(ClientRequest &req, Connection *conn) {
 	if (!conn->locConfig->hasMethod(req.method)) {
 		_lggr.warn("[Resp] Method " + req.method + " is not allowed for location " +
 		          conn->locConfig->path);
-		prepareResponse(conn, Response::methodNotAllowed(conn));
-		// TODO: the response must include the methods allowed
+		prepareResponse(conn, Response::methodNotAllowed(conn, conn->locConfig->getAllowedMethodsString()));
 		return;
 	}
 	
@@ -192,7 +191,7 @@ void WebServer::processValidRequest(ClientRequest &req, Connection *conn) {
 		handleFileRequest(req, conn, end_slash);
 	} else {
 		_lggr.error("Unexpected file type for: " + full_path);
-		prepareResponse(conn, Response::internalServerError(conn));
+		prepareResponse(conn, Response::notFound(conn));
 	}
 }
 
@@ -252,7 +251,6 @@ void  WebServer::handleFileRequest(ClientRequest &req, Connection *conn, bool en
 
 
 bool WebServer::handleFileSystemErrors(FileType file_type, const std::string& full_path, Connection *conn) {
-
 	if (file_type == NOT_FOUND_404) {
 		_lggr.debug("[Resp] Could not open : " + full_path);
 		prepareResponse(conn, Response::notFound(conn));
