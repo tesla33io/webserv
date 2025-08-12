@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Connection.cpp                                     :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:09:35 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/07 14:09:48 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/12 17:42:29 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -57,6 +57,7 @@ void WebServer::updateConnectionActivity(int client_fd) {
 	}
 }
 
+// SEND THE 408 here?
 void WebServer::cleanupExpiredConnections() {
 	time_t current_time = getCurrentTime();
 
@@ -81,11 +82,13 @@ void WebServer::cleanupExpiredConnections() {
 	}
 
 	for (size_t i = 0; i < expired.size(); ++i) {
-		closeConnection(expired[i]);
+		handleConnectionTimeout(expired[i]->fd);
 	}
 	expired.clear();
 }
 
+
+// TODO: deprecated? not called from anywhere 
 void WebServer::handleConnectionTimeout(int client_fd) {
 	std::map<int, Connection *>::iterator it = _connections.find(client_fd);
 	if (it != _connections.end()) {

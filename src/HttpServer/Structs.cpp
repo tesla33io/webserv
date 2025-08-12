@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:11:23 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/08 21:42:57 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/12 16:49:10 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -169,7 +169,12 @@ Response Response::forbidden() { return Response(403); }
 
 Response Response::notFound() { return Response(404); }
 
-Response Response::methodNotAllowed() { return Response(405); }
+Response Response::methodNotAllowed(const std::string& allowed) { 
+	Response resp(405);
+	if (!allowed.empty()) {
+		resp.setHeader("Allow", allowed);
+	}
+	return resp; }
 
 Response Response::internalServerError() { return Response(500); }
 
@@ -183,7 +188,12 @@ Response Response::forbidden(Connection *conn) { return Response(403, conn); }
 
 Response Response::notFound(Connection *conn) { return Response(404, conn); }
 
-Response Response::methodNotAllowed(Connection *conn) { return Response(405, conn); }
+Response Response::methodNotAllowed(Connection *conn, const std::string& allowed) {
+	Response resp(405, conn);
+	if (!allowed.empty()) {
+		resp.setHeader("Allow", allowed);
+	}
+	return resp; }
 
 Response Response::internalServerError(Connection *conn) { return Response(500, conn); }
 
@@ -202,13 +212,9 @@ std::string Response::getReasonPhrase(uint16_t code) const {
 	case 301:
 		return "Moved Permanently";
 	case 302:
-		return "Found";
-	case 304:
-		return "Not Modified";
+		return "Found"; // moved temporarily
 	case 400:
 		return "Bad Request";
-	case 401:
-		return "Unauthorized";
 	case 403:
 		return "Forbidden";
 	case 404:
@@ -219,14 +225,16 @@ std::string Response::getReasonPhrase(uint16_t code) const {
 		return "Request Timeout";
 	case 413:
 		return "Content Too Large";
+	case 414:
+		return "Request-URI Too Long";
 	case 500:
 		return "Internal Server Error";
 	case 501:
 		return "Not Implemented";
-	case 502:
-		return "Bad Gateway";
 	case 503:
 		return "Service Unavailable";
+	case 505:
+		return "HTTP Version Not Supported";
 	default:
 		return "Unknown Status";
 	}

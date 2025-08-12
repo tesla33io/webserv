@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 13:54:29 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/11 12:35:29 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/11 17:19:25 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -97,10 +97,9 @@ bool ConfigParser::isHttp(const std::string &url) {
 	return false;
 }
 
-const int http_status_codes[] = {300, 301, 302, 303, 307, 308, 400, 401, 402, 403, 404, 405,
-                                 406, 407, 408, 409, 410, 411, 412, 413, 414, 415, 416, 417,
-                                 418, 421, 422, 423, 424, 425, 426, 428, 429, 431, 451, 500,
-                                 501, 502, 503, 504, 505, 506, 507, 508, 510, 511};
+const int http_status_codes[] = {300, 301, 302, 303, 307, 308, 
+	                             400, 403, 404, 405, 408, 413, 414,
+								 500, 501, 503, 505};
 
 // Helper function to check if code is in the list
 bool ConfigParser::unknownCode(uint16_t code) {

@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:08:41 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/08 21:45:43 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/12 15:43:49 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -77,9 +77,10 @@ Response WebServer::respFileRequest(Connection *conn, const std::string &fullFil
 	_lggr.debug("Handling file request: " + fullFilePath);
 	// Read file content
 	std::string content = getFileContent(fullFilePath);
+	// this check is redondant as it has already been checked 
 	if (content.empty()) {
 		_lggr.error("Failed to read file: " + fullFilePath);
-		return Response::internalServerError(conn);
+		return Response::notFound(conn);
 	}
 	// Create response
 	Response resp(200, content);
@@ -92,11 +93,10 @@ Response WebServer::respFileRequest(Connection *conn, const std::string &fullFil
 
 
 Response WebServer::respReturnDirective(Connection *conn, uint16_t code, std::string target) {
-
 	_lggr.debug("Handling return directive '" + su::to_string(code) + "' to " + target);
 	if (code == 0 || target.empty()) {
 		_lggr.error("Problem with the return directive - not properly configured");
-		return Response::internalServerError(conn);
+		return Response::notFound(conn);
 	}
 
 	Response resp(code);
