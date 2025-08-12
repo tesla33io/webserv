@@ -34,7 +34,7 @@ std::string ClientRequest::toString() {
 	oss << "chunked-encoding: " << (chunked_encoding ? "true" : "false") << ", ";
 
 	if (!body.empty()) {
-		oss << "body: \"" << body << "\", ";
+		oss << "body size: \"" << body.size() << "\", ";
 	} else {
 		oss << "body: <empty>, ";
 	}

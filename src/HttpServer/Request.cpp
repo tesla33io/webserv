@@ -83,7 +83,7 @@ void WebServer::processRequest(Connection *conn) {
 		_lggr.debug(req.toString());
 	}
 
-	_lggr.debug("FD " + su::to_string(req.clfd) + " ClientRequest {" + req.toString() + "}");
+	//_lggr.debug("FD " + su::to_string(req.clfd) + " ClientRequest {" + req.toString() + "}");
 	std::string response;
 	// initialize the correct locConfig // default "/"
 	LocConfig *match = findBestMatch(req.uri, conn->servConfig->locations);
@@ -203,7 +203,7 @@ void WebServer::processRequest(Connection *conn) {
 
 bool WebServer::parseRequest(Connection *conn, ClientRequest &req) {
 	_lggr.debug("Parsing request: " + conn->toString());
-	if (!RequestParsingUtils::parse_request(conn->read_buffer, req)) {
+	if (!RequestParsingUtils::parse_request(vectorToString(conn->read_buffer), req)) {
 		_lggr.logWithPrefix(Logger::ERROR, "BAD REQUEST", "Failed to parse the request.");
 		prepareResponse(conn, Response::badRequest(conn));
 		// closeConnection(conn);
@@ -259,13 +259,14 @@ bool WebServer::isRequestComplete(Connection *conn) {
 }
 
 bool WebServer::isHeadersComplete(Connection *conn) {
-	size_t header_end = conn->read_buffer.find("\r\n\r\n");
+	std::string buffer_str(conn->read_buffer.begin(), conn->read_buffer.end());
+	size_t header_end = buffer_str.find("\r\n\r\n");
 	if (header_end == std::string::npos) {
 		return false;
 	}
 
 	// Headers are complete, check if this is a chunked request
-	std::string headers = conn->read_buffer.substr(0, header_end + 4);
+	std::string headers = buffer_str.substr(0, header_end + 4);
 	std::string headers_lower = su::to_lower(headers);
 
 	if (headers_lower.find("content-length: ") != std::string::npos) {
@@ -297,8 +298,8 @@ bool WebServer::isHeadersComplete(Connection *conn) {
 		conn->chunked = false;
 		conn->headers_buffer = headers;
 
-		std::string remaining_data = conn->read_buffer.substr(header_end + 4);
-		conn->read_buffer = remaining_data;
+		std::string remaining_data = buffer_str.substr(header_end + 4);
+		buffer_str = remaining_data;
 
 		conn->body_bytes_read = remaining_data.size();
 
@@ -321,7 +322,7 @@ bool WebServer::isHeadersComplete(Connection *conn) {
 
 			conn->state = Connection::CONTINUE_SENT;
 
-			conn->read_buffer.clear();
+			buffer_str.clear();
 
 			conn->chunk_size = 0;
 			conn->chunk_bytes_read = 0;
@@ -331,7 +332,7 @@ bool WebServer::isHeadersComplete(Connection *conn) {
 		} else {
 			conn->state = Connection::READING_CHUNK_SIZE;
 
-			conn->read_buffer = conn->read_buffer.substr(header_end + 4);
+			buffer_str = buffer_str.substr(header_end + 4);
 
 			conn->chunk_size = 0;
 			conn->chunk_bytes_read = 0;
@@ -348,15 +349,15 @@ bool WebServer::isHeadersComplete(Connection *conn) {
 }
 
 bool WebServer::processChunkSize(Connection *conn) {
-	size_t crlf_pos = findCRLF(conn->read_buffer);
+	size_t crlf_pos = findCRLF(vectorToString(conn->read_buffer));
 	if (crlf_pos == std::string::npos) {
 		// Need more data to read chunk size
 		return false;
 	}
 
-	std::string chunk_size_line = conn->read_buffer.substr(0, crlf_pos);
+	std::string chunk_size_line = vectorToString(conn->read_buffer).substr(0, crlf_pos);
 
-	conn->read_buffer = conn->read_buffer.substr(crlf_pos + 2);
+	insertStringAt(conn->read_buffer, 0, vectorToString(conn->read_buffer).substr(crlf_pos + 2));
 
 	// ignore chunk extensions after ';'
 	size_t semicolon_pos = chunk_size_line.find(';');
@@ -383,7 +384,7 @@ bool WebServer::processChunkSize(Connection *conn) {
 }
 
 bool WebServer::processChunkData(Connection *conn) {
-	size_t available_data = conn->read_buffer.length();
+	size_t available_data = conn->read_buffer.size();
 	size_t bytes_needed = conn->chunk_size - conn->chunk_bytes_read;
 
 	if (available_data < bytes_needed + 2) { // +2 for trailing CRLF
@@ -392,39 +393,39 @@ bool WebServer::processChunkData(Connection *conn) {
 	}
 
 	size_t bytes_to_read = bytes_needed;
-	std::string chunk_part = conn->read_buffer.substr(0, bytes_to_read);
+	std::string chunk_part = vectorToString(conn->read_buffer).substr(0, bytes_to_read);
 	conn->chunk_data += chunk_part;
 	conn->chunk_bytes_read += bytes_to_read;
 
-	conn->read_buffer = conn->read_buffer.substr(bytes_to_read);
+	insertStringAt(conn->read_buffer, 0, vectorToString(conn->read_buffer).substr(bytes_to_read));
 
 	// Check if there are trailing CRLF
-	if (conn->read_buffer.length() < 2) {
+	if (conn->read_buffer.size() < 2) {
 		return false;
 	}
 
-	if (conn->read_buffer.substr(0, 2) != "\r\n") {
+	if (vectorToString(conn->read_buffer).substr(0, 2) != "\r\n") {
 		_lggr.error("Invalid chunk format: missing trailing CRLF");
 		return false;
 	}
 
 	// Remove trailing CRLF
-	conn->read_buffer = conn->read_buffer.substr(2);
+	insertStringAt(conn->read_buffer, 0, vectorToString(conn->read_buffer).substr(2));
 
 	conn->state = Connection::READING_CHUNK_SIZE;
 	return processChunkSize(conn);
 }
 
 bool WebServer::processTrailer(Connection *conn) {
-	size_t trailer_end = findCRLF(conn->read_buffer);
+	size_t trailer_end = findCRLF(vectorToString(conn->read_buffer));
 
 	if (trailer_end == std::string::npos) {
 		// Need more data
 		return false;
 	}
 
-	std::string trailer_line = conn->read_buffer.substr(0, trailer_end);
-	conn->read_buffer = conn->read_buffer.substr(trailer_end + 2);
+	std::string trailer_line = vectorToString(conn->read_buffer).substr(0, trailer_end);
+	insertStringAtEnd(conn->read_buffer, vectorToString(conn->read_buffer).substr(trailer_end + 2));
 
 	// If trailer line is empty, we're done
 	if (trailer_line.empty()) {
@@ -461,7 +462,7 @@ void WebServer::reconstructChunkedRequest(Connection *conn) {
 		reconstructed_request.insert(final_crlf, content_length_header);
 	}
 
-	conn->read_buffer = reconstructed_request + conn->chunk_data;
+	insertStringAt(conn->read_buffer, 0, reconstructed_request + conn->chunk_data);
 	conn->state = Connection::REQUEST_COMPLETE;
 
 	_lggr.debug("Reconstructed chunked request, total body size: " +
@@ -481,11 +482,11 @@ bool WebServer::reconstructRequest(Connection *conn) {
 	if (conn->content_length > 0) {
 		size_t body_size =
 		    std::min(static_cast<size_t>(conn->content_length), conn->read_buffer.size());
-		reconstructed_request += conn->read_buffer.substr(0, body_size);
+		reconstructed_request += vectorToString(conn->read_buffer).substr(0, body_size);
 	}
 
-	conn->read_buffer = reconstructed_request;
-	_lggr.debug("Reconstructed request:\n" + conn->read_buffer);
+	insertStringAt(conn->read_buffer, 0, reconstructed_request);
+	//_lggr.debug("Reconstructed request:\n" + conn->read_buffer);
 
 	return true;
 }

@@ -1,5 +1,5 @@
-#include "ConfigParser/config_parser.hpp"
 #include "HttpServer.hpp"
+#include "ConfigParser/config_parser.hpp"
 #include "src/Logger/Logger.hpp"
 #include "src/RequestParser/request_parser.hpp"
 #include "src/Utils/ArgumentParser.hpp"
@@ -30,9 +30,9 @@ WebServer::WebServer(std::vector<ServerConfig> &confs, std::string &prefix_path)
       _root_prefix_path(prefix_path),
       _confs(confs),
       _lggr("ws.log", Logger::DEBUG, true) {
-	 for (std::vector<ServerConfig>::iterator it = _confs.begin(); it != _confs.end(); ++it) {
-        it->root_prefix = _root_prefix_path;
-    }
+	for (std::vector<ServerConfig>::iterator it = _confs.begin(); it != _confs.end(); ++it) {
+		it->root_prefix = _root_prefix_path;
+	}
 	_lggr.info("An instance of the Webserver was created.");
 }
 
@@ -300,7 +300,7 @@ void WebServer::cleanup() {
 	_lggr.info("Server cleanup completed");
 }
 
-//static std::string getCurrentWorkingDirectory() {
+// static std::string getCurrentWorkingDirectory() {
 //	char buffer[PATH_MAX];
 //	if (getcwd(buffer, sizeof(buffer)) != NULL) {
 //		return std::string(buffer);
@@ -308,8 +308,7 @@ void WebServer::cleanup() {
 //		perror("getcwd failed");
 //		return std::string();
 //	}
-//}
-
+// }
 
 // DEPRECATED // to double check
 Connection *WebServer::getConnection(int client_fd) {
@@ -321,7 +320,6 @@ Connection *WebServer::getConnection(int client_fd) {
 	}
 	return conn_it->second;
 }
-
 
 int main(int argc, char *argv[]) {
 	ArgumentParser ap;
@@ -349,7 +347,8 @@ int main(int argc, char *argv[]) {
 	std::vector<ServerConfig> servers;
 
 	if (!configparser.loadConfig(args.config_file, servers)) {
-		std::cerr << "Error: Failed to open or parse configuration file '" << args.config_file << "'" << std::endl;
+		std::cerr << "Error: Failed to open or parse configuration file '" << args.config_file
+		          << "'" << std::endl;
 		std::cerr << "Please check the configuration file syntax and try again." << std::endl;
 		return 1;
 	}
@@ -364,3 +363,29 @@ int main(int argc, char *argv[]) {
 	webserv.run();
 	return 0;
 }
+
+/// TODO: move this to an appropriate place
+std::string vectorToString(const std::vector<unsigned char> &vec, size_t start, size_t length) {
+	if (start >= vec.size()) {
+		return "";
+	}
+
+	size_t actual_length = (length == std::string::npos) ? vec.size() - start : length;
+	if (start + actual_length > vec.size()) {
+		actual_length = vec.size() - start;
+	}
+
+	return std::string(vec.begin() + start, vec.begin() + start + actual_length);
+}
+
+void insertStringAtEnd(std::vector<unsigned char> &vec, const std::string &str) {
+	vec.insert(vec.end(), str.begin(), str.end());
+}
+
+void insertStringAt(std::vector<unsigned char> &vec, size_t position, const std::string &str) {
+	if (position > vec.size()) {
+		position = vec.size(); // Insert at end if position is beyond size
+	}
+	vec.insert(vec.begin() + position, str.begin(), str.end());
+}
+

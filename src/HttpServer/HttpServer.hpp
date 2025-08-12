@@ -66,14 +66,14 @@ class Connection {
 	time_t last_activity;
 	bool keep_persistent_connection;
 
-	std::string read_buffer;
+	std::vector<unsigned char> read_buffer;
 	size_t body_bytes_read; // for client_max_body_size
 	ssize_t content_length; // ignore if -1
 
 	bool chunked;
 	size_t chunk_size;
 	size_t chunk_bytes_read;
-	std::string chunk_data;
+	std::string chunk_data; // TODO: change back to vector of unsigned char
 	std::string headers_buffer;
 
 	Response response;
@@ -512,6 +512,14 @@ enum FileType { ISDIR, ISREG, NOT_FOUND_404, PERMISSION_DENIED_403, FILE_SYSTEM_
 /// \param path The path to analyze.
 /// \returns file type Directory, File, Denied access, Not found, Internal error.
 FileType checkFileType(std::string path);
+
+/// TODO: move this to an appropriate place
+std::string vectorToString(const std::vector<unsigned char> &vec, size_t start = 0,
+                           size_t length = std::string::npos);
+
+void insertStringAtEnd(std::vector<unsigned char> &vec, const std::string &str);
+
+void insertStringAt(std::vector<unsigned char> &vec, size_t position, const std::string &str);
 
 #endif /* end of include guard: __HTTPSERVER_HPP__*/
 
