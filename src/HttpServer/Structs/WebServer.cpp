@@ -1,16 +1,19 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   HttpServer.cpp                                     :+:      :+:    :+:   */
+/*   WebServer.cpp                                      :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/08/07 14:10:03 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/07 14:10:05 by jalombar         ###   ########.fr       */
+/*   Created: 2025/08/08 13:46:05 by jalombar          #+#    #+#             */
+/*   Updated: 2025/08/08 13:52:07 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "HttpServer.hpp"
+#include "WebServer.hpp"
+#include "src/HttpServer/Structs/Connection.hpp"
+#include "src/HttpServer/Structs/Response.hpp"
+#include "src/HttpServer/HttpServer.hpp"
 
 bool WebServer::_running;
 static bool interrupted = false;
@@ -23,15 +26,13 @@ WebServer::WebServer(std::vector<ServerConfig> &confs)
 	_lggr.info("An instance of the Webserver was created.");
 }
 
+// DEPRECATED?
 WebServer::WebServer(std::vector<ServerConfig> &confs, std::string &prefix_path)
     : _epoll_fd(-1),
       _backlog(SOMAXCONN),
       _root_prefix_path(prefix_path),
       _confs(confs),
       _lggr("ws.log", Logger::DEBUG, true) {
-	 for (std::vector<ServerConfig>::iterator it = _confs.begin(); it != _confs.end(); ++it) {
-        it->root_prefix = _root_prefix_path;
-    }
 	_lggr.info("An instance of the Webserver was created.");
 }
 
@@ -265,14 +266,6 @@ bool WebServer::initializeSingleServer(ServerConfig &config) {
 	return true;
 }
 
-inline time_t WebServer::getCurrentTime() const { return time(NULL); }
-
-bool WebServer::isConnectionExpired(const Connection *conn) const {
-	time_t current_time = getCurrentTime();
-	time_t timeout = CONNECTION_TO;
-	return (current_time - conn->last_activity) > timeout;
-}
-
 void WebServer::cleanup() {
 	_lggr.debug("Performing server cleanup...");
 
@@ -298,29 +291,6 @@ void WebServer::cleanup() {
 
 	_lggr.info("Server cleanup completed");
 }
-
-//static std::string getCurrentWorkingDirectory() {
-//	char buffer[PATH_MAX];
-//	if (getcwd(buffer, sizeof(buffer)) != NULL) {
-//		return std::string(buffer);
-//	} else {
-//		perror("getcwd failed");
-//		return std::string();
-//	}
-//}
-
-
-// DEPRECATED // to double check
-Connection *WebServer::getConnection(int client_fd) {
-	std::map<int, Connection *>::iterator conn_it = _connections.find(client_fd);
-	if (conn_it == _connections.end()) {
-		_lggr.error("No connection info found for fd: " + su::to_string(client_fd));
-		close(client_fd);
-		return NULL;
-	}
-	return conn_it->second;
-}
-
 
 int main(int argc, char *argv[]) {
 	ArgumentParser ap;
@@ -348,7 +318,8 @@ int main(int argc, char *argv[]) {
 	std::vector<ServerConfig> servers;
 
 	if (!configparser.loadConfig(args.config_file, servers)) {
-		std::cerr << "Error: Failed to open or parse configuration file '" << args.config_file << "'" << std::endl;
+		std::cerr << "Error: Failed to open or parse configuration file '" << args.config_file
+		          << "'" << std::endl;
 		std::cerr << "Please check the configuration file syntax and try again." << std::endl;
 		return 1;
 	}

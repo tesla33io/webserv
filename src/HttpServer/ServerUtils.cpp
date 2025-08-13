@@ -1,47 +1,57 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   LocationMatch.cpp                                  :+:      :+:    :+:   */
+/*   ServerUtils.cpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/08/07 14:07:52 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/07 14:08:55 by jalombar         ###   ########.fr       */
+/*   Created: 2025/08/08 13:19:18 by jalombar          #+#    #+#             */
+/*   Updated: 2025/08/08 14:19:03 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
+#include "src/HttpServer/Structs/WebServer.hpp"
+#include "src/HttpServer/Structs/Connection.hpp"
+#include "src/HttpServer/Structs/Response.hpp"
 #include "src/HttpServer/HttpServer.hpp"
 
-static bool isPrefixMatch(const std::string &uri, const std::string &location_path);
+time_t WebServer::getCurrentTime() const { return time(NULL); }
 
-// locations are sorted from longest path to shortest ("/")
-// every server has at least one
-LocConfig *findBestMatch(const std::string &uri, std::vector<LocConfig> &locations) {
-	for (std::vector<LocConfig>::iterator it = locations.begin(); it != locations.end(); ++it) {
-		if (isPrefixMatch(uri, it->getPath())) {
-			return &(*it);
-		}
+std::string WebServer::getFileContent(std::string path) {
+	std::string content;
+	std::ifstream file;
+
+	file.open(path.c_str(), std::ios::in | std::ios::binary);
+	if (!file.is_open()) {
+		_lggr.error("Couldn't open the file (" + path + ")");
+		return std::string();
+	} else {
+		std::stringstream buffer;
+		buffer << file.rdbuf();
+		file.close();
+		content = buffer.str();
+		_lggr.logWithPrefix(Logger::DEBUG, "File Handling",
+		                    "Read " + su::to_string(content.size()) + " bytes from " + path);
 	}
-	return NULL;
+	return content;
 }
 
-static bool isPrefixMatch(const std::string &uri, const std::string &location_path) {
-	if (location_path.empty() || location_path == "/") {
-		return true;
+FileType WebServer::checkFileType(std::string path) {
+	struct stat pathStat;
+	if (stat(path.c_str(), &pathStat) != 0) {
+		if (errno == ENOTDIR || errno == ENOENT) {
+			return NOT_FOUND_404;
+		} else if (errno == EACCES) {
+			return PERMISSION_DENIED_403;
+		} else {
+			return FILE_SYSTEM_ERROR_500;
+		}
 	}
-	if (uri.length() < location_path.length()) {
-		return false;
-	}
-	// Check for prefix
-	if (uri.substr(0, location_path.length()) != location_path) {
-		return false;
-	}
-	if (uri.length() == location_path.length()) {
-		return true; // Exact match
-	}
-	// Next character should be '/' or end of string
-	char next_char = uri[location_path.length()];
-	return next_char == '/' || location_path[location_path.length() - 1] == '/';
+	if (S_ISDIR(pathStat.st_mode))
+		return ISDIR;
+	else if (S_ISREG(pathStat.st_mode))
+		return ISREG;
+	return FILE_SYSTEM_ERROR_500;
 }
 
 std::string WebServer::buildFullPath(const std::string &uri, LocConfig *location) {

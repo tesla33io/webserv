@@ -6,11 +6,14 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:09:35 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/07 14:09:48 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/08 14:19:08 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "HttpServer.hpp"
+#include "src/HttpServer/Structs/WebServer.hpp"
+#include "src/HttpServer/Structs/Connection.hpp"
+#include "src/HttpServer/Structs/Response.hpp"
+#include "src/HttpServer/HttpServer.hpp"
 
 void WebServer::handleNewConnection(ServerConfig *sc) {
 	struct sockaddr_in client_addr;
@@ -47,14 +50,6 @@ Connection *WebServer::addConnection(int client_fd, ServerConfig *sc) {
 
 	_lggr.debug("Added connection tracking for fd: " + su::to_string(client_fd));
 	return conn;
-}
-
-void WebServer::updateConnectionActivity(int client_fd) {
-	std::map<int, Connection *>::iterator it = _connections.find(client_fd);
-	if (it != _connections.end()) {
-		it->second->last_activity = getCurrentTime();
-		_lggr.debug("Updated activity for fd: " + su::to_string(client_fd));
-	}
 }
 
 void WebServer::cleanupExpiredConnections() {
@@ -97,42 +92,6 @@ void WebServer::handleConnectionTimeout(int client_fd) {
 		           su::to_string(getCurrentTime() - conn->last_activity) + " seconds)");
 		closeConnection(conn);
 	}
-}
-
-bool WebServer::shouldKeepAlive(const ClientRequest &req) {
-	// TODO: check if this could be improved using new & awesome Response struct
-	std::map<int, Connection *>::iterator it = _connections.find(req.clfd);
-	if (it == _connections.end()) {
-		return false;
-	}
-
-	Connection *conn = it->second;
-
-	if (conn->request_count >= MAX_KEEP_ALIVE_REQS) {
-		_lggr.debug("Max keep-alive requests reached for fd: " + su::to_string(req.clfd));
-		return false;
-	}
-
-	// Check for Connection: close header
-	std::map<std::string, std::string>::const_iterator header_it = req.headers.find("connection");
-	if (header_it != req.headers.end()) {
-		_lggr.debug(" 123123 Found connection header for fd: " + su::to_string(req.clfd));
-		std::string connection_value = header_it->second;
-		std::transform(connection_value.begin(), connection_value.end(), connection_value.begin(),
-		               ::tolower);
-
-		if (connection_value == "close") {
-			_lggr.debug("Closing connection for fd: " + su::to_string(req.clfd));
-			return false;
-		}
-		if (connection_value == "keep-alive") {
-			_lggr.debug("Keeping connection for fd: " + su::to_string(req.clfd) + " alive");
-			return true;
-		}
-	}
-
-	// Default keep-alive behavior for HTTP/1.1
-	return req.version == "HTTP/1.1" || req.version == "HTTP/1.0";
 }
 
 void WebServer::closeConnection(Connection *conn) {
