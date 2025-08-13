@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:10:22 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/12 17:00:23 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/13 12:45:46 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -157,6 +157,8 @@ bool WebServer::setupRequestContext(ClientRequest &req, Connection *conn) {
 void WebServer::processValidRequest(ClientRequest &req, Connection *conn) {
 		
 	const std::string& full_path = conn->locConfig->getFullPath();
+	_lggr.debug("[Resp] The matched location has a return directive.: " + su::to_string(conn->locConfig->hasReturn()));
+	_lggr.debug("[Resp] The matched location is an exact match.: " + su::to_string(conn->locConfig->is_exact_()));
 
 	// check if RETURN directive in the matched location
 	if (conn->locConfig->hasReturn() && conn->locConfig->is_exact_()) {

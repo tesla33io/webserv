@@ -6,13 +6,13 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:07:52 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/11 12:55:22 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/13 13:00:34 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "src/HttpServer/HttpServer.hpp"
 
-static bool isPrefixMatch(const std::string &uri, const LocConfig &loc);
+static bool isPrefixMatch(const std::string &uri, LocConfig &loc);
 
 // locations are sorted from longest path to shortest ("/")
 // every server has at least one
@@ -25,7 +25,7 @@ LocConfig *findBestMatch(const std::string &uri, std::vector<LocConfig> &locatio
 	return NULL;
 }
 
-static bool isPrefixMatch(const std::string &uri, const LocConfig &loc) {
+static bool isPrefixMatch(const std::string &uri, LocConfig &loc) {
 	const std::string &location_path = loc.getPath();
 	if (location_path.empty() || location_path == "/") {
 		return true;
@@ -38,9 +38,10 @@ static bool isPrefixMatch(const std::string &uri, const LocConfig &loc) {
 		return false;
 	}
 	if (uri.length() == location_path.length()) {
+		loc.setExact(true);
 		return true; // Exact match
 	}
-	 if (loc.is_exact_()) {
+	if (loc.is_exact_()) {
 		return false;
 	}
 	// Next character should be '/' or end of string
