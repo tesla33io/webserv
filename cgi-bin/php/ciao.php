@@ -1,7 +1,14 @@
 <?php
 
+// Prevent script from printing default headers
+ini_set('default_mimetype', '');
+
+// Start output buffering to calculate content length
+ob_start();
+
 // Default name if none provided
 $name = 'Guest';
+$exit_status = '200 OK';
 
 // Check if 'name' is set in the URL query parameters
 if (isset($_GET['name'])) {
@@ -53,3 +60,21 @@ if (isset($_GET['name'])) {
 	</div>
 </body>
 </html>
+
+<?php
+
+// Calculate length
+$content = ob_get_contents();
+ob_end_clean();
+$content_length = strlen($content);
+
+// Set headers
+echo "HTTP/1.1 " . $exit_status . "\r\n";
+echo "Content-Type: text/html; charset=UTF-8\r\n";
+echo "Content-Length: " . $content_length . "\r\n";
+echo "\r\n";
+
+// Output content
+echo $content;
+
+?>

@@ -6,7 +6,7 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/08 11:38:44 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/08 14:17:13 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/13 15:44:11 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -80,7 +80,11 @@ void WebServer::normalResponse(CGI *cgi, Connection *conn) {
 		return;
 	}
 	print_cgi_response(cgi_output);
-	sendCGIResponse(cgi_output, cgi, conn);
+	//sendCGIResponse(cgi_output, cgi, conn);
+	conn->response_ready = true;
+	send(conn->fd, cgi_output.c_str(), cgi_output.length(), 0);
+	cgi->cleanup();
+	delete cgi;
 }
 
 void WebServer::handleCGIOutput(int fd) {
