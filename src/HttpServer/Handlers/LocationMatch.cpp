@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:07:52 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/13 13:00:34 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/13 15:19:58 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,7 +26,7 @@ LocConfig *findBestMatch(const std::string &uri, std::vector<LocConfig> &locatio
 }
 
 static bool isPrefixMatch(const std::string &uri, LocConfig &loc) {
-	const std::string &location_path = loc.getPath();
+	std::string location_path = loc.getPath();
 	if (location_path.empty() || location_path == "/") {
 		return true;
 	}

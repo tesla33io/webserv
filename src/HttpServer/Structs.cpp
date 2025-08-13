@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:11:23 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/12 16:49:10 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/13 14:51:44 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -256,7 +256,7 @@ void Response::initFromCustomErrorPage(uint16_t code, Connection *conn) {
 	                       "A custom error page exists for " + su::to_string(code));
 	// todo check path again
 	std::string fullPath =
-	    conn->getServerConfig()->getRootPrefix() + conn->getServerConfig()->getErrorPage(code);
+	    conn->getServerConfig()->getPrefix() + conn->getServerConfig()->getErrorPage(code);
 	std::ifstream errorFile(fullPath.c_str());
 	if (!errorFile.is_open()) {
 		resplogg_.logWithPrefix(Logger::WARNING, "Response",

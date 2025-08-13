@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:10:22 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/13 12:45:46 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/13 15:15:29 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -121,7 +121,7 @@ void WebServer::processRequest(Connection *conn) {
 bool WebServer::setupRequestContext(ClientRequest &req, Connection *conn) {
 
 	// initialize the correct locConfig // default "/"
-	LocConfig *match = findBestMatch(req.uri, conn->servConfig->locations);
+	LocConfig *match = findBestMatch(req.uri, conn->servConfig->getLocations());
 	if (!match) {
 		_lggr.error("[Resp] No matched location for : " + req.uri);
 		prepareResponse(conn, Response::notFound(conn));

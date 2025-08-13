@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 13:53:23 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/13 12:59:22 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/13 15:16:33 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -220,7 +220,6 @@ class LocConfig {
 
 class ServerConfig {
 	friend class ConfigParser;
-	friend class WebServer;
 
   private:
 	std::string host;
@@ -241,16 +240,15 @@ class ServerConfig {
 	// GETTERS
 	inline const std::string &getHost() const { return host; }
 	inline int getPort() const { return port; }
+	inline int getServerFD() const { return server_fd; }
+	inline const std::string &getPrefix() const { return root_prefix; }
+	inline void setServerFD(int fd) { server_fd = fd; }
+	inline void setPrefix(const std::string& prefix) { root_prefix = prefix; }
 	inline const std::map<uint16_t, std::string> &getErrorPages() const { return error_pages; };
 	inline size_t getMaxBodySize() const { return client_max_body_size; }
-	inline bool hasErrorPage(uint16_t status) const {
-		return error_pages.find(status) != error_pages.end();
-	}
+	inline bool hasErrorPage(uint16_t status) const { return error_pages.find(status) != error_pages.end();	}
 	inline bool infiniteBodySize() const { return (client_max_body_size == 0) ? true : false; }
-	inline const std::string &getRootPrefix() const {
-		return root_prefix;
-	}; // can probably be removed
-
+	inline std::vector<LocConfig> &getLocations() { return locations; }
 	std::string getErrorPage(uint16_t status) const {
 		std::map<uint16_t, std::string>::const_iterator it = error_pages.find(status);
 		return (it != error_pages.end()) ? it->second : "";
@@ -269,7 +267,7 @@ class ServerConfig {
 	// Find by server_fd
 	static ServerConfig *find(std::vector<ServerConfig> &servers, int server_fd) {
 		for (std::vector<ServerConfig>::iterator it = servers.begin(); it != servers.end(); ++it) {
-			if (it->server_fd == server_fd) {
+			if (it->getServerFD() == server_fd) {
 				return &(*it);
 			}
 		}
@@ -291,7 +289,7 @@ class ServerConfig {
 	static const ServerConfig *find(const std::vector<ServerConfig> &servers, int server_fd) {
 		for (std::vector<ServerConfig>::const_iterator it = servers.begin(); it != servers.end();
 		     ++it) {
-			if (it->server_fd == server_fd) {
+			if (it->getServerFD() == server_fd) {
 				return &(*it);
 			}
 		}
