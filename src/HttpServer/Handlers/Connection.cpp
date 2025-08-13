@@ -6,7 +6,7 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:09:35 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/13 15:58:55 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/08 14:19:08 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,7 +19,7 @@ void WebServer::handleNewConnection(ServerConfig *sc) {
 	struct sockaddr_in client_addr;
 	socklen_t client_len = sizeof(client_addr);
 
-	int client_fd = accept(sc->getServerFD(), (struct sockaddr *)&client_addr, &client_len);
+	int client_fd = accept(sc->server_fd, (struct sockaddr *)&client_addr, &client_len);
 	if (client_fd == -1) {
 		// TODO: cannot accept a connection with the client
 	}
@@ -52,14 +52,6 @@ Connection *WebServer::addConnection(int client_fd, ServerConfig *sc) {
 	return conn;
 }
 
-void WebServer::updateConnectionActivity(int client_fd) {
-	std::map<int, Connection *>::iterator it = _connections.find(client_fd);
-	if (it != _connections.end()) {
-		it->second->last_activity = getCurrentTime();
-		_lggr.debug("Updated activity for fd: " + su::to_string(client_fd));
-	}
-}
-
 void WebServer::cleanupExpiredConnections() {
 	time_t current_time = getCurrentTime();
 
@@ -84,13 +76,11 @@ void WebServer::cleanupExpiredConnections() {
 	}
 
 	for (size_t i = 0; i < expired.size(); ++i) {
-		handleConnectionTimeout(expired[i]->fd);
+		closeConnection(expired[i]);
 	}
 	expired.clear();
 }
 
-
-// TODO: deprecated? not called from anywhere 
 void WebServer::handleConnectionTimeout(int client_fd) {
 	std::map<int, Connection *>::iterator it = _connections.find(client_fd);
 	if (it != _connections.end()) {

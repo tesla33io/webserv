@@ -6,7 +6,7 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:05:50 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/13 16:01:26 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/08 14:29:46 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -58,7 +58,7 @@ class Response {
 	static Response notFound();
 	static Response internalServerError();
 	static Response badRequest();
-	static Response methodNotAllowed(const std::string& allowed);
+	static Response methodNotAllowed();
 	static Response notImplemented();
 	static Response forbidden();
 
@@ -66,7 +66,7 @@ class Response {
 	static Response notFound(Connection *conn);
 	static Response internalServerError(Connection *conn);
 	static Response badRequest(Connection *conn);
-	static Response methodNotAllowed(Connection *conn, const std::string& allowed);
+	static Response methodNotAllowed(Connection *conn);
 	static Response notImplemented(Connection *conn);
 	static Response forbidden(Connection *conn);
 
@@ -76,7 +76,7 @@ class Response {
 	void initFromCustomErrorPage(uint16_t code, Connection *conn);
 
 	static Logger
-		resplogg_;
+	    tmplogg_; // not sure this is the best logic for the logger but i wanted to be able to log
 };
 
 #endif /* end of include guard: RESPONSE_HPP */

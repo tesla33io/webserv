@@ -6,7 +6,7 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/08 13:39:54 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/13 16:02:24 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/13 10:49:30 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -32,7 +32,6 @@
 #endif // uint16_t
 
 #define __WEBSERV_VERSION__ "whateverX 0.whatever.7 -- made with <3 at 42 Berlin"
-
 
 enum MaxBody { DEFAULT, INFINITE, SPECIFIED };
 
