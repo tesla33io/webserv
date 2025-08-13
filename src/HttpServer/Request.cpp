@@ -143,7 +143,7 @@ bool WebServer::setupRequestContext(ClientRequest &req, Connection *conn) {
 	_lggr.debug("[Resp] Root full path : " + root_full_path);
 
 	if (!conn->locConfig->root.empty() 
-	        && normal_full_path.substr(0, root_full_path.length() - 1) != root_full_path.substr(0, root_full_path.length() - 1)) {
+	        && normal_full_path.find(root_full_path) != 0) {
 		_lggr.error("Resolved path is trying to access parent directory: " + normal_full_path);
 		prepareResponse(conn, Response::forbidden(conn));
 		return false;
