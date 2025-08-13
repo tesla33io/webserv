@@ -6,7 +6,7 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/08 13:44:09 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/08 14:29:50 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/13 16:12:31 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -135,6 +135,12 @@ class WebServer {
 
 	/* Request.cpp */
 
+	void handleDirectoryRequest(ClientRequest &req, Connection *conn, bool end_slash);
+	void handleFileRequest(ClientRequest &req, Connection *conn, bool end_slash);
+	bool handleFileSystemErrors(FileType file_type, const std::string& full_path, Connection *conn);
+	bool setupRequestContext(ClientRequest &req, Connection *conn);
+	void processValidRequest(ClientRequest &req, Connection *conn);
+
 	bool handleCGIRequest(ClientRequest &req, Connection *conn);
 
 	/// Handles cases where request size exceeds limits.
@@ -178,7 +184,7 @@ class WebServer {
 	/// \param path The filesystem path to the file.
 	/// \returns File content as string, or empty string on error.
 	std::string getFileContent(std::string path);
-	FileType checkFileType(std::string path);
+	FileType checkFileType(const std::string &path);
 	std::string buildFullPath(const std::string &uri, LocConfig *Location);
 
 	// HANDLERS
@@ -213,6 +219,8 @@ class WebServer {
 
 	/* Handlers/Connection.cpp */
 
+	void updateConnectionActivity(int client_fd);
+	
 	/// Accepts a new client connection and adds it to the connection pool.
 	/// \param sc Pointer to the server configuration that received the connection.
 	void handleNewConnection(ServerConfig *sc);
@@ -308,6 +316,10 @@ class WebServer {
 	Response handleDeleteRequest(ClientRequest &req); // TODO: Implement
 
 	/* Handlers/ResponseHandler.cpp */
+
+	Response respDirectoryRequest(Connection *conn, const std::string &fullDirPath);
+	Response respFileRequest(Connection *conn, const std::string &fullFilePath);
+	Response respReturnDirective(Connection *conn, uint16_t code, std::string target);
 
 	/// Prepares response data for transmission to client.
 	/// \param conn The connection to send response to.

@@ -6,7 +6,7 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:10:22 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/13 16:00:12 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/13 16:11:59 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -131,7 +131,7 @@ bool WebServer::isRequestComplete(Connection *conn) {
 	}
 }
 
-WebServer::FileType WebServer::checkFileType(const std::string& path) {
+FileType WebServer::checkFileType(const std::string& path) {
 	struct stat pathStat;
 	if (stat(path.c_str(), &pathStat) != 0) {
 		if (errno == ENOTDIR || errno == ENOENT) {
@@ -298,7 +298,7 @@ void WebServer::handleDirectoryRequest(ClientRequest &req, Connection *conn, boo
 	}
 }
 
-void  WebServer::handleFileRequest(ClientRequest &req, Connection *conn, bool end_slash) {
+void WebServer::handleFileRequest(ClientRequest &req, Connection *conn, bool end_slash) {
 
 	const std::string full_path =  conn->locConfig->getFullPath();
 	_lggr.debug("File request: " + full_path);
