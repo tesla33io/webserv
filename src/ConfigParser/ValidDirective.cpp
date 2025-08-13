@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 13:52:39 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/11 12:28:57 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/13 11:49:16 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -160,15 +160,26 @@ bool ConfigParser::validateListen(const ConfigNode &node) {
 
 // RETURN : 300 - 399. If no code-> one arg (URL), otherwise code uri/url
 bool ConfigParser::validateReturn(const ConfigNode &node) {
-	// first args is URL , no second arg = ok (will be code 302), otherwise pb
-	if (isHttp(node.args_[0]) && node.args_.size() == 1) {
-		return true;
-	}
+
 	std::istringstream ss(node.args_[0]);
 	uint16_t code;
-	// first arg: code
-	if (!(ss >> code) || ss.fail() || !ss.eof() || code < 300 || code > 399 || unknownCode(code) ||
-	    node.args_.size() != 2) {
+	
+	// first args is URL or error code 4xx or 5xx, no second arg = ok
+	if (node.args_.size() == 1) {
+		if (isHttp(node.args_[0])) {
+			return true;
+		} else if ((ss >> code) && !ss.fail() && ss.eof() && code > 399 && !unknownCode(code)) {
+			return true;
+		}
+		logg_.logWithPrefix(Logger::WARNING, "Configuration file",
+		                    "Invalid argument for return: " + node.args_[0] + " on line " +
+		                        su::to_string(node.line_));
+		return false;
+	}
+	
+
+	// 2 args -> first arg: code
+	if (!(ss >> code) || ss.fail() || !ss.eof() || code < 300 || code > 399 || unknownCode(code)) {
 		logg_.logWithPrefix(Logger::WARNING, "Configuration file",
 		                    "Invalid return status code or URL: " + node.args_[0] + " on line " +
 		                        su::to_string(node.line_));
@@ -183,6 +194,7 @@ bool ConfigParser::validateReturn(const ConfigNode &node) {
 	}
 	return true;
 }
+
 
 // ERROR: 400 - 599, last arg is file
 bool ConfigParser::validateError(const ConfigNode &node) {

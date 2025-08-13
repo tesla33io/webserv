@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 13:55:04 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/11 12:34:10 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/13 11:57:44 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -185,13 +185,18 @@ void ConfigParser::handleLocationBlock(const ConfigNode &locNode, LocConfig &loc
 
 // Return directive
 void ConfigParser::handleReturn(const ConfigNode &node, LocConfig &location) {
+
+	std::istringstream ss(node.args_[0]);
+	unsigned int code;
+	ss >> code;
 	if (node.args_.size() == 1) {
-		location.return_code = 302;
-		location.return_target = node.args_[0];
+		if (code) {
+			location.return_code = code;
+		} else {
+			location.return_code = 301;
+			location.return_target = node.args_[0];
+		}
 	} else {
-		std::istringstream ss(node.args_[0]);
-		unsigned int code;
-		ss >> code;
 		location.return_code = code;
 		location.return_target = node.args_[1];
 	}

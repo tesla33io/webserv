@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 13:53:23 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/12 16:54:05 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/13 12:59:22 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -175,6 +175,7 @@ class LocConfig {
 	inline std::string getRoot() const { return path; }
 	inline std::string getFullPath() const { return full_path; }
 	inline void setFullPath(const std::string &path) { full_path = path; }
+	inline void setExact(bool is_exact) {exact_match = is_exact; }
 
 	inline std::string getUploadPath() const { return upload_path; }
 
