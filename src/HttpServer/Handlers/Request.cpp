@@ -6,7 +6,7 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:10:22 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/13 16:30:50 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/13 16:38:08 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -129,24 +129,6 @@ bool WebServer::isRequestComplete(Connection *conn) {
 		_lggr.debug("isRequestComplete->default");
 		return false;
 	}
-}
-
-FileType WebServer::checkFileType(const std::string& path) {
-	struct stat pathStat;
-	if (stat(path.c_str(), &pathStat) != 0) {
-		if (errno == ENOTDIR || errno == ENOENT) {
-			return NOT_FOUND_404;
-		} else if (errno == EACCES) {
-			return PERMISSION_DENIED_403;
-		} else {
-			return FILE_SYSTEM_ERROR_500;
-		}
-	}
-	if (S_ISDIR(pathStat.st_mode))
-		return ISDIR;
-	else if (S_ISREG(pathStat.st_mode))
-		return ISREG;
-	return FILE_SYSTEM_ERROR_500;
 }
 
 void WebServer::processRequest(Connection *conn) {

@@ -6,7 +6,7 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/08 13:19:18 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/08 14:19:03 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/13 16:35:03 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,7 +36,7 @@ std::string WebServer::getFileContent(std::string path) {
 	return content;
 }
 
-FileType WebServer::checkFileType(std::string path) {
+FileType WebServer::checkFileType(const std::string &path) {
 	struct stat pathStat;
 	if (stat(path.c_str(), &pathStat) != 0) {
 		if (errno == ENOTDIR || errno == ENOENT) {
