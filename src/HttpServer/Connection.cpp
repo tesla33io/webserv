@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:09:35 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/12 17:42:29 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/13 14:44:30 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,7 +16,7 @@ void WebServer::handleNewConnection(ServerConfig *sc) {
 	struct sockaddr_in client_addr;
 	socklen_t client_len = sizeof(client_addr);
 
-	int client_fd = accept(sc->server_fd, (struct sockaddr *)&client_addr, &client_len);
+	int client_fd = accept(sc->getServerFD(), (struct sockaddr *)&client_addr, &client_len);
 	if (client_fd == -1) {
 		// TODO: cannot accept a connection with the client
 	}

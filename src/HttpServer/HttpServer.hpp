@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:06:30 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/11 10:49:48 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/13 15:20:31 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -479,7 +479,8 @@ class WebServer {
 /// \param uri The URI to match against location patterns.
 /// \param locations Vector of location configurations to search.
 /// \returns Pointer to the best matching LocConfig, or nullptr if no match.
-LocConfig *findBestMatch(const std::string &uri, std::vector<LocConfig> &locations);
+LocConfig *findBestMatch(const std::string &uri, std::vector<LocConfig> &locations) ;
+
 
 /// Converts epoll event flags to human-readable string representation.
 /// \param ev The epoll event flags to describe.
