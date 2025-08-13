@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ConfigParser.hpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
+/*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 13:53:23 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/13 15:16:33 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/07 14:16:04 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -38,19 +38,19 @@ class ConfigParser {
 	struct Validity {
 		std::string name_;
 		std::vector<std::string> contexts_;
-		bool repeat_OK_;
-		size_t min_args_;
-		size_t max_args_;
-		ValidationFunction valid_f_;
+		bool repeatOK_;
+		size_t minArgs_;
+		size_t maxArgs_;
+		ValidationFunction validF_;
 
 		Validity(const std::string &n, const std::vector<std::string> &c, bool rep, size_t min,
 		         size_t max, ValidationFunction f)
 		    : name_(n),
 		      contexts_(c),
-		      repeat_OK_(rep),
-		      min_args_(min),
-		      max_args_(max),
-		      valid_f_(f) {}
+		      repeatOK_(rep),
+		      minArgs_(min),
+		      maxArgs_(max),
+		      validF_(f) {}
 	};
 
 	// PARSING THE CONFIGURATION FILE
@@ -124,7 +124,7 @@ class ConfigParser {
 	void printServers(const std::vector<ServerConfig> &servers, std::ostream &os) const;
 	void printServerConfig(const ServerConfig &server, std::ostream &os) const;
 	void printLocationConfig(const LocConfig &loc, std::ostream &os) const;
-	void printTree(const ConfigNode &node, const std::string &prefix, bool is_last,
+	void printTree(const ConfigNode &node, const std::string &prefix, bool isLast,
 	               std::ostream &os) const;
 	static std::string joinArgs(const std::vector<std::string> &args);
 };
@@ -153,7 +153,6 @@ class LocConfig {
 
   private:
 	std::string path;
-	bool exact_match;
 	std::string full_path;
 	std::vector<std::string> allowed_methods;
 	uint16_t return_code;
@@ -166,16 +165,13 @@ class LocConfig {
 
   public:
 	LocConfig()
-	    : exact_match(0),
-		  return_code(0),
+	    : return_code(0),
 	      autoindex(false) {}
 
 	inline std::string getPath() const { return path; }
-	inline bool is_exact_() const { return exact_match; }
-	inline std::string getRoot() const { return path; }
+
 	inline std::string getFullPath() const { return full_path; }
-	inline void setFullPath(const std::string &path) { full_path = path; }
-	inline void setExact(bool is_exact) {exact_match = is_exact; }
+	inline void setFullPath(std::string &path) { full_path = path; }
 
 	inline std::string getUploadPath() const { return upload_path; }
 
@@ -190,16 +186,6 @@ class LocConfig {
 				return true;
 		}
 		return false;
-	}
-
-	std::string getAllowedMethodsString() {
-		std::string allowed;
-		for (size_t i = 0; i < allowed_methods.size(); ++i) {
-			allowed += allowed_methods[i];
-			if (i != allowed_methods.size() - 1)
-				allowed += ", ";
-		}
-		return allowed;
 	}
 
 	bool acceptExtension(const std::string &ext) const {
@@ -220,6 +206,7 @@ class LocConfig {
 
 class ServerConfig {
 	friend class ConfigParser;
+	friend class WebServer;
 
   private:
 	std::string host;
@@ -240,15 +227,16 @@ class ServerConfig {
 	// GETTERS
 	inline const std::string &getHost() const { return host; }
 	inline int getPort() const { return port; }
-	inline int getServerFD() const { return server_fd; }
-	inline const std::string &getPrefix() const { return root_prefix; }
-	inline void setServerFD(int fd) { server_fd = fd; }
-	inline void setPrefix(const std::string& prefix) { root_prefix = prefix; }
 	inline const std::map<uint16_t, std::string> &getErrorPages() const { return error_pages; };
 	inline size_t getMaxBodySize() const { return client_max_body_size; }
-	inline bool hasErrorPage(uint16_t status) const { return error_pages.find(status) != error_pages.end();	}
+	inline bool hasErrorPage(uint16_t status) const {
+		return error_pages.find(status) != error_pages.end();
+	}
 	inline bool infiniteBodySize() const { return (client_max_body_size == 0) ? true : false; }
-	inline std::vector<LocConfig> &getLocations() { return locations; }
+	inline const std::string &getRootPrefix() const {
+		return root_prefix;
+	}; // can probably be removed
+
 	std::string getErrorPage(uint16_t status) const {
 		std::map<uint16_t, std::string>::const_iterator it = error_pages.find(status);
 		return (it != error_pages.end()) ? it->second : "";
@@ -267,7 +255,7 @@ class ServerConfig {
 	// Find by server_fd
 	static ServerConfig *find(std::vector<ServerConfig> &servers, int server_fd) {
 		for (std::vector<ServerConfig>::iterator it = servers.begin(); it != servers.end(); ++it) {
-			if (it->getServerFD() == server_fd) {
+			if (it->server_fd == server_fd) {
 				return &(*it);
 			}
 		}
@@ -289,7 +277,7 @@ class ServerConfig {
 	static const ServerConfig *find(const std::vector<ServerConfig> &servers, int server_fd) {
 		for (std::vector<ServerConfig>::const_iterator it = servers.begin(); it != servers.end();
 		     ++it) {
-			if (it->getServerFD() == server_fd) {
+			if (it->server_fd == server_fd) {
 				return &(*it);
 			}
 		}

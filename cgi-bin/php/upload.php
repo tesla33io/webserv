@@ -1,5 +1,11 @@
 <?php
 
+// Prevent script from printing default headers
+ini_set('default_mimetype', '');
+
+// Start output buffering to calculate content length
+ob_start();
+
 $upload_dir = getenv('UPLOAD_DIR');
 
 // Create upload directory if it doesn't exist
@@ -12,6 +18,7 @@ $filename = '';
 $filesize = 0;
 $file_extension = '';
 $error_message = '';
+$exit_status = '200 OK';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
 	// Get uploaded file
@@ -51,10 +58,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
 		if (move_uploaded_file($uploaded_file['tmp_name'], $target_path)) {
 			$uploaded = true;
 			$filesize = $uploaded_file['size'];
+			$exit_status = '201 Created';
+		} else {
+			$error_message = 'Unable to save file';
+			$exit_status = '500 Internal Server Error';
 		}
+	} elseif ($uploaded_file['error'] === UPLOAD_ERR_INI_SIZE || $uploaded_file['error'] === UPLOAD_ERR_FORM_SIZE) {
+		$error_message = 'File too large';
+		$exit_status = '413 Payload Too Large';
+	} elseif ($uploaded_file['error'] === UPLOAD_ERR_NO_FILE) {
+		$error_message = 'No file uploaded';
+		$exit_status = '400 Bad Request';
 	} else {
-		$error_message = 'Unable to upload the file';
+		$error_message = 'Unknown upload error';
+		$exit_status = '500 Internal Server Error';
 	}
+} elseif ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+	$error_message = 'Invalid request method';
+	$exit_status = '405 Method Not Allowed';
 }
 
 // Function to get file icon based on extension
@@ -206,3 +227,21 @@ if ($error_message != '') {
 	</div>
 </body>
 </html>
+
+<?php
+
+// Calculate length
+$content = ob_get_contents();
+ob_end_clean();
+$content_length = strlen($content);
+
+// Set headers
+echo "HTTP/1.1 " . $exit_status . "\r\n";
+echo "Content-Type: text/html; charset=UTF-8\r\n";
+echo "Content-Length: " . $content_length . "\r\n";
+echo "\r\n";
+
+// Output content
+echo $content;
+
+?>

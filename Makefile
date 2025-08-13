@@ -6,7 +6,7 @@
 #    By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: Invalid date        by         __/       #+#    #+#              #
-#    Updated: 2025/08/07 13:51:28 by jalombar         ###   ########.fr        #
+#    Updated: 2025/08/08 14:22:22 by jalombar         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -37,14 +37,18 @@ SRC_DIR			:= ./
 SRC_FILES		+= src/CGI/CGI.cpp
 SRC_FILES		+= src/CGI/CGIHandler.cpp
 
-SRC_FILES		+= src/HttpServer/HttpServer.cpp
-SRC_FILES		+= src/HttpServer/Connection.cpp
-SRC_FILES		+= src/HttpServer/Request.cpp
-SRC_FILES		+= src/HttpServer/Structs.cpp
-SRC_FILES		+= src/HttpServer/Handlers/FileHandler.cpp
-SRC_FILES		+= src/HttpServer/Handlers/ResponseHandler.cpp
-SRC_FILES		+= src/HttpServer/Handlers/LocationMatch.cpp
+SRC_FILES		+= src/HttpServer/ServerUtils.cpp
+SRC_FILES		+= src/HttpServer/Handlers/ChunkedReq.cpp
+SRC_FILES		+= src/HttpServer/Handlers/Connection.cpp
+SRC_FILES		+= src/HttpServer/Handlers/DirectoryReq.cpp
 SRC_FILES		+= src/HttpServer/Handlers/EpollEventHandler.cpp
+SRC_FILES		+= src/HttpServer/Handlers/MethodsHandler.cpp
+SRC_FILES		+= src/HttpServer/Handlers/Request.cpp
+SRC_FILES		+= src/HttpServer/Handlers/ResponseHandler.cpp
+SRC_FILES		+= src/HttpServer/Handlers/ServerCGI.cpp
+SRC_FILES		+= src/HttpServer/Structs/Connection.cpp
+SRC_FILES		+= src/HttpServer/Structs/Response.cpp
+SRC_FILES		+= src/HttpServer/Structs/WebServer.cpp
 
 SRC_FILES		+= src/RequestParser/RequestParser.cpp
 SRC_FILES		+= src/RequestParser/RequestLine.cpp

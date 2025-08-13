@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ValidDirective.cpp                                 :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
+/*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 13:52:39 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/13 11:49:16 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/07 14:13:05 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,7 +36,7 @@ void ConfigParser::initValidDirectives() {
 	                                    std::vector<std::string>(1, "server"), false, 1, 1,
 	                                    &ConfigParser::validateMaxBody));
 	validDirectives_.push_back(Validity("location", std::vector<std::string>(1, "server"), true, 1,
-	                                    2, &ConfigParser::validateLocation));
+	                                    1, &ConfigParser::validateLocation));
 	// server or location level  (will be inherited in the locations if not set in the location)
 	validDirectives_.push_back(Validity("root", makeVector("server", "location"), false, 1, 1,
 	                                    &ConfigParser::validateRoot));
@@ -74,7 +74,7 @@ bool ConfigParser::validateDirective(const ConfigNode &node, const ConfigNode &p
 				                        parent.name_ + "' on line " + su::to_string(node.line_));
 				return false;
 			}
-			if (!it->repeat_OK_) {
+			if (!it->repeatOK_) {
 				int count = 0;
 				for (size_t i = 0; i < parent.children_.size(); ++i) {
 					if (parent.children_[i].name_ == node.name_) {
@@ -89,17 +89,17 @@ bool ConfigParser::validateDirective(const ConfigNode &node, const ConfigNode &p
 					return false;
 				}
 			}
-			if (node.args_.size() < it->min_args_ || node.args_.size() > it->max_args_) {
+			if (node.args_.size() < it->minArgs_ || node.args_.size() > it->maxArgs_) {
 				logg_.logWithPrefix(Logger::WARNING, "Configuration file",
 				                    "Directive '" + node.name_ + "' expects between " +
-				                        su::to_string(it->min_args_) + " and " +
-				                        su::to_string(it->max_args_) + " arguments, but got " +
+				                        su::to_string(it->minArgs_) + " and " +
+				                        su::to_string(it->maxArgs_) + " arguments, but got " +
 				                        su::to_string(node.args_.size()) + " on line " +
 				                        su::to_string(node.line_));
 				return false;
 			}
-			if (it->valid_f_ != NULL) {
-				if (!(this->*(it->valid_f_))(node))
+			if (it->validF_ != NULL) {
+				if (!(this->*(it->validF_))(node))
 					return false;
 			}
 			return true;
@@ -160,26 +160,15 @@ bool ConfigParser::validateListen(const ConfigNode &node) {
 
 // RETURN : 300 - 399. If no code-> one arg (URL), otherwise code uri/url
 bool ConfigParser::validateReturn(const ConfigNode &node) {
-
+	// first args is URL , no second arg = ok (will be code 302), otherwise pb
+	if (isHttp(node.args_[0]) && node.args_.size() == 1) {
+		return true;
+	}
 	std::istringstream ss(node.args_[0]);
 	uint16_t code;
-	
-	// first args is URL or error code 4xx or 5xx, no second arg = ok
-	if (node.args_.size() == 1) {
-		if (isHttp(node.args_[0])) {
-			return true;
-		} else if ((ss >> code) && !ss.fail() && ss.eof() && code > 399 && !unknownCode(code)) {
-			return true;
-		}
-		logg_.logWithPrefix(Logger::WARNING, "Configuration file",
-		                    "Invalid argument for return: " + node.args_[0] + " on line " +
-		                        su::to_string(node.line_));
-		return false;
-	}
-	
-
-	// 2 args -> first arg: code
-	if (!(ss >> code) || ss.fail() || !ss.eof() || code < 300 || code > 399 || unknownCode(code)) {
+	// first arg: code
+	if (!(ss >> code) || ss.fail() || !ss.eof() || code < 300 || code > 399 || unknownCode(code) ||
+	    node.args_.size() != 2) {
 		logg_.logWithPrefix(Logger::WARNING, "Configuration file",
 		                    "Invalid return status code or URL: " + node.args_[0] + " on line " +
 		                        su::to_string(node.line_));
@@ -194,7 +183,6 @@ bool ConfigParser::validateReturn(const ConfigNode &node) {
 	}
 	return true;
 }
-
 
 // ERROR: 400 - 599, last arg is file
 bool ConfigParser::validateError(const ConfigNode &node) {
@@ -241,20 +229,10 @@ bool ConfigParser::validateMaxBody(const ConfigNode &node) {
 	return true;
 }
 
-// the path must start with /, no invalid char
+// the path must start with /, ends with /, no invalid char
 // duplicates path not allowed
 bool ConfigParser::validateLocation(const ConfigNode &node) {
-	if (node.args_.size() == 2 && node.args_[0] != "=") {
-		logg_.logWithPrefix(Logger::WARNING, "Configuration file",
-		                    "Invalid location modifier: " + node.args_[0] + " on line " +
-		                        su::to_string(node.line_));
-		return false;
-	}
-	std::string path;
-	if (node.args_.size() == 2)
-		path = node.args_[1];
-	else 
-		path = node.args_[0];
+	const std::string &path = node.args_[0];
 	if (path.empty() || !isValidUri(path)) {
 		logg_.logWithPrefix(Logger::WARNING, "Configuration file",
 		                    "Invalid location path: " + path + " on line " +
@@ -275,7 +253,7 @@ bool ConfigParser::validateRoot(const ConfigNode &node) {
 	return true;
 }
 
-// upload path : starts with /, 
+// upload path : starts with /, // to double check
 bool ConfigParser::validateUploadPath(const ConfigNode &node) {
 	if (node.args_[0].empty() || !isValidUri(node.args_[0])) {
 		logg_.logWithPrefix(Logger::WARNING, "Configuration file",

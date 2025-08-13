@@ -6,18 +6,18 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/31 08:58:57 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/07 14:15:21 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/08 14:22:56 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #ifndef CGI_HPP
 #define CGI_HPP
 
-#include "includes/Types.hpp"
 #include "includes/Webserv.hpp"
+#include "includes/Types.hpp"
 #include "src/ConfigParser/ConfigParser.hpp"
-#include "src/HttpServer/Response.hpp"
 #include "src/Logger/Logger.hpp"
+#include "src/HttpServer/Structs/Response.hpp"
 
 class CGI {
   private:
