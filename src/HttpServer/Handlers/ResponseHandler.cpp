@@ -6,7 +6,7 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:08:41 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/08 14:17:10 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/13 16:00:40 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -48,3 +48,76 @@ bool WebServer::sendResponse(Connection *conn) {
 	conn->response_ready = false;
 	return send(conn->fd, raw_response.c_str(), raw_response.size(), MSG_NOSIGNAL) != -1;
 }
+
+// Serving the index file or listing if possible
+Response WebServer::respDirectoryRequest(Connection *conn, const std::string &fullDirPath) {
+	_lggr.debug("Handling directory request: " + fullDirPath);
+
+	// Try to serve index file
+	if (!conn->locConfig->index.empty()) {
+		std::string fullIndexPath = fullDirPath + conn->locConfig->index;
+		_lggr.debug("Trying index file: " + fullIndexPath);
+		if (checkFileType(fullIndexPath.c_str()) == ISREG) {
+			_lggr.debug("Found index file, serving: " + fullIndexPath);
+			return respFileRequest(conn, fullIndexPath);
+		}
+	}
+
+	// Handle autoindex
+	if (conn->locConfig->autoindex) {
+		_lggr.debug("Autoindex on, generating directory listing");
+		return generateDirectoryListing(conn, fullDirPath);
+	}
+
+	// No index file and no autoindex
+	_lggr.debug("No index file, autoindex disabled");
+	return Response::notFound(conn);
+}
+
+// serving the file if found
+Response WebServer::respFileRequest(Connection *conn, const std::string &fullFilePath) {
+	_lggr.debug("Handling file request: " + fullFilePath);
+	// Read file content
+	std::string content = getFileContent(fullFilePath);
+	// this check is redondant as it has already been checked 
+	if (content.empty()) {
+		_lggr.error("Failed to read file: " + fullFilePath);
+		return Response::notFound(conn);
+	}
+	// Create response
+	Response resp(200, content);
+	resp.setContentType(detectContentType(fullFilePath));
+	resp.setContentLength(content.length());
+	_lggr.debug("Successfully serving file: " + fullFilePath + " (" +
+	            su::to_string(content.length()) + " bytes)");
+	return resp;
+}
+
+
+Response WebServer::respReturnDirective(Connection *conn, uint16_t code, std::string target) {
+	_lggr.debug("Handling return directive '" + su::to_string(code) + "' to " + target);
+
+	if (code > 399)
+		return Response(code, conn);
+
+	Response resp(code);
+	resp.setHeader("Location", target);
+	std::ostringstream html;
+	html << "<!DOCTYPE html>\n"
+	     << "<html>\n"
+	     << "<head>\n"
+	     << "<title>Redirecting...</title>\n"
+	     << "</head>\n"
+	     << "<body>\n"
+	     << "<h1>Redirecting</h1>\n"
+	     << "<p>The document has moved <a href=\"#\">here</a>.</p>\n"
+	     << "</body>\n"
+	     << "</html>\n";
+	resp.body = html.str();
+	resp.setContentType("text/html");
+	resp.setContentLength(resp.body.length());
+	_lggr.debug("Generated redirect response");
+
+	return resp;
+}
+

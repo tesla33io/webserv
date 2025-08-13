@@ -6,7 +6,7 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/08 13:35:52 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/08 13:43:33 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/13 16:01:05 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -51,6 +51,71 @@ static std::string detectContentTypeLocal(const std::string &path) {
 }
 
 Logger Response::tmplogg_("Response", Logger::DEBUG);
+
+void Connection::resetChunkedState() {
+	state = READING_HEADERS;
+	chunked = false;
+}
+
+std::string Connection::stateToString(Connection::State state) {
+	switch (state) {
+	case Connection::READING_HEADERS:
+		return "READING_HEADERS";
+	case Connection::READING_CHUNK_SIZE:
+		return "READING_CHUNK_SIZE";
+	case Connection::READING_CHUNK_DATA:
+		return "READING_CHUNK_DATA";
+	case Connection::READING_CHUNK_TRAILER:
+		return "READING_CHUNK_TRAILER";
+	case Connection::CONTINUE_SENT:
+		return "CONTINUE_SENT";
+	case Connection::READING_TRAILER:
+		return "READING_FINAL_TRAILER";
+	case Connection::CHUNK_COMPLETE:
+		return "CHUNK_COMPLETE";
+	case Connection::REQUEST_COMPLETE:
+		return "REQUEST_COMPLETE";
+	default:
+		return "UNKNOWN_STATE";
+	}
+}
+
+std::string Connection::toString() {
+	std::ostringstream oss;
+
+	oss << "Connection{";
+	oss << "clfd: " << fd << ", ";
+
+	char time_buf[26];
+	// TODO: do we need thread-safety??
+#if defined(_MSC_VER)
+	ctime_s(time_buf, sizeof(time_buf), &last_activity);
+#else
+	ctime_r(&last_activity, time_buf);
+#endif
+	// ctime_r includes a newline at the end; remove it
+	time_buf[24] = '\0';
+
+	oss << "last_activity: " << time_buf << ", ";
+	oss << "read_buffer: \"" << read_buffer << "\", ";
+	oss << "response_ready: " << (response_ready ? "true" : "false") << ", ";
+	oss << "response_status: "
+	    << (response_ready ? su::to_string(response.status_code) + " " + response.reason_phrase
+	                       : "not ready")
+	    << ", ";
+	oss << "chunked: " << (chunked ? "true" : "false") << ", ";
+	oss << "keep_persistent_connection: " << (keep_persistent_connection ? "true" : "false")
+	    << ", ";
+	oss << "request_count: " << request_count << ", ";
+	oss << "state: " << stateToString(state) << "}";
+
+	return oss.str();
+}
+
+//// Response ////
+
+Logger Response::resplogg_("Response", Logger::DEBUG);
+
 
 Response::Response()
     : version("HTTP/1.1"),
@@ -125,7 +190,12 @@ Response Response::forbidden() { return Response(403); }
 
 Response Response::notFound() { return Response(404); }
 
-Response Response::methodNotAllowed() { return Response(405); }
+Response Response::methodNotAllowed(const std::string& allowed) { 
+	Response resp(405);
+	if (!allowed.empty()) {
+		resp.setHeader("Allow", allowed);
+	}
+	return resp; }
 
 Response Response::internalServerError() { return Response(500); }
 
@@ -139,7 +209,12 @@ Response Response::forbidden(Connection *conn) { return Response(403, conn); }
 
 Response Response::notFound(Connection *conn) { return Response(404, conn); }
 
-Response Response::methodNotAllowed(Connection *conn) { return Response(405, conn); }
+Response Response::methodNotAllowed(Connection *conn, const std::string& allowed) {
+	Response resp(405, conn);
+	if (!allowed.empty()) {
+		resp.setHeader("Allow", allowed);
+	}
+	return resp; }
 
 Response Response::internalServerError(Connection *conn) { return Response(500, conn); }
 
@@ -158,13 +233,9 @@ std::string Response::getReasonPhrase(uint16_t code) const {
 	case 301:
 		return "Moved Permanently";
 	case 302:
-		return "Found";
-	case 304:
-		return "Not Modified";
+		return "Found"; // moved temporarily
 	case 400:
 		return "Bad Request";
-	case 401:
-		return "Unauthorized";
 	case 403:
 		return "Forbidden";
 	case 404:
@@ -175,14 +246,16 @@ std::string Response::getReasonPhrase(uint16_t code) const {
 		return "Request Timeout";
 	case 413:
 		return "Content Too Large";
+	case 414:
+		return "Request-URI Too Long";
 	case 500:
 		return "Internal Server Error";
 	case 501:
 		return "Not Implemented";
-	case 502:
-		return "Bad Gateway";
 	case 503:
 		return "Service Unavailable";
+	case 505:
+		return "HTTP Version Not Supported";
 	default:
 		return "Unknown Status";
 	}
@@ -193,21 +266,21 @@ void Response::initFromCustomErrorPage(uint16_t code, Connection *conn) {
 	reason_phrase = getReasonPhrase(code);
 
 	if (!conn || !conn->getServerConfig() || !conn->getServerConfig()->hasErrorPage(code)) {
-		tmplogg_.logWithPrefix(Logger::DEBUG, "Response",
+		resplogg_.logWithPrefix(Logger::DEBUG, "Response",
 		                       "No custom error page for " + su::to_string(code));
-		tmplogg_.logWithPrefix(Logger::DEBUG, "Response",
+		resplogg_.logWithPrefix(Logger::DEBUG, "Response",
 		                       "Creating the default error page for " + su::to_string(code));
 		initFromStatusCode(code);
 		return;
 	}
-	tmplogg_.logWithPrefix(Logger::DEBUG, "Response",
+	resplogg_.logWithPrefix(Logger::DEBUG, "Response",
 	                       "A custom error page exists for " + su::to_string(code));
 	// todo check path again
 	std::string fullPath =
-	    conn->getServerConfig()->getRootPrefix() + conn->getServerConfig()->getErrorPage(code);
+	    conn->getServerConfig()->getPrefix() + conn->getServerConfig()->getErrorPage(code);
 	std::ifstream errorFile(fullPath.c_str());
 	if (!errorFile.is_open()) {
-		tmplogg_.logWithPrefix(Logger::WARNING, "Response",
+		resplogg_.logWithPrefix(Logger::WARNING, "Response",
 		                       "Custom error page " + fullPath + " could not be opened.");
 		initFromStatusCode(code);
 		return;
@@ -219,7 +292,7 @@ void Response::initFromCustomErrorPage(uint16_t code, Connection *conn) {
 	setContentLength(body.length());
 	setContentType(detectContentTypeLocal(fullPath));
 	errorFile.close();
-	tmplogg_.logWithPrefix(Logger::DEBUG, "Response",
+	resplogg_.logWithPrefix(Logger::DEBUG, "Response",
 	                       "Custom error page " + su::to_string(code) + " has been loaded.");
 }
 
@@ -227,7 +300,7 @@ void Response::initFromStatusCode(uint16_t code) {
 	reason_phrase = getReasonPhrase(code);
 	if (code >= 400) {
 		if (body.empty()) {
-			tmplogg_.logWithPrefix(Logger::DEBUG, "Response",
+			resplogg_.logWithPrefix(Logger::DEBUG, "Response",
 			                       "No custom error page for " + su::to_string(code) +
 			                           " could be used or exist. Generating the default page now.");
 			std::ostringstream html;
@@ -264,7 +337,7 @@ void Response::initFromStatusCode(uint16_t code) {
 			body = html.str();
 			setContentLength(body.length());
 			setContentType("text/html");
-			tmplogg_.logWithPrefix(Logger::DEBUG, "Response",
+			resplogg_.logWithPrefix(Logger::DEBUG, "Response",
 			                       "Content-Type set to: " + headers["Content-Type"]);
 		}
 	}

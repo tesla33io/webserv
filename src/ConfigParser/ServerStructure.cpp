@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ServerStructure.cpp                                :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 13:55:04 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/07 13:55:14 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/13 11:57:44 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -39,7 +39,13 @@ bool ConfigParser::convertTreeToStruct(const ConfigNode &tree, std::vector<Serve
 
 				else if (child->name_ == "location") {
 					LocConfig location;
-					location.path = child->args_[0];
+					if (child->args_.size() == 1)
+						location.path = child->args_[0];
+					else {
+						location.path = child->args_[1];
+						location.exact_match = true;
+					}
+					
 					handleLocationBlock(*child, location);
 					// check for duplicates locations
 					if (existentLocationDuplicate(server, location)) {
@@ -179,13 +185,18 @@ void ConfigParser::handleLocationBlock(const ConfigNode &locNode, LocConfig &loc
 
 // Return directive
 void ConfigParser::handleReturn(const ConfigNode &node, LocConfig &location) {
+
+	std::istringstream ss(node.args_[0]);
+	unsigned int code;
+	ss >> code;
 	if (node.args_.size() == 1) {
-		location.return_code = 302;
-		location.return_target = node.args_[0];
+		if (code) {
+			location.return_code = code;
+		} else {
+			location.return_code = 301;
+			location.return_target = node.args_[0];
+		}
 	} else {
-		std::istringstream ss(node.args_[0]);
-		unsigned int code;
-		ss >> code;
 		location.return_code = code;
 		location.return_target = node.args_[1];
 	}
@@ -254,7 +265,7 @@ void ConfigParser::inheritGeneralConfig(ServerConfig &server, const LocConfig &f
 	}
 }
 
-// HOST:SERVER dupliactes -> not accepted
+// HOST:SERVER pairs duplicates -> not accepted
 bool ConfigParser::isDuplicateServer(const std::vector<ServerConfig> &servers,
                                      const ServerConfig &newServer) {
 	for (std::vector<ServerConfig>::const_iterator it = servers.begin(); it != servers.end();
@@ -266,7 +277,7 @@ bool ConfigParser::isDuplicateServer(const std::vector<ServerConfig> &servers,
 	return false;
 }
 
-// LOCATION PATH dupliactes -> not accepted
+// LOCATION PATH duplicates -> not accepted
 bool ConfigParser::existentLocationDuplicate(const ServerConfig &server,
                                              const LocConfig &location) {
 	for (size_t i = 0; i < server.locations.size(); ++i) {
