@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:10:22 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/14 15:45:19 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/14 17:34:46 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -135,7 +135,7 @@ bool WebServer::parseRequest(Connection *conn, ClientRequest &req) {
 	if (!RequestParsingUtils::parseRequest(conn->read_buffer, req)) {
 		_lggr.error("Parsing of the request failed.");
 		_lggr.debug("FD " + su::to_string(conn->fd) + " " + conn->toString());
-		prepareResponse(conn, Response::badRequest(conn));
+		prepareResponse(conn, Response(g_error_status, conn));
 		// closeConnection(conn);
 		return false;
 	}

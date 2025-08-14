@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Response.hpp                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:05:50 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/14 11:11:27 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/14 17:51:34 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -35,6 +35,9 @@ class Response {
 	inline void setStatus(uint16_t code) {
 		status_code = code;
 		reason_phrase = getReasonPhrase(code);
+		if (code >= 400) {
+			g_error_status = code;
+		}
 	}
 
 	inline void setHeader(const std::string &name, const std::string &value) {
@@ -75,7 +78,7 @@ class Response {
 	void initFromStatusCode(uint16_t code);
 	void initFromCustomErrorPage(uint16_t code, Connection *conn);
 
-	static Logger
+	static Logger 
 	    tmplogg_;
 };
 

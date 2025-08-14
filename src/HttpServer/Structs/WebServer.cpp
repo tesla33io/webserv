@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   WebServer.cpp                                      :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/08 13:46:05 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/14 10:46:29 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/14 17:56:24 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,6 +17,8 @@
 
 bool WebServer::_running;
 static bool interrupted = false;
+uint16_t g_error_status = 0;
+
 
 WebServer::WebServer(std::vector<ServerConfig> &confs)
     : _epoll_fd(-1),
@@ -295,6 +297,7 @@ void WebServer::cleanup() {
 int main(int argc, char *argv[]) {
 	ArgumentParser ap;
 	ServerArgs args;
+
 	try {
 		args = ap.parseArgs(argc, argv);
 		if (args.show_help) {

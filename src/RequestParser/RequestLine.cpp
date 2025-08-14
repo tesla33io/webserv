@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   RequestLine.cpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/25 10:33:32 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/07 14:18:14 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/14 17:35:21 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -107,9 +107,10 @@ bool RequestParsingUtils::checkReqLine(ClientRequest &request) {
 		request.path = request.uri;
 		request.query = "";
 	}
-
+	// case 505: "HTTP Version Not Supported"
 	if (request.version != "HTTP/1.1") {
 		logger.logWithPrefix(Logger::WARNING, "HTTP", "Invalid HTTP version");
+		g_error_status = 505;
 		return (false);
 	}
 

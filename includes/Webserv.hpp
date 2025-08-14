@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Webserv.hpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/19 14:47:40 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/07 14:14:30 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/14 17:52:31 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -44,6 +44,9 @@
 #include <unistd.h>    // for pipe, dup2, fork, exec
 #include <utility>     // for makepair
 #include <vector>      // for vector
+
+// Global error status variable
+extern uint16_t g_error_status;
 
 #define CHUNK_SIZE 500
 
