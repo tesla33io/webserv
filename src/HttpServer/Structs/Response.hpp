@@ -6,7 +6,7 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:05:50 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/08 14:29:46 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/14 10:39:21 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -58,7 +58,7 @@ class Response {
 	static Response notFound();
 	static Response internalServerError();
 	static Response badRequest();
-	static Response methodNotAllowed();
+	static Response methodNotAllowed(const std::string& allowed);
 	static Response notImplemented();
 	static Response forbidden();
 
@@ -66,7 +66,7 @@ class Response {
 	static Response notFound(Connection *conn);
 	static Response internalServerError(Connection *conn);
 	static Response badRequest(Connection *conn);
-	static Response methodNotAllowed(Connection *conn);
+	static Response methodNotAllowed(Connection *conn, const std::string& allowed);
 	static Response notImplemented(Connection *conn);
 	static Response forbidden(Connection *conn);
 

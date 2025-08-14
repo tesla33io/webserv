@@ -6,7 +6,7 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:06:48 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/08 14:17:02 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/14 10:49:23 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,7 +37,7 @@ void WebServer::processEpollEvents(const struct epoll_event *events, int event_c
 
 bool WebServer::isListeningSocket(int fd) const {
 	for (std::vector<ServerConfig>::const_iterator it = _confs.begin(); it != _confs.end(); ++it) {
-		if (fd == it->server_fd) {
+		if (fd == it->getServerFD()) {
 			return true;
 		}
 	}

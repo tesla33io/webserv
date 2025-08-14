@@ -6,7 +6,7 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 13:52:39 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/07 14:13:05 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/14 10:48:20 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -89,17 +89,17 @@ bool ConfigParser::validateDirective(const ConfigNode &node, const ConfigNode &p
 					return false;
 				}
 			}
-			if (node.args_.size() < it->minArgs_ || node.args_.size() > it->maxArgs_) {
+			if (node.args_.size() < it->min_args_ || node.args_.size() > it->max_args_) {
 				logg_.logWithPrefix(Logger::WARNING, "Configuration file",
 				                    "Directive '" + node.name_ + "' expects between " +
-				                        su::to_string(it->minArgs_) + " and " +
-				                        su::to_string(it->maxArgs_) + " arguments, but got " +
+				                        su::to_string(it->min_args_) + " and " +
+				                        su::to_string(it->max_args_) + " arguments, but got " +
 				                        su::to_string(node.args_.size()) + " on line " +
 				                        su::to_string(node.line_));
 				return false;
 			}
-			if (it->validF_ != NULL) {
-				if (!(this->*(it->validF_))(node))
+			if (it->valid_f_ != NULL) {
+				if (!(this->*(it->valid_f_))(node))
 					return false;
 			}
 			return true;

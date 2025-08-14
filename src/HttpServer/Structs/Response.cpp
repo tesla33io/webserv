@@ -6,7 +6,7 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/08 13:35:52 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/08 13:43:33 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/14 10:40:52 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -125,7 +125,12 @@ Response Response::forbidden() { return Response(403); }
 
 Response Response::notFound() { return Response(404); }
 
-Response Response::methodNotAllowed() { return Response(405); }
+Response Response::methodNotAllowed(const std::string& allowed) { 
+	Response resp(405);
+	if (!allowed.empty()) {
+		resp.setHeader("Allow", allowed);
+	}
+	return resp; }
 
 Response Response::internalServerError() { return Response(500); }
 
@@ -139,7 +144,12 @@ Response Response::forbidden(Connection *conn) { return Response(403, conn); }
 
 Response Response::notFound(Connection *conn) { return Response(404, conn); }
 
-Response Response::methodNotAllowed(Connection *conn) { return Response(405, conn); }
+Response Response::methodNotAllowed(Connection *conn, const std::string& allowed) {
+	Response resp(405, conn);
+	if (!allowed.empty()) {
+		resp.setHeader("Allow", allowed);
+	}
+	return resp; }
 
 Response Response::internalServerError(Connection *conn) { return Response(500, conn); }
 
@@ -204,7 +214,7 @@ void Response::initFromCustomErrorPage(uint16_t code, Connection *conn) {
 	                       "A custom error page exists for " + su::to_string(code));
 	// todo check path again
 	std::string fullPath =
-	    conn->getServerConfig()->getRootPrefix() + conn->getServerConfig()->getErrorPage(code);
+	    conn->getServerConfig()->getPrefix() + conn->getServerConfig()->getErrorPage(code);
 	std::ifstream errorFile(fullPath.c_str());
 	if (!errorFile.is_open()) {
 		tmplogg_.logWithPrefix(Logger::WARNING, "Response",
