@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   DirectoryReq.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/08 12:56:57 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/08 14:16:59 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/14 14:24:37 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -176,7 +176,7 @@ Response WebServer::generateDirectoryListing(Connection *conn, const std::string
 	while ((entry = readdir(dir)) != NULL) {
 		std::string filename = entry->d_name;
 		std::string fullPath = fullDirPath;
-		if (fullPath[fullDirPath.size() - 1] != '/')
+		if (su::back(fullPath) != '/')
 			fullPath += "/";
 		fullPath += filename;
 
