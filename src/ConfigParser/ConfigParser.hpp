@@ -6,7 +6,7 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 13:53:23 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/07 14:16:04 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/14 10:04:12 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -169,6 +169,7 @@ class LocConfig {
 	      autoindex(false) {}
 
 	inline std::string getPath() const { return path; }
+	inline bool is_exact_() const { return exact_match; }
 
 	inline std::string getFullPath() const { return full_path; }
 	inline void setFullPath(std::string &path) { full_path = path; }
@@ -186,6 +187,16 @@ class LocConfig {
 				return true;
 		}
 		return false;
+	}
+
+	std::string getAllowedMethodsString() {
+		std::string allowed;
+		for (size_t i = 0; i < allowed_methods.size(); ++i) {
+			allowed += allowed_methods[i];
+			if (i != allowed_methods.size() - 1)
+				allowed += ", ";
+		}
+		return allowed;
 	}
 
 	bool acceptExtension(const std::string &ext) const {
