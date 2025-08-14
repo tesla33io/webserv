@@ -6,7 +6,7 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/08 13:44:09 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/13 16:12:31 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/14 11:11:55 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -310,10 +310,6 @@ class WebServer {
 	                         ssize_t total_bytes_read);
 
 	/* Handlers/MethodsHandler.cpp */
-
-	Response handleGetRequest(ClientRequest &req);
-	Response handlePostRequest(ClientRequest &req);   // TODO: Implement
-	Response handleDeleteRequest(ClientRequest &req); // TODO: Implement
 
 	/* Handlers/ResponseHandler.cpp */
 

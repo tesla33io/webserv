@@ -6,7 +6,7 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:05:50 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/14 10:39:21 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/14 11:11:27 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -76,7 +76,7 @@ class Response {
 	void initFromCustomErrorPage(uint16_t code, Connection *conn);
 
 	static Logger
-	    tmplogg_; // not sure this is the best logic for the logger but i wanted to be able to log
+	    tmplogg_;
 };
 
 #endif /* end of include guard: RESPONSE_HPP */
