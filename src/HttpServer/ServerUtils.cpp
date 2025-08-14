@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ServerUtils.cpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/08 13:19:18 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/13 16:35:03 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/14 15:40:49 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -55,15 +55,15 @@ FileType WebServer::checkFileType(const std::string &path) {
 }
 
 std::string WebServer::buildFullPath(const std::string &uri, LocConfig *location) {
-	std::string prefix = (_root_prefix_path[_root_prefix_path.length() - 1] == '/')
+	std::string prefix = (su::back(_root_prefix_path) == '/')
 	                         ? _root_prefix_path.substr(0, _root_prefix_path.length() - 1)
 	                         : _root_prefix_path;
-	std::string root = (location->root[location->root.length() - 1] == '/')
+	std::string root = (su::back(location->root) == '/')
 	                       ? location->root.substr(0, location->root.length() - 1)
 	                       : location->root;
-	std::string slashedUri = (uri.empty() || uri[0] != '/') ? "/" + uri : uri;
+	std::string front_slashed_uri = (uri.empty() || uri[0] != '/') ? "/" + uri : uri;
 
-	std::string full_path = prefix + root + slashedUri;
+	std::string full_path = prefix + root + front_slashed_uri;
 	_lggr.debug("Path building:");
 	_lggr.debug("  - prefix: '" + _root_prefix_path + "'");
 	_lggr.debug("  - root: '" + location->root + "'");

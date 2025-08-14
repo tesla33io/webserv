@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ServerStructure.cpp                                :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 13:55:04 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/07 13:55:14 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/14 14:25:47 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -121,7 +121,7 @@ void ConfigParser::handleBodySize(const ConfigNode &node, ServerConfig &server) 
 
 	// megabits or giga
 	int factor = 1;
-	char last = node.args_[0][node.args_[0].size() - 1];
+	char last = su::back(node.args_[0]);
 	if (std::tolower(last) == 'k')
 		factor = 1024;
 	else if (std::tolower(last) == 'm')

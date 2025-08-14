@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   StringUtils.hpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:04:56 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/07 14:18:54 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/14 14:20:19 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -290,6 +290,13 @@ inline std::string extract_between(const std::string &str, const std::string &st
  */
 inline bool iequals(const std::string &str1, const std::string &str2) {
 	return to_lower(str1) == to_lower(str2);
+}
+
+/**
+ * Last character
+ */
+inline char back(const std::string &s) {
+	return s[s.size() - 1];
 }
 
 } // namespace su

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ConfigParser.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 13:54:15 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/07 13:54:19 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/14 14:26:32 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -72,7 +72,7 @@ bool ConfigParser::parseTreeBlocks(std::ifstream &file, int &line_nb, ConfigNode
 			}
 		}
 		// Traitement des directives simples (se terminant par ;)
-		else if (!clean.empty() && clean[clean.size() - 1] == ';') {
+		else if (!clean.empty() && su::back(clean) == ';') {
 			accumulated_line = clean;
 			statement_start_line = line_nb;
 		}

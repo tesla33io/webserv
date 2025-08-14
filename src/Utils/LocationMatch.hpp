@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   LocationMatch.hpp                                  :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/08 13:01:13 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/13 16:29:23 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/14 15:54:33 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,6 +28,7 @@ static bool isPrefixMatch(const std::string &uri, const std::string &location_pa
 		return false;
 	}
 	if (uri.length() == location_path.length()) {
+		
 		return true; // Exact match
 	}
 	// Next character should be '/' or end of string
