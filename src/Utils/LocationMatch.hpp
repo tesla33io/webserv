@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/08 13:01:13 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/14 15:54:33 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/14 16:30:07 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,7 +16,10 @@
 #include "includes/Webserv.hpp"
 #include "src/ConfigParser/ConfigParser.hpp"
 
-static bool isPrefixMatch(const std::string &uri, const std::string &location_path) {
+static bool isPrefixMatch(const std::string &uri, LocConfig &loc) {
+	Logger log;
+	std::string location_path = loc.getPath();
+
 	if (location_path.empty() || location_path == "/") {
 		return true;
 	}
@@ -28,8 +31,12 @@ static bool isPrefixMatch(const std::string &uri, const std::string &location_pa
 		return false;
 	}
 	if (uri.length() == location_path.length()) {
-		
+		loc.setExact(true);
+		log.debug("EXACT PATH MATCH - uri : " + uri + " loc : " + location_path);
 		return true; // Exact match
+	}
+	if (loc.is_exact_()) {
+		return false;
 	}
 	// Next character should be '/' or end of string
 	char next_char = uri[location_path.length()];
@@ -43,7 +50,7 @@ static bool isPrefixMatch(const std::string &uri, const std::string &location_pa
 /// \returns Pointer to the best matching LocConfig, or nullptr if no match.
 inline LocConfig *findBestMatch(const std::string &uri, std::vector<LocConfig> &locations) {
 	for (std::vector<LocConfig>::iterator it = locations.begin(); it != locations.end(); ++it) {
-		if (isPrefixMatch(uri, it->getPath())) {
+		if (isPrefixMatch(uri, *it)) {
 			return &(*it);
 		}
 	}
@@ -51,3 +58,4 @@ inline LocConfig *findBestMatch(const std::string &uri, std::vector<LocConfig> &
 }
 
 #endif
+
