@@ -220,10 +220,12 @@ bool WebServer::isRequestComplete(Connection *conn) {
 
 	case Connection::READING_BODY:
 		_lggr.debug("isRequestComplete->READING_BODY");
-		_lggr.debug(su::to_string(conn->content_length - conn->body_bytes_read) +
-		            " bytes left to receive");
-		if (static_cast<ssize_t>(conn->body_bytes_read) >= conn->content_length) {
-			_lggr.debug("Read full content-length");
+		_lggr.debug(
+		    su::to_string(conn->content_length - static_cast<ssize_t>(conn->body_data.size())) +
+		    " bytes left to receive");
+		if (static_cast<ssize_t>(conn->body_data.size()) >= conn->content_length) {
+			_lggr.debug("Read full content-length: " + su::to_string(conn->body_data.size()) +
+			            " bytes received");
 			conn->state = Connection::REQUEST_COMPLETE;
 			reconstructRequest(conn);
 			return true;
@@ -297,11 +299,20 @@ bool WebServer::isHeadersComplete(Connection *conn) {
 		conn->chunked = false;
 		conn->headers_buffer = headers;
 
+		// Handle any body data that came with headers
 		std::string remaining_data = conn->read_buffer.substr(header_end + 4);
-		conn->read_buffer = remaining_data;
+		if (!remaining_data.empty()) {
+			// Store remaining data as binary body data
+			conn->body_data.insert(conn->body_data.end(),
+			                       reinterpret_cast<const unsigned char *>(remaining_data.data()),
+			                       reinterpret_cast<const unsigned char *>(remaining_data.data() +
+			                                                               remaining_data.size()));
+		}
 
-		conn->body_bytes_read = remaining_data.size();
+		// Clear the read_buffer since we've processed headers and moved body to body_data
+		conn->read_buffer.clear();
 
+		conn->body_bytes_read = conn->body_data.size();
 		conn->state = Connection::READING_BODY;
 
 		if (static_cast<ssize_t>(conn->body_bytes_read) >= conn->content_length) {
@@ -480,12 +491,24 @@ bool WebServer::reconstructRequest(Connection *conn) {
 
 	if (conn->content_length > 0) {
 		size_t body_size =
-		    std::min(static_cast<size_t>(conn->content_length), conn->read_buffer.size());
-		reconstructed_request += conn->read_buffer.substr(0, body_size);
+		    std::min(static_cast<size_t>(conn->content_length), conn->body_data.size());
+
+		reconstructed_request.append(reinterpret_cast<const char *>(&conn->body_data[0]),
+		                             body_size);
+
+		_lggr.debug("Reconstructed request with " + su::to_string(body_size) +
+		            " bytes of body data");
 	}
 
 	conn->read_buffer = reconstructed_request;
-	_lggr.debug("Reconstructed request:\n" + conn->read_buffer);
+
+	size_t headers_end = conn->headers_buffer.size();
+	std::string debug_output =
+	    "Reconstructed request headers:\n" + conn->read_buffer.substr(0, headers_end);
+	if (conn->content_length > 0) {
+		debug_output += "\n[Binary body data: " + su::to_string(conn->body_data.size()) + " bytes]";
+	}
+	_lggr.debug(debug_output);
 
 	return true;
 }

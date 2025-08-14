@@ -70,6 +70,8 @@ class Connection {
 	size_t body_bytes_read; // for client_max_body_size
 	ssize_t content_length; // ignore if -1
 
+	std::vector<unsigned char> body_data;
+
 	bool chunked;
 	size_t chunk_size;
 	size_t chunk_bytes_read;
@@ -125,6 +127,8 @@ class Connection {
 
   public:
 	ServerConfig *getServerConfig() const { return servConfig; }
+	const std::vector<unsigned char> &getBodyData() const { return body_data; }
+	size_t getBodySize() const { return body_data.size(); }
 };
 
 /// HTTP web server implementation using epoll for event-driven I/O.

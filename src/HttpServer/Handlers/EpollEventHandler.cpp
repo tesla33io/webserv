@@ -180,13 +180,27 @@ ssize_t WebServer::receiveData(int client_fd, char *buffer, size_t buffer_size) 
 
 bool WebServer::processReceivedData(Connection *conn, const char *buffer, ssize_t bytes_read) {
 	static int i = 0;
-	conn->read_buffer += std::string(buffer);
-	std::cerr << i++ << " calls of preocessReceivedData" << std::endl << "Read_Buffer:\n";
-	std::cerr << conn->read_buffer << std::endl;
 
-	if (conn->state == Connection::READING_BODY) {
+	if (conn->state == Connection::READING_HEADERS) {
+		conn->read_buffer += std::string(buffer, bytes_read);
+		std::cerr << i++ << " calls of processReceivedData (HEADERS)" << std::endl;
+	} else if (conn->state == Connection::READING_BODY) {
+		conn->body_data.insert(conn->body_data.end(),
+		                       reinterpret_cast<const unsigned char *>(buffer),
+		                       reinterpret_cast<const unsigned char *>(buffer + bytes_read));
 		conn->body_bytes_read += bytes_read;
-		_lggr.debug("Read " + su::to_string(conn->body_bytes_read) + " bytes so far");
+
+		std::cerr << i++ << " calls of processReceivedData (BODY)" << std::endl;
+		std::cerr << "Body data size: " << conn->body_data.size() << " bytes" << std::endl;
+
+		_lggr.debug("Read " + su::to_string(conn->body_bytes_read) + " bytes of body so far");
+	} else {
+		// For chunked data and other states, keep existing behavior
+		conn->read_buffer += std::string(buffer, bytes_read);
+		if (conn->state == Connection::READING_BODY) {
+			conn->body_bytes_read += bytes_read;
+		}
+		std::cerr << i++ << " calls of processReceivedData (OTHER)" << std::endl;
 	}
 
 	_lggr.debug("Checking if request was completed");
