@@ -169,28 +169,25 @@ ssize_t WebServer::receiveData(int client_fd, char *buffer, size_t buffer_size) 
 	ssize_t bytes_read = recv(client_fd, buffer, buffer_size, 0);
 
 	_lggr.logWithPrefix(Logger::DEBUG, "recv", "Bytes received: " + su::to_string(bytes_read));
-
-	if (bytes_read == 0) {
-		_lggr.logWithPrefix(Logger::DEBUG, "recv", "Client closed connection");
-	} else if (bytes_read < 0) {
-		_lggr.logWithPrefix(Logger::DEBUG, "recv", "recv error: " + std::string(strerror(errno)));
-	} else {
+	if (bytes_read > 0) {
 		buffer[bytes_read] = '\0';
-		_lggr.logWithPrefix(Logger::DEBUG, "recv", "Data received successfully");
 	}
+
+	_lggr.logWithPrefix(Logger::DEBUG, "recv", "Data: " + std::string(buffer));
 
 	return bytes_read;
 }
 
 bool WebServer::processReceivedData(Connection *conn, const char *buffer, ssize_t bytes_read) {
 	static int i = 0;
-	Connection::State prev_state = conn->state;
-
-	conn->read_buffer.insert(conn->read_buffer.end(),
-	                         reinterpret_cast<const unsigned char *>(buffer),
-	                         reinterpret_cast<const unsigned char *>(buffer) + bytes_read);
-
+	conn->read_buffer += std::string(buffer);
 	std::cerr << i++ << " calls of preocessReceivedData" << std::endl << "Read_Buffer:\n";
+	std::cerr << conn->read_buffer << std::endl;
+
+	if (conn->state == Connection::READING_BODY) {
+		conn->body_bytes_read += bytes_read;
+		_lggr.debug("Read " + su::to_string(conn->body_bytes_read) + " bytes so far");
+	}
 
 	_lggr.debug("Checking if request was completed");
 	if (isRequestComplete(conn)) {
@@ -209,11 +206,6 @@ bool WebServer::processReceivedData(Connection *conn, const char *buffer, ssize_
 		}
 
 		return handleCompleteRequest(conn);
-	}
-
-	if (conn->state == Connection::READING_BODY && prev_state == Connection::READING_BODY) {
-		conn->body_bytes_read += bytes_read;
-		_lggr.debug("Read " + su::to_string(conn->body_bytes_read) + " bytes so far");
 	}
 
 	if (conn->state == Connection::READING_BODY && !conn->getServerConfig()->infiniteBodySize() &&
