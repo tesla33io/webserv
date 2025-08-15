@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 13:53:23 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/15 11:42:53 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/15 13:21:05 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -96,6 +96,8 @@ class ConfigParser {
 	bool existentLocationDuplicate(const ServerConfig &server, const LocConfig &location);
 	bool baseLocation(ServerConfig &server);
 	void addRootToErrorUri(ServerConfig &server);
+	void addGlobalMaxBody(ServerConfig &server);
+
 
 	// Validation methods
 	bool validateDirective(const ConfigNode &node, const ConfigNode &parent);
@@ -231,6 +233,7 @@ class ServerConfig {
 	int port;
 	std::map<uint16_t, std::string> error_pages;
 	std::vector<LocConfig> locations;
+	size_t maximum_body_size;
 
 	std::string root_prefix; // can be removed probably
 	int server_fd;
@@ -254,6 +257,8 @@ class ServerConfig {
 		std::map<uint16_t, std::string>::const_iterator it = error_pages.find(status);
 		return (it != error_pages.end()) ? it->second : "";
 	}
+	inline size_t getServerMaxBodySize() const { return maximum_body_size; }
+	inline bool serverInfiniteBodySize() const { return (maximum_body_size == 0) ? true : false; }
 
 	// The default location
 	LocConfig *defaultLocation() {

@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/08 10:39:43 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/15 11:43:59 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/15 13:12:09 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -62,9 +62,9 @@ bool WebServer::processChunkData(Connection *conn) {
 	size_t bytes_to_read = bytes_needed;
 	std::string chunk_part = conn->read_buffer.substr(0, bytes_to_read);
 
-	// Max client body size check
-	if (!conn->locConfig->infiniteBodySize() &&
-	    (conn->chunk_data.length() + bytes_to_read) > conn->locConfig->getMaxBodySize()) {
+	// Max client body size check // pb: no location match yet
+	if (!conn->getServerConfig()->serverInfiniteBodySize() &&
+	    (conn->chunk_data.length() + bytes_to_read) > conn->getServerConfig()->getServerMaxBodySize()) {
 		_lggr.debug("Chunked request is too large");
 		handleRequestTooLarge(conn, bytes_to_read);
 		return false;

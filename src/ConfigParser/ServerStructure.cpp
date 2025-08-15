@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 13:55:04 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/15 11:43:07 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/15 13:20:59 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -76,6 +76,7 @@ bool ConfigParser::convertTreeToStruct(const ConfigNode &tree, std::vector<Serve
 			inheritGeneralConfig(server, forInheritance);
 			sortLocations(server.locations);
 			addRootToErrorUri(server);
+			addGlobalMaxBody(server);
 
 			logg_.logWithPrefix(Logger::INFO, "Config parsing",
 								"Parsed server block on " + server.host + ":" +
@@ -92,6 +93,10 @@ bool ConfigParser::convertTreeToStruct(const ConfigNode &tree, std::vector<Serve
 	}
 	return true;
 }
+
+////////////////////
+// SERVER-LEVEL DIRECTIVE HANDLERS
+////
 
 // HOST AND PORT
 void ConfigParser::handleListen(const ConfigNode &node, ServerConfig &server) {
@@ -113,29 +118,6 @@ void ConfigParser::handleErrorPage(const ConfigNode &node, ServerConfig &server)
 		int code = std::atoi(node.args_[i].c_str());
 		server.error_pages[code] = uri;
 	}
-}
-
-// MAX BODY SIZE
-void ConfigParser::handleBodySize(const ConfigNode &node, LocConfig &location) {
-	// megabits or giga
-	int factor = 1;
-	char last = su::back(node.args_[0]);
-	if (std::tolower(last) == 'k')
-		factor = 1024;
-	else if (std::tolower(last) == 'm')
-		factor = 1024 * 1024;
-	else if (std::tolower(last) == 'g')
-		factor = 1024 * 1024 * 1024;
-
-	std::string maxBody = node.args_[0];
-	if (factor > 1)
-		maxBody = su::rtrim(maxBody.substr(0, maxBody.size() - 1));
-
-	std::istringstream iss(maxBody);
-	size_t maxBodyFactor;
-	iss >> maxBodyFactor;
-	location.client_max_body_size = maxBodyFactor * factor;
-	location.body_size_set = true;
 }
 
 // Root, Methods, Upload path, autoindex, CGI and max body size can be defined server level -> for inheritance
@@ -180,7 +162,21 @@ void ConfigParser::handleLocationBlock(const ConfigNode &locNode, LocConfig &loc
 	}
 }
 
+// ROOT
+void ConfigParser::handleRoot(const ConfigNode &node, LocConfig &location) {
+	if (node.args_[0].length() > 1 && su::ends_with(node.args_[0], "/"))
+		location.root = node.args_[0].substr(0, node.args_[0].length() - 1);
+	else
+		location.root = node.args_[0];
+}
 
+// Index
+void ConfigParser::handleIndex(const ConfigNode &node, LocConfig &location) {
+	if (su::starts_with(node.args_[0], "/"))
+		location.index = node.args_[0].substr(1, node.args_[0].length());
+	else
+		location.index = node.args_[0];
+}
 
 // Return directive
 void ConfigParser::handleReturn(const ConfigNode &node, LocConfig &location) {
@@ -205,21 +201,30 @@ void ConfigParser::handleCGI(const ConfigNode &node, LocConfig &location) {
 	}
 }
 
-// ROOT
-void ConfigParser::handleRoot(const ConfigNode &node, LocConfig &location) {
-	if (node.args_[0].length() > 1 && su::ends_with(node.args_[0], "/"))
-		location.root = node.args_[0].substr(0, node.args_[0].length() - 1);
-	else
-		location.root = node.args_[0];
+// MAX BODY SIZE
+void ConfigParser::handleBodySize(const ConfigNode &node, LocConfig &location) {
+	// megabits or giga
+	int factor = 1;
+	char last = su::back(node.args_[0]);
+	if (std::tolower(last) == 'k')
+		factor = 1024;
+	else if (std::tolower(last) == 'm')
+		factor = 1024 * 1024;
+	else if (std::tolower(last) == 'g')
+		factor = 1024 * 1024 * 1024;
+
+	std::string maxBody = node.args_[0];
+	if (factor > 1)
+		maxBody = su::rtrim(maxBody.substr(0, maxBody.size() - 1));
+
+	std::istringstream iss(maxBody);
+	size_t maxBodyFactor;
+	iss >> maxBodyFactor;
+	location.client_max_body_size = maxBodyFactor * factor;
+	location.body_size_set = true;
 }
 
-// Index
-void ConfigParser::handleIndex(const ConfigNode &node, LocConfig &location) {
-	if (su::starts_with(node.args_[0], "/"))
-		location.index = node.args_[0].substr(1, node.args_[0].length());
-	else
-		location.index = node.args_[0];
-}
+
 
 ////////////////////
 // POST CHECKS AND VALIDATION AND MODIFICATION
@@ -298,6 +303,20 @@ void ConfigParser::addRootToErrorUri(ServerConfig &server) {
 			it->second = root + ((original[0] == '/') ? "" : "/") + original;
 		}
 	}
+}
+
+// MAX of MAX body size per location
+void ConfigParser::addGlobalMaxBody(ServerConfig &server) {
+	size_t max_of_max_body = 1;
+	for (std::vector<LocConfig>::iterator it = server.locations.begin(); it != server.locations.end(); ++it) {
+		if (it->infiniteBodySize()) {
+			server.maximum_body_size = 0;
+			return;
+		}
+		if (it->client_max_body_size > max_of_max_body)
+			max_of_max_body = it->client_max_body_size;
+	}
+	server.maximum_body_size = max_of_max_body;
 }
 
 // SORT LOCATIONS by path length (longest first for proper nginx-style matching)

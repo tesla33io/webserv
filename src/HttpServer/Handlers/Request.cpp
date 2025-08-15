@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:10:22 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/15 11:43:46 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/15 13:41:53 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -237,6 +237,21 @@ void WebServer::processValidRequest(ClientRequest &req, Connection *conn) {
 	const std::string& full_path = conn->locConfig->getFullPath();
 	_lggr.debug("[Resp] The matched location is an exact match: " + su::to_string(conn->locConfig->is_exact_()));
 
+
+
+	// Check against location's max body size
+	if (!conn->locConfig->infiniteBodySize() && 
+	    static_cast<size_t>(req.body.size()) > conn->locConfig->getMaxBodySize()) {
+		_lggr.logWithPrefix(Logger::WARNING, "HTTP", 
+		                 "Request body too large: " + su::to_string(req.body.size()) + 
+			                 " bytes exceeds limit of " + su::to_string(conn->locConfig->getMaxBodySize()));
+		prepareResponse(conn, Response::ContentTooLarge(conn));
+		return;
+	}
+
+	
+
+	
 	// check if RETURN directive in the matched location
 	if (conn->locConfig->hasReturn() && conn->locConfig->is_exact_()) {
 		_lggr.debug("[Resp] The matched location has a return directive.");

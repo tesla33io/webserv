@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:05:50 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/14 17:51:34 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/15 13:41:32 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -62,6 +62,8 @@ class Response {
 	static Response internalServerError();
 	static Response badRequest();
 	static Response methodNotAllowed(const std::string& allowed);
+	static Response ContentTooLarge(); 
+
 	static Response notImplemented();
 	static Response forbidden();
 
@@ -70,6 +72,7 @@ class Response {
 	static Response internalServerError(Connection *conn);
 	static Response badRequest(Connection *conn);
 	static Response methodNotAllowed(Connection *conn, const std::string& allowed);
+	static Response ContentTooLarge(Connection *conn); 
 	static Response notImplemented(Connection *conn);
 	static Response forbidden(Connection *conn);
 

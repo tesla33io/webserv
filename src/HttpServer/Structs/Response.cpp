@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/08 13:35:52 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/15 08:42:29 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/15 13:42:18 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -132,6 +132,8 @@ Response Response::methodNotAllowed(const std::string& allowed) {
 	}
 	return resp; }
 
+Response Response::ContentTooLarge() { return Response(413); }
+
 Response Response::internalServerError() { return Response(500); }
 
 Response Response::notImplemented() { return Response(501); }
@@ -150,6 +152,9 @@ Response Response::methodNotAllowed(Connection *conn, const std::string& allowed
 		resp.setHeader("Allow", allowed);
 	}
 	return resp; }
+
+
+Response Response::ContentTooLarge(Connection *conn) { return Response(413, conn); }
 
 Response Response::internalServerError(Connection *conn) { return Response(500, conn); }
 

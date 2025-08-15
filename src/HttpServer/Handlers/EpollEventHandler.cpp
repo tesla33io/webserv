@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:06:48 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/15 11:44:18 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/15 13:12:44 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -116,8 +116,9 @@ bool WebServer::processReceivedData(Connection *conn, const char *buffer, ssize_
 		if (conn->chunked && conn->state == Connection::CONTINUE_SENT) {
 			return true;
 		}
-		if (!conn->locConfig->infiniteBodySize() &&
-		    total_bytes_read > static_cast<ssize_t>(conn->locConfig->getMaxBodySize())) {
+		// pb: no locConfig match yet
+		if (!conn->getServerConfig()->serverInfiniteBodySize() &&
+		    total_bytes_read > static_cast<ssize_t>(conn->getServerConfig()->getServerMaxBodySize())) {
 			_lggr.debug("Request is too large");
 			handleRequestTooLarge(conn, bytes_read);
 			return false;
