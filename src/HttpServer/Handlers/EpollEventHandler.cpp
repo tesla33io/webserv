@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   EpollEventHandler.cpp                              :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:06:48 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/14 10:49:23 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/15 11:44:18 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -54,7 +54,7 @@ void WebServer::handleClientEvent(int fd, uint32_t event_mask) {
 		if (event_mask & EPOLLOUT) {
 			if (conn->response_ready)
 				sendResponse(conn);
-			if (!conn->keep_persistent_connection)
+			if (!conn->keep_persistent_connection) 
 				closeConnection(conn);
 		}
 	} else {
@@ -116,8 +116,8 @@ bool WebServer::processReceivedData(Connection *conn, const char *buffer, ssize_
 		if (conn->chunked && conn->state == Connection::CONTINUE_SENT) {
 			return true;
 		}
-		if (!conn->getServerConfig()->infiniteBodySize() &&
-		    total_bytes_read > static_cast<ssize_t>(conn->getServerConfig()->getMaxBodySize())) {
+		if (!conn->locConfig->infiniteBodySize() &&
+		    total_bytes_read > static_cast<ssize_t>(conn->locConfig->getMaxBodySize())) {
 			_lggr.debug("Request is too large");
 			handleRequestTooLarge(conn, bytes_read);
 			return false;

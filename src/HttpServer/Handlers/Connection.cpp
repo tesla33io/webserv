@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Connection.cpp                                     :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:09:35 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/14 10:43:00 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/15 09:22:15 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -76,7 +76,7 @@ void WebServer::cleanupExpiredConnections() {
 	}
 
 	for (size_t i = 0; i < expired.size(); ++i) {
-		closeConnection(expired[i]);
+		handleConnectionTimeout(expired[i]->fd);
 	}
 	expired.clear();
 }

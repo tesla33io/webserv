@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ConfigParser.hpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 13:53:23 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/14 10:48:55 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/15 11:42:53 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -78,16 +78,17 @@ class ConfigParser {
 	/* void serverStructure(const ConfigNode &tree, std::vector<ServerConfig> &servers);
 	void treeToStruct(const ConfigNode &tree, std::vector<ServerConfig> &servers); */
 
-	// utils for the struct
+	// handles the directives for the struct
 	void handleListen(const ConfigNode &node, ServerConfig &server);
+	void handleErrorPage(const ConfigNode &node, ServerConfig &server);
 	void handleRoot(const ConfigNode &node, LocConfig &location);
 	void handleIndex(const ConfigNode &node, LocConfig &location);
-	void handleErrorPage(const ConfigNode &node, ServerConfig &server);
-	void handleBodySize(const ConfigNode &node, ServerConfig &server);
+	void handleBodySize(const ConfigNode &node, LocConfig &location);
 	void handleLocationBlock(const ConfigNode &locNode, LocConfig &location);
 	void handleReturn(const ConfigNode &node, LocConfig &location);
 	void handleCGI(const ConfigNode &node, LocConfig &location);
 	void handleForInherit(const ConfigNode &node, LocConfig &location);
+	//  struct validation and refinments
 	void inheritGeneralConfig(ServerConfig &server, const LocConfig &forInheritance);
 	void sortLocations(std::vector<LocConfig> &locations);
 	static bool compareLocationPaths(const LocConfig &a, const LocConfig &b);
@@ -158,6 +159,8 @@ class LocConfig {
 	std::vector<std::string> allowed_methods;
 	uint16_t return_code;
 	std::string return_target;
+	size_t client_max_body_size;
+	bool body_size_set;
 	std::string root;
 	bool autoindex;
 	std::string index;
@@ -168,17 +171,19 @@ class LocConfig {
 	LocConfig()
 	    : exact_match(0),
 		  return_code(0),
-	      autoindex(false) {}
+		  client_max_body_size(1048576),
+		  body_size_set(false),
+	      autoindex(false)  {}
 
 	inline std::string getPath() const { return path; }
 	inline bool is_exact_() const { return exact_match; }
+	inline void setExact(bool is_exact) {exact_match = is_exact; }
 	inline std::string getRoot() const { return path; }
 	inline std::string getFullPath() const { return full_path; }
 	inline void setFullPath(const std::string &path) { full_path = path; }
-	inline void setExact(bool is_exact) {exact_match = is_exact; }
-
 	inline std::string getUploadPath() const { return upload_path; }
-
+	inline size_t getMaxBodySize() const { return client_max_body_size; }
+	inline bool infiniteBodySize() const { return (client_max_body_size == 0) ? true : false; }
 	inline bool hasReturn() const { return return_code != 0; }
 
 	bool hasMethod(const std::string &method) const {
@@ -225,7 +230,6 @@ class ServerConfig {
 	std::string host;
 	int port;
 	std::map<uint16_t, std::string> error_pages;
-	size_t client_max_body_size;
 	std::vector<LocConfig> locations;
 
 	std::string root_prefix; // can be removed probably
@@ -234,8 +238,7 @@ class ServerConfig {
   public:
 	ServerConfig()
 	    : host("0.0.0.0"),
-	      port(8080),
-	      client_max_body_size(1048576) {}
+	      port(8080)  {}
 
 	// GETTERS
 	inline const std::string &getHost() const { return host; }
@@ -245,9 +248,7 @@ class ServerConfig {
 	inline void setServerFD(int fd) { server_fd = fd; }
 	inline void setPrefix(const std::string& prefix) { root_prefix = prefix; }
 	inline const std::map<uint16_t, std::string> &getErrorPages() const { return error_pages; };
-	inline size_t getMaxBodySize() const { return client_max_body_size; }
 	inline bool hasErrorPage(uint16_t status) const { return error_pages.find(status) != error_pages.end();	}
-	inline bool infiniteBodySize() const { return (client_max_body_size == 0) ? true : false; }
 	inline std::vector<LocConfig> &getLocations() { return locations; }
 	std::string getErrorPage(uint16_t status) const {
 		std::map<uint16_t, std::string>::const_iterator it = error_pages.find(status);

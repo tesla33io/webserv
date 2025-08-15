@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:10:22 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/14 17:34:46 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/15 11:43:46 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,7 +20,7 @@
 void WebServer::handleRequestTooLarge(Connection *conn, ssize_t bytes_read) {
 	_lggr.info("Reached max content length for fd: " + su::to_string(conn->fd) + ", " +
 	           su::to_string(bytes_read) + "/" +
-	           su::to_string(conn->getServerConfig()->getMaxBodySize()));
+	           su::to_string(conn->locConfig->getMaxBodySize()));
 	prepareResponse(conn, Response(413, conn));
 }
 

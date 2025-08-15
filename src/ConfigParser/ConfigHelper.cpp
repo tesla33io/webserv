@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ConfigHelper.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 13:54:29 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/14 10:45:32 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/15 11:45:30 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -175,6 +175,8 @@ void ConfigParser::printLocationConfig(const LocConfig &loc, std::ostream &os) c
 		os << "    Index: " << loc.index << "\n";
 	}
 
+	os << "    Max body size: " << loc.client_max_body_size << " bytes\n";
+
 	// ADD THIS: Print upload_path if it's set
 	if (!loc.upload_path.empty()) {
 		os << "    Upload path: " << loc.upload_path << "\n";
@@ -206,8 +208,6 @@ void ConfigParser::printLocationConfig(const LocConfig &loc, std::ostream &os) c
 }
 void ConfigParser::printServerConfig(const ServerConfig &server, std::ostream &os) const {
 	os << "Server on " << server.getHost() << ":" << server.port << "\n";
-
-	os << "  Client max body size: " << server.client_max_body_size << " bytes\n";
 
 	if (!server.error_pages.empty()) {
 		os << "  Error pages:\n";
