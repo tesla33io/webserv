@@ -74,7 +74,7 @@ void WebServer::run() {
 	_lggr.debug("Server running. Waiting for connections...");
 
 	while (_running) {
-		int event_count = epoll_wait(_epoll_fd, events, MAX_EVENTS, 1000);
+		int event_count = epoll_wait(_epoll_fd, events, MAX_EVENTS, 100);
 
 		if (event_count == -1 && !interrupted) {
 			_lggr.error("epoll_wait failed: " + std::string(strerror(errno)));

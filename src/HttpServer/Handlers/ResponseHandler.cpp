@@ -46,6 +46,7 @@ bool WebServer::sendResponse(Connection *conn) {
 	epollManage(EPOLL_CTL_MOD, conn->fd, EPOLLIN);
 	conn->response.reset();
 	conn->response_ready = false;
+    conn->state = Connection::READING_HEADERS;
 	return send(conn->fd, raw_response.c_str(), raw_response.size(), MSG_NOSIGNAL) != -1;
 }
 

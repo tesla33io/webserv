@@ -1,19 +1,93 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   EpollEventHandler.cpp                              :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/08/07 14:06:48 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/14 10:49:23 by jalombar         ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
+#include "../HttpServer.hpp"
+#include <cstring>
+#include <string>
 
-#include "src/HttpServer/Structs/WebServer.hpp"
-#include "src/HttpServer/Structs/Connection.hpp"
-#include "src/HttpServer/Structs/Response.hpp"
-#include "src/HttpServer/HttpServer.hpp"
+void print_cgi_response(const std::string &cgi_output) {
+	std::istringstream response_stream(cgi_output);
+	std::string line;
+	bool in_body = false;
+
+	while (std::getline(response_stream, line)) {
+		if (!line.empty() && line[line.size() - 1] == '\r')
+			line.erase(line.size() - 1);
+
+		if (!in_body && line.empty()) {
+			in_body = true;
+			std::cout << std::endl;
+			continue;
+		}
+
+		std::cout << line << std::endl;
+	}
+}
+
+void WebServer::sendCGIResponse(std::string &cgi_output, CGI *cgi, Connection *conn) {
+	Response resp;
+	resp.setStatus(200);
+	resp.version = "HTTP/1.1";
+	resp.setContentType(cgi->extract_content_type(cgi_output));
+
+	size_t header_end = cgi_output.find("\n\n");
+	if (header_end != std::string::npos) {
+		// Found header separator, extract body after it
+		resp.body = cgi_output.substr(header_end + 2); // +2 to skip "\n\n"
+		resp.setContentLength(resp.body.length());
+	} else {
+		// No header separator found, treat entire output as body
+		resp.body = cgi_output;
+		resp.setContentLength(cgi_output.length());
+	}
+
+	std::string raw_response = resp.toString();
+	conn->response_ready = true;
+	send(conn->fd, raw_response.c_str(), raw_response.length(), 0);
+	cgi->cleanup();
+	delete cgi;
+}
+
+void WebServer::chunkedResponse(CGI *cgi, Connection *conn) {
+	(void)cgi;
+	(void)conn;
+}
+
+void WebServer::normalResponse(CGI *cgi, Connection *conn) {
+	Logger logger;
+	std::string cgi_output;
+	char buffer[4096];
+	ssize_t bytes_read;
+
+	while ((bytes_read = read(cgi->getOutputFd(), buffer, sizeof(buffer))) > 0) {
+		cgi_output.append(buffer, bytes_read);
+	}
+
+	if (bytes_read == -1) {
+		logger.logWithPrefix(Logger::ERROR, "CGI", "Error reading from CGI script");
+		close(cgi->getOutputFd());
+		waitpid(cgi->getPid(), NULL, 0);
+		return;
+	}
+	print_cgi_response(cgi_output);
+	sendCGIResponse(cgi_output, cgi, conn);
+}
+
+void WebServer::handleCGIOutput(int fd) {
+	bool chunked = false;
+	CGI *cgi;
+	Connection *conn;
+	for (std::map<int, std::pair<CGI *, Connection *> >::iterator it = _cgi_pool.begin();
+	     it != _cgi_pool.end(); ++it) {
+		if (fd == it->first) {
+			cgi = it->second.first;
+			conn = it->second.second;
+		}
+	}
+	if (chunked)
+		chunkedResponse(cgi, conn);
+	else
+		normalResponse(cgi, conn);
+}
+
+bool WebServer::isCGIFd(int fd) const { return (_cgi_pool.find(fd) != _cgi_pool.end()); }
 
 void WebServer::processEpollEvents(const struct epoll_event *events, int event_count) {
 	for (int i = 0; i < event_count; ++i) {
@@ -57,6 +131,14 @@ void WebServer::handleClientEvent(int fd, uint32_t event_mask) {
 			if (!conn->keep_persistent_connection)
 				closeConnection(conn);
 		}
+		if (event_mask & (EPOLLERR | EPOLLHUP)) {
+			_lggr.error("Error/hangup event for fd: " + su::to_string(fd));
+			closeConnection(conn);
+		}
+		if (event_mask & (EPOLLERR | EPOLLHUP)) {
+			_lggr.error("Error/hangup event for fd: " + su::to_string(fd));
+			closeConnection(conn);
+		}
 	} else {
 		_lggr.debug("Ignoring event for unknown fd: " + su::to_string(fd));
 	}
@@ -67,14 +149,11 @@ void WebServer::handleClientRecv(Connection *conn) {
 	conn->updateActivity();
 
 	char buffer[BUFFER_SIZE];
-	ssize_t total_bytes_read = 0;
 
 	ssize_t bytes_read = receiveData(conn->fd, buffer, sizeof(buffer) - 1);
 
 	if (bytes_read > 0) {
-		total_bytes_read += bytes_read;
-
-		if (!processReceivedData(conn, buffer, bytes_read, total_bytes_read)) {
+		if (!processReceivedData(conn, buffer, bytes_read)) {
 			return;
 		}
 	} else if (bytes_read == 0) {
@@ -103,13 +182,34 @@ ssize_t WebServer::receiveData(int client_fd, char *buffer, size_t buffer_size) 
 	return bytes_read;
 }
 
-bool WebServer::processReceivedData(Connection *conn, const char *buffer, ssize_t bytes_read,
-                                    ssize_t total_bytes_read) {
-	conn->read_buffer += std::string(buffer);
+bool WebServer::processReceivedData(Connection *conn, const char *buffer, ssize_t bytes_read) {
+	static int i = 0;
+
+	if (conn->state == Connection::READING_HEADERS) {
+		conn->read_buffer += std::string(buffer, bytes_read);
+		std::cerr << i++ << " calls of processReceivedData (HEADERS)" << std::endl;
+	} else if (conn->state == Connection::READING_BODY) {
+		conn->body_data.insert(conn->body_data.end(),
+		                       reinterpret_cast<const unsigned char *>(buffer),
+		                       reinterpret_cast<const unsigned char *>(buffer + bytes_read));
+		conn->body_bytes_read += bytes_read;
+
+		std::cerr << i++ << " calls of processReceivedData (BODY)" << std::endl;
+		std::cerr << "Body data size: " << conn->body_data.size() << " bytes" << std::endl;
+
+		_lggr.debug("Read " + su::to_string(conn->body_bytes_read) + " bytes of body so far");
+	} else {
+		// For chunked data and other states, keep existing behavior
+		conn->read_buffer += std::string(buffer, bytes_read);
+		if (conn->state == Connection::READING_BODY) {
+			conn->body_bytes_read += bytes_read;
+		}
+		std::cerr << i++ << " calls of processReceivedData (OTHER)" << std::endl;
+	}
 
 	_lggr.debug("Checking if request was completed");
 	if (isRequestComplete(conn)) {
-		if (!epollManage(EPOLL_CTL_MOD, conn->fd, EPOLLIN | EPOLLOUT)) {
+		if (!epollManage(EPOLL_CTL_MOD, conn->fd, EPOLLOUT)) {
 			return false;
 		}
 		_lggr.debug("Request was completed");
@@ -117,13 +217,20 @@ bool WebServer::processReceivedData(Connection *conn, const char *buffer, ssize_
 			return true;
 		}
 		if (!conn->getServerConfig()->infiniteBodySize() &&
-		    total_bytes_read > static_cast<ssize_t>(conn->getServerConfig()->getMaxBodySize())) {
+		    conn->body_bytes_read > conn->getServerConfig()->getMaxBodySize()) {
 			_lggr.debug("Request is too large");
 			handleRequestTooLarge(conn, bytes_read);
 			return false;
 		}
 
 		return handleCompleteRequest(conn);
+	}
+
+	if (conn->state == Connection::READING_BODY && !conn->getServerConfig()->infiniteBodySize() &&
+	    conn->body_bytes_read > conn->getServerConfig()->getMaxBodySize()) {
+		_lggr.debug("Request body exceeds size limit");
+		handleRequestTooLarge(conn, bytes_read);
+		return false;
 	}
 
 	return true;
