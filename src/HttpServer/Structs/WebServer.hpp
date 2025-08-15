@@ -6,7 +6,7 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/08 13:44:09 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/14 11:11:55 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/15 11:13:30 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -140,6 +140,8 @@ class WebServer {
 	bool handleFileSystemErrors(FileType file_type, const std::string& full_path, Connection *conn);
 	bool setupRequestContext(ClientRequest &req, Connection *conn);
 	void processValidRequest(ClientRequest &req, Connection *conn);
+
+	bool reconstructRequest(Connection *conn);
 
 	bool handleCGIRequest(ClientRequest &req, Connection *conn);
 
@@ -306,8 +308,7 @@ class WebServer {
 	/// \param bytes_read Number of bytes received in this call.
 	/// \param total_bytes_read Total bytes received for this request.
 	/// \returns True if processing succeeded, false on error.
-	bool processReceivedData(Connection *conn, const char *buffer, ssize_t bytes_read,
-	                         ssize_t total_bytes_read);
+	bool processReceivedData(Connection *conn, const char *buffer, ssize_t bytes_read);
 
 	/* Handlers/MethodsHandler.cpp */
 

@@ -6,7 +6,7 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/08 13:38:20 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/08 14:29:28 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/15 11:15:59 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -43,6 +43,9 @@ class Connection {
 
 	std::string read_buffer;
 	size_t body_bytes_read; // for client_max_body_size
+	ssize_t content_length; // ignore if -1
+
+	std::vector<unsigned char> body_data;
 
 	bool chunked;
 	size_t chunk_size;
@@ -58,6 +61,7 @@ class Connection {
 	enum State {
 		READING_HEADERS,  ///< Reading request headers
 		REQUEST_COMPLETE, ///< Complete request received
+		READING_BODY,     ///< Reading request body, when Content-Length > 0
 
 		CONTINUE_SENT,         ///< 100-Continue response sent
 		READING_CHUNK_SIZE,    ///< Reading chunk size line

@@ -1,4 +1,4 @@
-#include "HttpServer.hpp"
+/* #include "HttpServer.hpp"
 #include "src/Logger/Logger.hpp"
 #include "src/RequestParser/request_parser.hpp"
 #include "src/Utils/StringUtils.hpp"
@@ -479,7 +479,7 @@ void WebServer::reconstructChunkedRequest(Connection *conn) {
 	            su::to_string(conn->chunk_data.length()));
 }
 
-bool WebServer::reconstructRequest(Connection *conn) {
+/* bool WebServer::reconstructRequest(Connection *conn) {
 	std::string reconstructed_request;
 
 	if (conn->headers_buffer.empty()) {
@@ -511,5 +511,4 @@ bool WebServer::reconstructRequest(Connection *conn) {
 	_lggr.debug(debug_output);
 
 	return true;
-}
-
+} */

@@ -6,7 +6,7 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/08 13:41:32 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/08 13:42:22 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/15 11:10:43 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,6 +17,8 @@
 Connection::Connection(int socket_fd)
     : fd(socket_fd),
       keep_persistent_connection(true),
+      body_bytes_read(0),
+      content_length(-1),
       chunked(false),
       chunk_size(0),
       chunk_bytes_read(0),
