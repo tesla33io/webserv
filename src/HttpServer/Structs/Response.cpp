@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Response.cpp                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/08 13:35:52 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/14 10:40:52 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/15 08:42:29 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -185,6 +185,8 @@ std::string Response::getReasonPhrase(uint16_t code) const {
 		return "Request Timeout";
 	case 413:
 		return "Content Too Large";
+	case 414:
+		return "URI Too Long";
 	case 500:
 		return "Internal Server Error";
 	case 501:

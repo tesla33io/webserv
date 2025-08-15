@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/25 10:33:32 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/14 17:35:21 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/15 08:39:03 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -90,6 +90,7 @@ bool RequestParsingUtils::checkReqLine(ClientRequest &request) {
 	}
 
 	if (request.uri.length() > MAX_URI_LENGTH) {
+		g_error_status = 414;
 		logger.logWithPrefix(Logger::WARNING, "HTTP", "Uri too big");
 		return (false);
 	}
