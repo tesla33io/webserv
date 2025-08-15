@@ -6,7 +6,7 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:10:22 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/15 10:57:58 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/15 14:18:48 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -51,6 +51,7 @@ bool WebServer::handleCGIRequest(ClientRequest &req, Connection *conn) {
 /* Request processing */
 
 bool WebServer::isHeadersComplete(Connection *conn) {
+	std::string temp = conn->read_buffer;
 	size_t header_end = conn->read_buffer.find("\r\n\r\n");
 	if (header_end == std::string::npos) {
 		return false;
@@ -101,6 +102,7 @@ bool WebServer::isHeadersComplete(Connection *conn) {
 
 		// Clear the read_buffer since we've processed headers and moved body to body_data
 		conn->read_buffer.clear();
+		conn->read_buffer = temp;
 
 		conn->body_bytes_read = conn->body_data.size();
 		conn->state = Connection::READING_BODY;
@@ -418,12 +420,15 @@ bool WebServer::handleFileSystemErrors(FileType file_type, const std::string& fu
 bool WebServer::reconstructRequest(Connection *conn) {
 	std::string reconstructed_request;
 
+	std::cout << "            INSIDE RECONSTRUCT\n";
 	if (conn->headers_buffer.empty()) {
 		_lggr.warn("Cannot reconstruct request: headers not available");
 		return false;
 	}
 
+	std::cout << "                                     HEADER BUFFER: " << conn->headers_buffer << std::endl;
 	reconstructed_request = conn->headers_buffer;
+	std::cout << "                                     RECONSTR BUFFER: " << conn->headers_buffer << std::endl;
 
 	if (conn->content_length > 0) {
 		size_t body_size =
@@ -448,4 +453,3 @@ bool WebServer::reconstructRequest(Connection *conn) {
 
 	return true;
 }
-
