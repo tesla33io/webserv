@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 13:53:23 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/18 15:57:49 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/18 17:09:04 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -119,13 +119,13 @@ class ConfigParser {
 	// handles the directives for the struct
 	void handleListen(const ConfigNode &node, ServerConfig &server);
 	void handleErrorPage(const ConfigNode &node, ServerConfig &server);
-	void handleRoot(const ConfigNode &node, LocConfig &location);
+	void handleRoot(const ConfigNode &node, LocConfig &location, const std::string &prefix);
 	void handleIndex(const ConfigNode &node, LocConfig &location);
 	void handleBodySize(const ConfigNode &node, LocConfig &location);
-	void handleLocationBlock(const ConfigNode &locNode, LocConfig &location);
+	void handleLocationBlock(const ConfigNode &locNode, LocConfig &location, const std::string &prefix);
 	void handleReturn(const ConfigNode &node, LocConfig &location);
 	void handleCGI(const ConfigNode &node, LocConfig &location);
-	void handleForInherit(const ConfigNode &node, LocConfig &location);
+	void handleForInherit(const ConfigNode &node, LocConfig &location, const std::string &prefix);
 	
 	//  struct validation and refinments
 	void inheritGeneralConfig(ServerConfig &server, const LocConfig &forInheritance);
@@ -136,7 +136,9 @@ class ConfigParser {
 	bool baseLocation(ServerConfig &server);
 	void addRootToErrorUri(ServerConfig &server);
 	void addGlobalMaxBody(ServerConfig &server);
-	std::string addPrefix(const std::string &uri, LocConfig *location);
+	std::string addPrefix(const std::string &uri, const std::string &prefix_);
+
+
 
 	// Debug print methods
 	void printServers(const std::vector<ServerConfig> &servers, std::ostream &os) const;
