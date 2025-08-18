@@ -61,7 +61,7 @@ bool ConfigParser::isValidIPv4(const std::string &ip) {
 // location path, return target uri, upload_path, root
 // starts with /, allow common char
 bool ConfigParser::isValidUri(const std::string &str) {
-	if (str[0] == '/' || (str[0] == '.' && str[1] == '/')) {
+	if (str[0] == '/' || (str.length() >= 2 && str[0] == '.' && str[1] == '/')) {
 		for (size_t i = 1; i < str.length(); ++i) {
 			char c = str[i];
 			if (!std::isalnum(c) && c != '/' && c != '-' && c != '_' && c != '?' && c != '&' &&
