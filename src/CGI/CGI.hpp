@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   CGI.hpp                                            :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/31 08:58:57 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/08 14:22:56 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/18 15:38:05 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,7 +15,7 @@
 
 #include "includes/Webserv.hpp"
 #include "includes/Types.hpp"
-#include "src/ConfigParser/ConfigParser.hpp"
+#include "src/ConfigParser/Struct.hpp"
 #include "src/Logger/Logger.hpp"
 #include "src/HttpServer/Structs/Response.hpp"
 

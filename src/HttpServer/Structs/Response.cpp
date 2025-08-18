@@ -6,13 +6,13 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/08 13:35:52 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/17 22:28:08 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/18 17:14:33 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Response.hpp"
 #include "src/HttpServer/Structs/Connection.hpp"
-#include "src/ConfigParser/ConfigParser.hpp"
+#include "src/ConfigParser/Struct.hpp"
 #include "src/HttpServer/HttpServer.hpp"
 #include "src/Utils/ServerUtils.hpp"
 
@@ -206,8 +206,7 @@ void Response::initFromCustomErrorPage(uint16_t code, Connection *conn) {
 	logg_.logWithPrefix(Logger::DEBUG, "Response",
 	                       "A custom error page exists for " + su::to_string(code));
 	// todo check path again
-	std::string fullPath =
-	    conn->getServerConfig()->getPrefix() + conn->getServerConfig()->getErrorPage(code);
+	std::string fullPath = conn->getServerConfig()->getErrorPage(code);
 	std::ifstream errorFile(fullPath.c_str());
 	if (!errorFile.is_open()) {
 		logg_.logWithPrefix(Logger::WARNING, "Response",

@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/08 13:19:18 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/17 19:29:59 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/18 17:45:45 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -52,21 +52,13 @@ FileType WebServer::checkFileType(const std::string &path) {
 }
 
 std::string WebServer::buildFullPath(const std::string &uri, LocConfig *location) {
-	std::string prefix = (su::back(_root_prefix_path) == '/')
-	                         ? _root_prefix_path.substr(0, _root_prefix_path.length() - 1)
-	                         : _root_prefix_path;
+
 	std::string root = (su::back(location->root) == '/')
 	                       ? location->root.substr(0, location->root.length() - 1)
 	                       : location->root;
 	std::string front_slashed_uri = (uri.empty() || uri[0] != '/') ? "/" + uri : uri;
 
-	std::string full_path = prefix + root + front_slashed_uri;
-	
-	// _lggr.debug("Path building:");
-	// _lggr.debug("  - prefix: '" + _root_prefix_path + "'");
-	// _lggr.debug("  - root: '" + location->root + "'");
-	// _lggr.debug("  - uri: '" + uri + "'");
-	// _lggr.debug("  - result: '" + full_path + "'");
+	std::string full_path = root + front_slashed_uri;
 
 	return full_path;
 }
@@ -104,7 +96,7 @@ std::string detectContentType(const std::string &path) {
 	std::map<std::string, std::string>::const_iterator it = cTypes.find(ext);
 	if (it != cTypes.end())
 		return it->second;
-	return "application/octet-stream"; // default binary stream
+	return "application/octet-stream";
 }
 
 LocConfig *findBestMatch(const std::string &uri, std::vector<LocConfig> &locations) {
@@ -133,7 +125,6 @@ bool isPrefixMatch(const std::string &uri, LocConfig &loc) {
 	}
 	if (uri.length() == location_path.length()) {
 		loc.setExact(true);
-		std::cout << "\n\n\n\n\n\n EXACT MAtCH" << std::endl;
 		log.debug("EXACT PATH MATCH - uri : " + uri + " loc : " + location_path);
 		return true; // Exact match
 	}

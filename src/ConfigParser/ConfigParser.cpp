@@ -6,13 +6,16 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 13:54:15 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/16 18:58:40 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/18 15:52:53 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "ConfigParser.hpp"
+// #include "Struct.hpp"
 
-bool ConfigParser::loadConfig(const std::string &filePath, std::vector<ServerConfig> &servers) {
+
+
+bool ConfigParser::loadConfig(const std::string &filePath, std::vector<ServerConfig> &servers, std::string &prefix) {
 
 	ConfigNode tree;
 	ConfigParser configparser;
@@ -20,7 +23,7 @@ bool ConfigParser::loadConfig(const std::string &filePath, std::vector<ServerCon
 	if (!configparser.parseTree(filePath, tree))
 		return false;
 
-	if (!configparser.convertTreeToStruct(tree, servers))
+	if (!configparser.convertTreeToStruct(tree, servers, prefix))
 		return false;
 
 	return true;

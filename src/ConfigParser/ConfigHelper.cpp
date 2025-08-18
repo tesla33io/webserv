@@ -6,12 +6,13 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 13:54:29 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/17 22:25:33 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/18 15:37:22 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "ConfigParser.hpp"
-#include <iomanip>
+#include "Struct.hpp"
+
 
 // Remove comments and trim
 std::string ConfigParser::preProcess(const std::string &line) const {
@@ -21,9 +22,7 @@ std::string ConfigParser::preProcess(const std::string &line) const {
 }
 
 // isUtil
-bool ConfigParser::isBlockStart(const std::string &line) const {
-	return (su::ends_with(line, "{"));
-}
+bool ConfigParser::isBlockStart(const std::string &line) const { return (su::ends_with(line, "{")); }
 bool ConfigParser::isBlockEnd(const std::string &line) const { return (line == "}"); }
 bool ConfigParser::isDirective(const std::string &line) const { return (su::ends_with(line, ";")); }
 
@@ -62,8 +61,8 @@ bool ConfigParser::isValidIPv4(const std::string &ip) {
 // location path, return target uri, upload_path, root
 // starts with /, allow common char
 bool ConfigParser::isValidUri(const std::string &str) {
-	if (str[0] == '/') {
-		for (size_t i = 0; i < str.length(); ++i) {
+	if (str[0] == '/' || (str[0] == '.' && str[1] == '/')) {
+		for (size_t i = 1; i < str.length(); ++i) {
 			char c = str[i];
 			if (!std::isalnum(c) && c != '/' && c != '-' && c != '_' && c != '?' && c != '&' &&
 			    c != '=' && c != '#' && c != '%' && c != ':' && c != '@' && c != '~') {

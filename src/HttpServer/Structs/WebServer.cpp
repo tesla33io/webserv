@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   WebServer.cpp                                      :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/08 13:46:05 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/18 14:54:03 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/18 17:58:50 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,6 +14,8 @@
 #include "src/HttpServer/HttpServer.hpp"
 #include "src/HttpServer/Structs/Connection.hpp"
 #include "src/HttpServer/Structs/Response.hpp"
+#include "src/HttpServer/HttpServer.hpp"
+#include "src/ConfigParser/Struct.hpp"
 
 bool WebServer::_running;
 static bool interrupted = false;
@@ -297,6 +299,17 @@ void WebServer::cleanup() {
 	_lggr.info("Server cleanup completed");
 }
 
+std::string getCurrentWorkingDirectory() {
+	char cwd[PATH_MAX];
+	if (getcwd(cwd, sizeof(cwd)) == NULL) {
+		std::cerr << "Warning: could not resolve current working directory." << std::endl;
+		return "";
+	}
+	std::string dir(cwd);
+	return dir;
+}
+
+
 int main(int argc, char *argv[]) {
 	ArgumentParser ap;
 	ServerArgs args;
@@ -312,8 +325,9 @@ int main(int argc, char *argv[]) {
 			return 0;
 		}
 		if (args.prefix_path.empty()) {
-			args.prefix_path = ""; // getCurrentWorkingDirectory();
+			args.prefix_path = getCurrentWorkingDirectory();
 		}
+		std::cout << "prefix_path: " << args.prefix_path << std::endl;
 	} catch (const std::exception &e) {
 		std::cerr << "Error: " << e.what() << std::endl;
 		std::cerr << "Use --help for usage information." << std::endl;
@@ -323,7 +337,7 @@ int main(int argc, char *argv[]) {
 	ConfigParser configparser;
 	std::vector<ServerConfig> servers;
 
-	if (!configparser.loadConfig(args.config_file, servers)) {
+	if (!configparser.loadConfig(args.config_file, servers, args.prefix_path)) {
 		std::cerr << "Error: Failed to open or parse configuration file '" << args.config_file
 		          << "'" << std::endl;
 		std::cerr << "Please check the configuration file syntax and try again." << std::endl;

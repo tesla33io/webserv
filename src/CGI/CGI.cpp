@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   CGI.cpp                                            :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/31 09:07:54 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/18 14:27:56 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/18 17:57:48 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,14 +24,14 @@ CGI::CGI(ClientRequest &request, LocConfig *locConfig)
 	}
 	if (request.method == "POST" || request.method == "DELETE") {
 		if (request.extension == ".php")
-			setEnv("UPLOAD_DIR", "../.." + locConfig->getUploadPath());
-		else
+			setEnv("UPLOAD_DIR", locConfig->getUploadPath());
+		else // Jacopo pls check again
 			setEnv("UPLOAD_DIR", locConfig->getUploadPath().substr(1));
 	}
 	setEnv("SERVER_SOFTWARE", "CustomCGI/1.0");
 	setEnv("GATEWAY_INTERFACE", "CGI/1.1");
 	setEnv("REDIRECT_STATUS", "200");
-	std::string interpreter = locConfig->getExtensionPath(request.extension);
+	std::string interpreter = locConfig->getInterpreter(request.extension);
 	setInterpreter(interpreter);
 }
 

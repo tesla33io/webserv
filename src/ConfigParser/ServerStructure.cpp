@@ -6,30 +6,27 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: Invalid date        by                   #+#    #+#             */
-/*   Updated: 2025/08/18 10:55:06 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/18 17:58:34 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-
-
-
-
-
 #include "ConfigParser.hpp"
+#include "Struct.hpp"
 
-bool ConfigParser::convertTreeToStruct(const ConfigNode &tree, std::vector<ServerConfig> &servers) {
+bool ConfigParser::convertTreeToStruct(const ConfigNode &tree, std::vector<ServerConfig> &servers, std::string &prefix) {
 
 	for (std::vector<ConfigNode>::const_iterator node = tree.children_.begin();
 		 node != tree.children_.end(); ++node) {
 
 		if (node->name_ == "http") {
-			if (!convertTreeToStruct(*node, servers))
+			if (!convertTreeToStruct(*node, servers, prefix))
 				return false;
 		}
 
 		else if (node->name_ == "server") {
 
 			ServerConfig server;
+			server.prefix_ = prefix;
 			LocConfig forInheritance;
 
 			for (std::vector<ConfigNode>::const_iterator child = node->children_.begin();
@@ -44,7 +41,7 @@ bool ConfigParser::convertTreeToStruct(const ConfigNode &tree, std::vector<Serve
 				else if (child->name_ == "location") {
 					LocConfig location;
 					location.path = child->args_[0];
-					handleLocationBlock(*child, location);
+					handleLocationBlock(*child, location, server.prefix_);
 					// check for duplicates locations
 					if (existentLocationDuplicate(server, location)) {
 						logg_.logWithPrefix(
@@ -57,7 +54,7 @@ bool ConfigParser::convertTreeToStruct(const ConfigNode &tree, std::vector<Serve
 				}
 
 				else
-					handleForInherit(*child, forInheritance);
+					handleForInherit(*child, forInheritance, server.prefix_);
 			}
 
 			// check for duplicate host:port combination
@@ -80,7 +77,6 @@ bool ConfigParser::convertTreeToStruct(const ConfigNode &tree, std::vector<Serve
 
 			inheritGeneralConfig(server, forInheritance);
 			sortLocations(server.locations);
-			addRootToErrorUri(server);
 			addGlobalMaxBody(server);
 
 			logg_.logWithPrefix(Logger::INFO, "Config parsing",
@@ -98,6 +94,7 @@ bool ConfigParser::convertTreeToStruct(const ConfigNode &tree, std::vector<Serve
 	}
 	return true;
 }
+
 
 ////////////////////
 // SERVER-LEVEL DIRECTIVE HANDLERS
@@ -121,20 +118,21 @@ void ConfigParser::handleErrorPage(const ConfigNode &node, ServerConfig &server)
 	std::string uri = node.args_.back();
 	for (size_t i = 0; i < node.args_.size() - 1; ++i) {
 		int code = std::atoi(node.args_[i].c_str());
-		server.error_pages[code] = uri;
+		server.error_pages[code] = addPrefix(uri, server.getPrefix());
 	}
 }
 
-
 // Root, Methods, Upload path, autoindex, CGI and max body size can be defined server level -> for inheritance
-// Root, Methods, Upload path, autoindex, CGI and max body size can be defined server level -> for inheritance
-void ConfigParser::handleForInherit(const ConfigNode &node, LocConfig &location) {
+void ConfigParser::handleForInherit(const ConfigNode &node, LocConfig &location, const std::string &prefix) {
 	if (node.name_ == "root")
-		handleRoot(node, location);
+		handleRoot(node, location, prefix);
 	else if (node.name_ == "allowed_methods")
 		location.allowed_methods = node.args_;
-	else if (node.name_ == "upload_path")
-		location.upload_path = node.args_[0];
+	else if (node.name_ == "upload_path") {
+		std::string path = (su::back(node.args_[0]) == '/')? 
+					        node.args_[0] : node.args_[0] + "/" ;
+		location.upload_path = addPrefix(path, prefix);
+	}
 	else if (node.name_ == "index")
 		location.index = node.args_[0];
 	else if (node.name_ == "cgi_ext")
@@ -143,23 +141,24 @@ void ConfigParser::handleForInherit(const ConfigNode &node, LocConfig &location)
 		handleBodySize(node, location);
 }
 
+
 ////////////////////
 // LOCATION-LEVEL DIRECTIVE HANDLERS
 ////
 
-void ConfigParser::handleLocationBlock(const ConfigNode &locNode, LocConfig &location) {
+void ConfigParser::handleLocationBlock(const ConfigNode &locNode, LocConfig &location, const std::string &prefix) {
 	for (std::vector<ConfigNode>::const_iterator node = locNode.children_.begin();
 		 node != locNode.children_.end(); ++node) {
 		if (node->name_ == "allowed_methods")
 			location.allowed_methods = node->args_;
 		else if (node->name_ == "root")
-			handleRoot(*node, location);
+			handleRoot(*node, location, prefix);
 		else if (node->name_ == "autoindex")
 			location.autoindex = (node->args_[0] == "on");
 		else if (node->name_ == "index")
 			handleIndex(*node, location);
 		else if (node->name_ == "upload_path")
-			location.upload_path = node->args_[0];
+			location.upload_path = addPrefix(node->args_[0], prefix);
 		else if (node->name_ == "return")
 			handleReturn(*node, location);
 		else if (node->name_ == "cgi_ext")
@@ -170,11 +169,12 @@ void ConfigParser::handleLocationBlock(const ConfigNode &locNode, LocConfig &loc
 }
 
 // ROOT
-void ConfigParser::handleRoot(const ConfigNode &node, LocConfig &location) {
+void ConfigParser::handleRoot(const ConfigNode &node, LocConfig &location, const std::string &prefix){
+	
 	if (node.args_[0].length() > 1 && su::ends_with(node.args_[0], "/"))
-		location.root = node.args_[0].substr(0, node.args_[0].length() - 1);
+		location.root = addPrefix(node.args_[0].substr(0, node.args_[0].length() - 1), prefix);
 	else
-		location.root = node.args_[0];
+		location.root = addPrefix(node.args_[0], prefix);
 }
 
 // Index
@@ -184,8 +184,6 @@ void ConfigParser::handleIndex(const ConfigNode &node, LocConfig &location) {
 	else
 		location.index = node.args_[0];
 }
-
-
 
 // Return directive
 void ConfigParser::handleReturn(const ConfigNode &node, LocConfig &location) {
@@ -301,18 +299,18 @@ bool ConfigParser::existentLocationDuplicate(const ServerConfig &server,
 	return false;
 }
 
-// ADD root TO ERROR PAGE URI
-void ConfigParser::addRootToErrorUri(ServerConfig &server) {
-	LocConfig *defaultL = server.defaultLocation();
-	if (!server.error_pages.empty() && defaultL != NULL && !defaultL->root.empty()) {
-		const std::string &root = defaultL->root;
-		for (std::map<uint16_t, std::string>::iterator it = server.error_pages.begin();
-			 it != server.error_pages.end(); ++it) {
-			const std::string original = it->second;
-			it->second = root + ((original[0] == '/') ? "" : "/") + original;
-		}
-	}
-}
+// // ADD root TO ERROR PAGE URI
+// void ConfigParser::addRootToErrorUri(ServerConfig &server) {
+// 	LocConfig *defaultL = server.defaultLocation();
+// 	if (!server.error_pages.empty() && defaultL != NULL && !defaultL->root.empty()) {
+// 		const std::string &root = defaultL->root;
+// 		for (std::map<uint16_t, std::string>::iterator it = server.error_pages.begin();
+// 			 it != server.error_pages.end(); ++it) {
+// 			const std::string original = it->second;
+// 			it->second = root + ((original[0] == '/') ? "" : "/") + original;
+// 		}
+// 	}
+// }
 
 // MAX of MAX body size per location
 void ConfigParser::addGlobalMaxBody(ServerConfig &server) {
@@ -336,4 +334,24 @@ bool ConfigParser::compareLocationPaths(const LocConfig &a, const LocConfig &b) 
 	if (a.path.length() != b.path.length())
 		return a.path.length() > b.path.length();
 	return a.path < b.path;
+}
+
+std::string ConfigParser::addPrefix(const std::string &uri, const std::string &prefix_) {
+
+	std::string prefix = (!prefix_.empty() && su::back(prefix_) == '/')
+								? prefix_.substr(0, prefix_.length() - 1)
+								: prefix_;
+
+	std::string resolved_uri;
+
+	if (!uri.empty() && uri[0] == '.') {
+		resolved_uri = prefix + uri.substr(1);
+	} else {
+		resolved_uri = uri;
+	}
+
+	if (resolved_uri.empty() || resolved_uri[0] != '/')
+		resolved_uri = "/" + resolved_uri;
+
+	return resolved_uri;
 }
