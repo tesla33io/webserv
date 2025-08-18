@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/18 14:50:47 by htharrau          #+#    #+#             */
-/*   Updated: 2025/08/18 15:55:00 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/18 17:48:03 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -66,7 +66,7 @@ class LocConfig {
 	bool hasMethod(const std::string &method) const;
 	std::string getAllowedMethodsString();
 	bool acceptExtension(const std::string &ext) const;
-	std::string getExtensionPath(const std::string &ext) const;
+	std::string getInterpreter(const std::string &ext) const;
 	void setExact(bool is_exact);
 	void setFullPath(const std::string &path);
 

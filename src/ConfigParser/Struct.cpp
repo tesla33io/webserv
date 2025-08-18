@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/18 14:50:47 by htharrau          #+#    #+#             */
-/*   Updated: 2025/08/18 15:54:24 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/18 17:48:01 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -89,7 +89,7 @@ bool LocConfig::acceptExtension(const std::string &ext) const {
 	return (it != cgi_extensions.end());
 }
 
-std::string LocConfig::getExtensionPath(const std::string &ext) const {
+std::string LocConfig::getInterpreter(const std::string &ext) const {
 	std::map<std::string, std::string>::const_iterator it = cgi_extensions.find(ext);
 	if (it != cgi_extensions.end())
 		return it->second;

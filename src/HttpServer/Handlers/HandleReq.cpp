@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/08 12:56:57 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/17 22:29:27 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/18 17:46:40 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -70,7 +70,7 @@ void  WebServer::handleFileRequest(ClientRequest &req, Connection *conn, bool en
 	// HANDLE CGI
 	std::string extension = getExtension(full_path);
 	if (conn->locConfig->acceptExtension(extension)) {
-		std::string interpreter = conn->locConfig->getExtensionPath(extension);
+		std::string interpreter = conn->locConfig->getInterpreter(extension);
 		_lggr.debug("CGI request, interpreter location : " + interpreter);
 		req.extension = extension;
 		if (!handleCGIRequest(req, conn)) {

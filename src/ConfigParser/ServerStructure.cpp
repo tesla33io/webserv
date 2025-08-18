@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: Invalid date        by                   #+#    #+#             */
-/*   Updated: 2025/08/18 17:13:25 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/18 17:39:38 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -77,7 +77,6 @@ bool ConfigParser::convertTreeToStruct(const ConfigNode &tree, std::vector<Serve
 
 			inheritGeneralConfig(server, forInheritance);
 			sortLocations(server.locations);
-			// addRootToErrorUri(server);
 			addGlobalMaxBody(server);
 
 			logg_.logWithPrefix(Logger::INFO, "Config parsing",
@@ -129,8 +128,11 @@ void ConfigParser::handleForInherit(const ConfigNode &node, LocConfig &location,
 		handleRoot(node, location, prefix);
 	else if (node.name_ == "allowed_methods")
 		location.allowed_methods = node.args_;
-	else if (node.name_ == "upload_path")
-		location.upload_path = addPrefix(node.args_[0], prefix);
+	else if (node.name_ == "upload_path") {
+		std::string path = (su::back(node.args_[0]) == '/')? 
+					        node.args_[0] : node.args_[0] + "/" ;
+		location.upload_path = addPrefix(path, prefix);
+	}
 	else if (node.name_ == "index")
 		location.index = node.args_[0];
 	else if (node.name_ == "cgi_ext")
