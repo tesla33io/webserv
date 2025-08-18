@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: Invalid date        by                   #+#    #+#             */
-/*   Updated: 2025/08/18 17:58:34 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/18 18:25:42 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -130,7 +130,7 @@ void ConfigParser::handleForInherit(const ConfigNode &node, LocConfig &location,
 		location.allowed_methods = node.args_;
 	else if (node.name_ == "upload_path") {
 		std::string path = (su::back(node.args_[0]) == '/')? 
-					        node.args_[0] : node.args_[0] + "/" ;
+							node.args_[0] : node.args_[0] + "/" ;
 		location.upload_path = addPrefix(path, prefix);
 	}
 	else if (node.name_ == "index")
@@ -187,15 +187,22 @@ void ConfigParser::handleIndex(const ConfigNode &node, LocConfig &location) {
 
 // Return directive
 void ConfigParser::handleReturn(const ConfigNode &node, LocConfig &location) {
-	if (node.args_.size() == 1) {
+	std::istringstream ss(node.args_[0]);
+	unsigned int code;
+
+	if ((ss >> code) && ss.eof() && code != 0) {
+		// Parsed a number successfully
+		if (node.args_.size() == 1) {
+			location.return_code = code;
+			location.return_target = "";
+		} else {
+			location.return_code = code;
+			location.return_target = node.args_[1];
+		}
+	} else {
+		// Not a valid number → treat as URL/URI
 		location.return_code = 302;
 		location.return_target = node.args_[0];
-	} else {
-		std::istringstream ss(node.args_[0]);
-		unsigned int code;
-		ss >> code;
-		location.return_code = code;
-		location.return_target = node.args_[1];
 	}
 }
 
