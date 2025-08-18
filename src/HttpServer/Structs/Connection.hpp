@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/08 13:38:20 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/17 19:39:30 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/18 15:36:46 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,7 +14,7 @@
 #define CONNECTION_HPP
 
 #include "includes/Webserv.hpp"
-#include "src/ConfigParser/ConfigParser.hpp"
+#include "src/ConfigParser/Struct.hpp"
 #include "Response.hpp"
 
 class WebServer;

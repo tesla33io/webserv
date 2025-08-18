@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/08 13:19:18 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/17 19:29:59 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/18 14:12:46 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -133,7 +133,6 @@ bool isPrefixMatch(const std::string &uri, LocConfig &loc) {
 	}
 	if (uri.length() == location_path.length()) {
 		loc.setExact(true);
-		std::cout << "\n\n\n\n\n\n EXACT MAtCH" << std::endl;
 		log.debug("EXACT PATH MATCH - uri : " + uri + " loc : " + location_path);
 		return true; // Exact match
 	}

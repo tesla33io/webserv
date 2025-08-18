@@ -6,7 +6,7 @@
 #    By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: Invalid date        by         __/       #+#    #+#              #
-#    Updated: 2025/08/17 21:24:46 by htharrau         ###   ########.fr        #
+#    Updated: 2025/08/18 15:38:38 by htharrau         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -58,6 +58,7 @@ SRC_FILES		+= src/ConfigParser/ConfigParser.cpp
 SRC_FILES		+= src/ConfigParser/ServerStructure.cpp
 SRC_FILES		+= src/ConfigParser/ConfigHelper.cpp
 SRC_FILES		+= src/ConfigParser/ValidDirective.cpp
+SRC_FILES		+= src/ConfigParser/Struct.cpp
 
 SRC_FILES		+= src/Utils/ServerUtils.cpp
 

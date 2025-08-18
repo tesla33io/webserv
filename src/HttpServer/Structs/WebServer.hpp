@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/08 13:44:09 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/17 22:28:28 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/18 15:50:27 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,6 +19,8 @@
 #include "src/Logger/Logger.hpp"
 #include "includes/Types.hpp"
 #include "src/Utils/ServerUtils.hpp"
+#include "src/ConfigParser/ConfigParser.hpp"
+#include "src/ConfigParser/Struct.hpp"
 
 class ServerConfig; // Still needed to break potential circular dependencies
 class Connection;

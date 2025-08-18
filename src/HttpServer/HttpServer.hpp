@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/15 11:02:08 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/17 20:47:16 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/18 15:37:01 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,7 +15,7 @@
 
 #include "includes/Webserv.hpp"
 #include "src/CGI/CGI.hpp"
-#include "src/ConfigParser/ConfigParser.hpp"
+#include "src/ConfigParser/Struct.hpp"
 #include "src/Logger/Logger.hpp"
 #include "src/RequestParser/RequestParser.hpp"
 #include "src/Utils/ArgumentParser.hpp"

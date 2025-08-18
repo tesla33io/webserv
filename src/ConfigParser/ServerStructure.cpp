@@ -6,30 +6,27 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: Invalid date        by                   #+#    #+#             */
-/*   Updated: 2025/08/18 10:55:06 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/18 15:36:08 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-
-
-
-
-
 #include "ConfigParser.hpp"
+#include "Struct.hpp"
 
-bool ConfigParser::convertTreeToStruct(const ConfigNode &tree, std::vector<ServerConfig> &servers) {
+bool ConfigParser::convertTreeToStruct(const ConfigNode &tree, std::vector<ServerConfig> &servers, std::string &prefix) {
 
 	for (std::vector<ConfigNode>::const_iterator node = tree.children_.begin();
 		 node != tree.children_.end(); ++node) {
 
 		if (node->name_ == "http") {
-			if (!convertTreeToStruct(*node, servers))
+			if (!convertTreeToStruct(*node, servers, prefix))
 				return false;
 		}
 
 		else if (node->name_ == "server") {
 
 			ServerConfig server;
+			server.prefix_ = prefix;
 			LocConfig forInheritance;
 
 			for (std::vector<ConfigNode>::const_iterator child = node->children_.begin();
@@ -337,3 +334,23 @@ bool ConfigParser::compareLocationPaths(const LocConfig &a, const LocConfig &b) 
 		return a.path.length() > b.path.length();
 	return a.path < b.path;
 }
+
+// std::string ConfigParser::addPrefix(const std::string &uri) {
+
+// 	std::string prefix = (su::back(_root_prefix_path) == '/')
+// 								? _root_prefix_path.substr(0, _root_prefix_path.length() - 1)
+// 								: _root_prefix_path;
+
+// 	if (su::starts_with(uri, ".")) {
+
+
+		
+// 	}
+	
+// 	std::string uri = (su::front(uri) == './')
+// 							? location->root.substr(0, location->root.length() - 1)
+// 							: location->root;
+// 	std::string front_slashed_uri = (uri.empty() || uri[0] != '/') ? "/" + uri : uri;
+// 	std::string full_path = prefix + root + front_slashed_uri;
+// 	return full_path;
+// }
