@@ -310,7 +310,7 @@ inline std::string humanReadableBytes(size_t bytes) {
 	}
 
 	std::ostringstream out;
-	out << std::fixed << std::setprecision(1) << size << "" << units[unitIndex];
+	out << std::fixed << std::setprecision(1) << size << " " << units[unitIndex];
 	return out.str();
 }
 
