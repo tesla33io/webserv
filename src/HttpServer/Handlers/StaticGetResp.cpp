@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/19 18:29:33 by htharrau          #+#    #+#             */
-/*   Updated: 2025/08/19 19:04:22 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/19 20:13:40 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -42,7 +42,7 @@ void WebServer::handleDirectoryRequest(ClientRequest &req, Connection *conn, boo
 	_lggr.debug("Directory request: " + full_path);
 
 	if (!end_slash) {
-		_lggr.debug("Directory request without trailing slash, redirecting: " + req.uri);
+		_lggr.debug("Directory request without trailing slash, redirecting to : " + req.uri + "/");
 		std::string redirectPath = req.uri + "/";
 		prepareResponse(conn, respReturnDirective(conn, 301, redirectPath));
 		return;
@@ -89,8 +89,6 @@ void  WebServer::handleFileRequest(ClientRequest &req, Connection *conn, bool en
 		return;
 	}
 }
-
-
 
 // struct dirent {
 //     ino_t          d_ino;       // Inode number

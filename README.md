@@ -11,8 +11,8 @@ Lightweight HTTP web server implemented in C++98, designed to provide a straight
 - **Static File Serving:** Serves static files from a configurable root directory
 - **Configurable Server:** Uses a configuration file (nginx-style) to define server behavior, ports, document roots, error pages, and more
 - **Concurrent Connections:** Supports multiple simultaneous client connections using non-blocking I/O
-- [TBD] **Custom Error Pages:** Allows definition of custom error pages
-- [TBD] **CGI Support:** Can execute CGI scripts for dynamic content generation
+- **Custom Error Pages:** Allows definition of custom error pages
+- **CGI Support:** Can execute CGI scripts for dynamic content generation
 - **Simple Build & Run:** Minimal dependencies; just a C++98-compatible compiler and a Linux OS (for epoll)
 
 ---

@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/08 13:19:18 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/19 17:54:00 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/19 21:00:44 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,7 +28,7 @@ std::string WebServer::getFileContent(std::string path) {
 		file.close();
 		content = buffer.str();
 		_lggr.logWithPrefix(Logger::DEBUG, "File Handling",
-		                    "Read " + su::to_string(content.size()) + " bytes from " + path);
+							"Read " + su::to_string(content.size()) + " bytes from " + path);
 	}
 	return content;
 }
@@ -44,21 +44,46 @@ FileType WebServer::checkFileType(const std::string &path) {
 			return FILE_SYSTEM_ERROR_500;
 		}
 	}
-	if (S_ISDIR(pathStat.st_mode))
+	if (S_ISDIR(pathStat.st_mode)) {
+		if (access(path.c_str(), R_OK | X_OK) != 0) {
+			return PERMISSION_DENIED_403;
+		}
 		return ISDIR;
-	else if (S_ISREG(pathStat.st_mode))
+	}
+	else if (S_ISREG(pathStat.st_mode)) {
+		if (access(path.c_str(), R_OK) != 0) {
+			return PERMISSION_DENIED_403;
+		}
 		return ISREG;
+	}
 	return FILE_SYSTEM_ERROR_500;
+}
+
+
+std::string fileTypeToString(FileType type) {
+	switch (type) {
+		case ISDIR:                 return "Directory";
+		case ISREG:                 return "Regular File";
+		case NOT_FOUND_404:         return "Not Found (404)";
+		case PERMISSION_DENIED_403: return "Permission Denied (403)";
+		case FILE_SYSTEM_ERROR_500: return "File System Error (500)";
+		default:                    return "Unknown FileType";
+	}
 }
 
 std::string WebServer::buildFullPath(const std::string &uri, LocConfig *location) {
 
-	std::string root = (su::back(location->root) == '/')
-	                       ? location->root.substr(0, location->root.length() - 1)
-	                       : location->root;
-	std::string front_slashed_uri = (uri.empty() || uri[0] != '/') ? "/" + uri : uri;
+	std::string root = location->root;
+	root = (su::back(root) == '/') ? root : root + "/";
 
-	std::string full_path = root + front_slashed_uri;
+	std::string relative_uri = uri;
+	if (!location->path.empty() && relative_uri.find(location->path) == 0) {
+		relative_uri = relative_uri.substr(location->path.length());
+		if (relative_uri.empty())
+			relative_uri = "/";
+	}
+
+	std::string full_path = root + relative_uri;
 
 	return full_path;
 }

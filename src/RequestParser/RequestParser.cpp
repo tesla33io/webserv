@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/17 15:43:17 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/19 17:17:31 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/19 20:58:12 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -41,25 +41,32 @@ std::string ClientRequest::toString() const {
 	return (oss.str());
 }
 
-std::string ClientRequest::toMiniString() const {
+std::string ClientRequest::printRequest() const {
 	std::ostringstream oss;
 
-	// Request line
-	oss << method << " " << uri << " " << version << "\n";
+	// Request line: METHOD URI VERSION
+	oss << method << " " << uri << " " << version << "\r\n";
 
-	// Print Host header if present
-	std::map<std::string, std::string>::const_iterator it;
+	// Print all headers (case-insensitive keys)
+	for (std::map<std::string, std::string>::const_iterator it = headers.begin(); it != headers.end(); ++it) {
+		const std::string& key = it->first;
+		const std::string& val = it->second;
+		// Capitalize header keys for better readability (optional)
+		std::string headerKey = key;
+		oss << headerKey << ": " << val << "\r\n";
+	}
 
-	it = headers.find("host");
-	if (it != headers.end())
-		oss << "Host: " << it->second << "\n";
+	// Separator line before body
+	oss << "\r\n";
 
-	it = headers.find("connection");
-	if (it != headers.end())
-		oss << "Connection: " << it->second ;
+	// Body (if any)
+	if (!body.empty()) {
+		oss << body;
+	}
 
 	return oss.str();
 }
+
 
 /* Utils */
 const char *RequestParsingUtils::findHeader(ClientRequest &request, const std::string &header) {

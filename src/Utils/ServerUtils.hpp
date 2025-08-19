@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/17 19:03:21 by htharrau          #+#    #+#             */
-/*   Updated: 2025/08/19 17:54:05 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/19 20:41:22 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,5 +26,6 @@ std::string getExtension(const std::string &path);
 std::string detectContentType(const std::string &path);
 bool isPrefixMatch(const std::string &uri, LocConfig &loc);
 LocConfig *findBestMatch(const std::string &uri, std::vector<LocConfig> &locations);
+std::string fileTypeToString(FileType type);
 
 #endif

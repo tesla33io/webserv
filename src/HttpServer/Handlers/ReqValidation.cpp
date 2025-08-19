@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/08 12:56:57 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/19 19:26:28 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/19 21:32:44 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,7 +33,7 @@ bool WebServer::matchLocation(ClientRequest &req, Connection *conn) {
 bool WebServer::normalizePath(ClientRequest &req, Connection *conn) {
 
 	// normalisation
-	std::string full_path = buildFullPath(req.path, conn->locConfig);
+	std::string full_path = buildFullPath(req.uri, conn->locConfig);
 	std::string root_full_path = buildFullPath("", conn->locConfig);
 	char resolved[PATH_MAX];
 	realpath(full_path.c_str(), resolved);
@@ -85,9 +85,13 @@ bool WebServer::processValidRequestChecks(ClientRequest &req, Connection *conn) 
 		prepareResponse(conn, Response::contentTooLarge(conn));
 		return false;
 	}
-	_lggr.logWithPrefix(Logger::DEBUG, "HTTP", 
-						 "Request content length is ok: " + su::humanReadableBytes(req.content_length) + 
-							 " bytes, max is " + su::humanReadableBytes(conn->locConfig->getMaxBodySize()));
+	if (req.content_length == -1) {
+		_lggr.logWithPrefix(Logger::DEBUG, "HTTP",  "No request content length -> ok.");
+	} else {
+		_lggr.logWithPrefix(Logger::DEBUG, "HTTP",  "Request content length is ok: " 
+		                       + su::humanReadableBytes(req.content_length) + 
+		                            " bytes, max is " + su::humanReadableBytes(conn->locConfig->getMaxBodySize()));
+	}
 	return true;
 }
 

@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/27 11:55:56 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/19 16:24:29 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/19 20:54:03 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,7 +40,7 @@ struct ClientRequest {
 	std::string extension;
 
 	std::string toString() const;
-	std::string toMiniString() const;
+	std::string printRequest() const;
 
 };
 

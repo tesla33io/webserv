@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:10:22 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/19 19:12:06 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/19 21:15:17 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -69,7 +69,7 @@ bool WebServer::isHeadersComplete(Connection *conn) {
 
 	// On error: REQUEST_COMPLETE, Prepare Response
 	uint16_t error_code = RequestParsingUtils::parseRequestHeaders(headers, hdr_req);
-	_lggr.debug("[HEADER CHECK] Parsing headers request: " + hdr_req.toMiniString());
+	_lggr.debug("[HEADER CHECK] ClientRequest post header parsing: " + hdr_req.printRequest());
 	_lggr.debug("[HEADER CHECK] Error code post header request parsing : " + su::to_string(error_code));
 	if (error_code != 0) {
 		_lggr.error("Parsing of the request's headers failed.");
@@ -342,13 +342,16 @@ void WebServer::processValidRequest(ClientRequest &req, Connection *conn) {
 	
 	// File system check 
 	FileType file_type = checkFileType(full_path);
+	_lggr.debug("[Resp] checkFileType for " + full_path + " is " + fileTypeToString(file_type));
+
 
 	// File system errors
 	if (!handleFileSystemErrors(file_type, full_path, conn))
 		return;
 		
+	// we redirect if uri is missing the / (and vice versa), not the resolved path
 	bool end_slash = (!req.uri.empty() && su::back(req.uri) == '/');
-
+	std::cout << "end slash? " << end_slash << " URI: " << req.uri << std::endl;
 	// Route based on file type and request format
 	if (file_type == ISDIR) {
 		handleDirectoryRequest(req, conn, end_slash);
