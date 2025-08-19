@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/17 15:32:36 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/17 20:36:51 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/19 12:27:47 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -34,6 +34,7 @@ uint16_t parseHeaders(std::istringstream &stream, ClientRequest &request);
 uint16_t parseBody(std::istringstream &stream, ClientRequest &request);
 uint16_t parseTrailingHeaders(std::istringstream &stream, ClientRequest &request);
 uint16_t parseRequest(const std::string &raw_request, ClientRequest &request);
+uint16_t parseRequestHeaders(const std::string &raw_request, ClientRequest &request);
 } // namespace RequestParsingUtils
 
 #endif

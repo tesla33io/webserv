@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/08 13:35:52 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/18 17:14:33 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/19 15:57:30 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -174,6 +174,8 @@ std::string Response::getReasonPhrase(uint16_t code) const {
 		return "Content Too Large";
 	case 414:
 		return "URI Too Long";
+	case 417:
+		return "Expectation Failed";
 	case 500:
 		return "Internal Server Error";
 	case 501:

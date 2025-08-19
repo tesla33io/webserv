@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/25 10:46:05 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/17 21:36:18 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/19 15:57:46 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,6 +17,9 @@ uint16_t RequestParsingUtils::checkHeader(std::string &name, std::string &value,
                                       ClientRequest &request) {
 	Logger logger;
 
+	std::string l_name = su::to_lower(name);
+	std::string l_value = su::to_lower(value);
+	
 	// Check header size
 	if (name.size() > MAX_HEADER_NAME_LENGTH) {
 		logger.logWithPrefix(Logger::WARNING, "HTTP", "Header name too big");
@@ -26,12 +29,33 @@ uint16_t RequestParsingUtils::checkHeader(std::string &name, std::string &value,
 		return 400;
 	}
 	// Check for duplicate header
-	if (findHeader(request, su::to_lower(name))) {
+	if (findHeader(request, l_name)) {
 		logger.logWithPrefix(Logger::WARNING, "HTTP", "Duplicate header present");
 		return 400;
 	}
-	if (su::to_lower(name) == "transfer-encoding" && su::to_lower(value) == "chunked")
+	// Chunk encoding + content length validation
+	if (l_name == "transfer-encoding" && l_value == "chunked")
 		request.chunked_encoding = true;
+	else if (l_name == "content-length") {
+		std::istringstream iss(value);
+		ssize_t parsed_length = -1;
+		iss >> parsed_length;
+		if (!iss || !iss.eof() || parsed_length < 0) {
+			logger.logWithPrefix(Logger::WARNING, "HTTP", "Invalid Content-Length: " + value);
+			return 400;
+		}
+		// stored 
+		request.content_length = parsed_length; 
+	}
+	// expect
+	if (l_name == "expect") {
+		if (l_value == "100-continue") {
+			request.expect_continue = true;
+		} else {
+			logger.logWithPrefix(Logger::WARNING, "HTTP", "Unsupported Expect header: " + value);
+			return 417; // expectation failed
+		}
+}
 	return 0;
 }
 

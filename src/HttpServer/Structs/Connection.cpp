@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Connection.cpp                                     :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/08 13:41:32 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/15 11:10:43 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/19 12:24:31 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -41,24 +41,26 @@ void Connection::resetChunkedState() {
 
 std::string Connection::stateToString(Connection::State state) {
 	switch (state) {
-	case Connection::READING_HEADERS:
-		return "READING_HEADERS";
-	case Connection::READING_CHUNK_SIZE:
-		return "READING_CHUNK_SIZE";
-	case Connection::READING_CHUNK_DATA:
-		return "READING_CHUNK_DATA";
-	case Connection::READING_CHUNK_TRAILER:
-		return "READING_CHUNK_TRAILER";
-	case Connection::CONTINUE_SENT:
-		return "CONTINUE_SENT";
-	case Connection::READING_TRAILER:
-		return "READING_FINAL_TRAILER";
-	case Connection::CHUNK_COMPLETE:
-		return "CHUNK_COMPLETE";
-	case Connection::REQUEST_COMPLETE:
-		return "REQUEST_COMPLETE";
-	default:
-		return "UNKNOWN_STATE";
+		case Connection::READING_HEADERS:
+			return "READING_HEADERS";
+		case Connection::READING_CHUNK_SIZE:
+			return "READING_CHUNK_SIZE";
+		case Connection::READING_CHUNK_DATA:
+			return "READING_CHUNK_DATA";
+		case Connection::READING_CHUNK_TRAILER:
+			return "READING_CHUNK_TRAILER";
+		case Connection::CONTINUE_SENT:
+			return "CONTINUE_SENT";
+		case Connection::READING_TRAILER:
+			return "READING_FINAL_TRAILER";
+		case Connection::CHUNK_COMPLETE:
+			return "CHUNK_COMPLETE";
+		case Connection::REQUEST_COMPLETE:
+			return "REQUEST_COMPLETE";
+		case Connection::ERROR_READY:
+			return "ERROR_RESPONSE_READY";
+		default:
+			return "UNKNOWN_STATE";
 	}
 }
 

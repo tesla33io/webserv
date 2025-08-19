@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/27 11:55:56 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/17 21:31:28 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/19 15:40:40 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,7 +26,9 @@ struct ClientRequest {
 	// Headers
 	std::map<std::string, std::string> headers;
 	bool chunked_encoding;
+	ssize_t content_length;
 	bool file_upload;
+	bool expect_continue;
 
 	// Body (optional)
 	std::string body;

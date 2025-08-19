@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/17 15:43:17 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/17 21:30:48 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/19 12:28:46 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -198,5 +198,33 @@ uint16_t RequestParsingUtils::parseRequest(const std::string &raw_request, Clien
 		return error_code;
 
 	logger.logWithPrefix(Logger::INFO, "HTTP", "Request parsing completed");
+	return 0;
+}
+
+
+/* Parser */
+uint16_t RequestParsingUtils::parseRequestHeaders(const std::string &raw_request, ClientRequest &request) {
+	Logger logger;
+	if (raw_request.empty()) {
+		logger.logWithPrefix(Logger::WARNING, "HTTP", "No request received");
+		return 400;
+	}
+
+	request.chunked_encoding = false;
+	request.file_upload = false;
+	request.extension = "";
+	std::istringstream stream(raw_request);
+
+	// Parse request line
+	uint16_t error_code = parseReqLine(stream, request);
+	if (error_code != 0)
+		return error_code;
+
+	// Parse headers
+	error_code = parseHeaders(stream, request);
+	if (error_code != 0)
+		return error_code;
+
+	logger.logWithPrefix(Logger::INFO, "HTTP", "Header Request parsing completed");
 	return 0;
 }

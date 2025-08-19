@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/08 13:38:20 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/18 15:36:46 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/19 15:50:57 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,8 +14,10 @@
 #define CONNECTION_HPP
 
 #include "includes/Webserv.hpp"
+#include "includes/Types.hpp"
 #include "src/ConfigParser/Struct.hpp"
 #include "Response.hpp"
+
 
 class WebServer;
 class Response;
@@ -32,6 +34,7 @@ class Response;
 /// keep-alive functionality.
 class Connection {
 	friend class WebServer;
+
 
 	int fd;
 
@@ -52,6 +55,7 @@ class Connection {
 	size_t chunk_bytes_read;
 	std::string chunk_data;
 	std::string headers_buffer;
+	ClientRequest parsed_request;
 
 	Response response;
 	bool response_ready;
@@ -63,6 +67,7 @@ class Connection {
 		REQUEST_COMPLETE, ///< Complete request received
 		READING_BODY,     ///< Reading request body, when Content-Length > 0
 		
+		PARSED_HEADERS,  ///< Parsing the headers after they are recieved
 		ERROR_READY,     ///< After headers are read, we check for 413
 		
 		CONTINUE_SENT,         ///< 100-Continue response sent

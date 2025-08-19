@@ -6,7 +6,7 @@
 #    By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: Invalid date        by         __/       #+#    #+#              #
-#    Updated: 2025/08/18 17:56:36 by htharrau         ###   ########.fr        #
+#    Updated: 2025/08/19 15:51:48 by htharrau         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -41,7 +41,7 @@ SRC_FILES		+= src/HttpServer/Handlers/ChunkedReq.cpp
 SRC_FILES		+= src/HttpServer/Handlers/Connection.cpp
 SRC_FILES		+= src/HttpServer/Handlers/HandleReq.cpp
 SRC_FILES		+= src/HttpServer/Handlers/EpollEventHandler.cpp
-SRC_FILES		+= src/HttpServer/Handlers/MethodsHandler.cpp
+#SRC_FILES		+= src/HttpServer/Handlers/MethodsHandler.cpp
 SRC_FILES		+= src/HttpServer/Handlers/Request.cpp
 SRC_FILES		+= src/HttpServer/Handlers/ResponseHandler.cpp
 SRC_FILES		+= src/HttpServer/Handlers/ServerCGI.cpp

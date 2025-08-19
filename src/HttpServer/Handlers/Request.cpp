@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:10:22 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/17 22:28:03 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/19 15:57:55 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -52,72 +52,78 @@ bool WebServer::handleCGIRequest(ClientRequest &req, Connection *conn) {
 /* Request processing */
 
 bool WebServer::isHeadersComplete(Connection *conn) {
+	
 	std::string temp = conn->read_buffer;
 	size_t header_end = conn->read_buffer.find("\r\n\r\n");
 	if (header_end == std::string::npos) {
 		return false;
 	}
 
-	// Headers are complete, check if this is a chunked request
+	// Headers are complete
 	std::string headers = conn->read_buffer.substr(0, header_end + 4);
 	std::string headers_lower = su::to_lower(headers);
+	
+	// Header request for early headers error detection
+	ClientRequest hdr_req;
+	hdr_req.clfd = conn->fd;
 
-	if (headers_lower.find("content-length: ") != std::string::npos) {
-		_lggr.debug("Found `Content-Length` header");
-		size_t cl_start = headers_lower.find("content-length: ") + 16;
-		size_t cl_end = headers_lower.find("\r\n", cl_start);
+	// On error: REQUEST_COMPLETE, Prepare Response
+	uint16_t error_code = RequestParsingUtils::parseRequestHeaders(headers_lower, hdr_req);
+	_lggr.debug("[HEADER CHECK] Parsing headers request: " + hdr_req.toMiniString());
+	_lggr.debug("[HEADER CHECK] Error code post header request parsing : " + su::to_string(error_code));
+	if (error_code != 0) {
+		_lggr.error("Parsing of the request's headers failed.");
+		conn->state = Connection::REQUEST_COMPLETE;
+		_lggr.logWithPrefix(Logger::ERROR, "BAD REQUEST", "Malformed or invalid headers");
+		prepareResponse(conn, Response(error_code, conn));
+		return true;
+	}
 
-		if (cl_end == std::string::npos) {
-			// TODO: handle malformed header
-			_lggr.error("Malformed header");
-			conn->content_length = -1;
-			conn->state = Connection::REQUEST_COMPLETE;
-			_lggr.logWithPrefix(Logger::ERROR, "BAD REQUEST", "Malformed headers");
-			prepareResponse(conn, Response::badRequest());
-			return true;
-		}
+	// Store parsed headers in connection
+	conn->headers_buffer = headers;
+	conn->parsed_request = hdr_req;
 
-		std::string cl_value = headers.substr(cl_start, cl_end - cl_start);
+	// Expect and no chunk -> to verify
+	// if (expect_it != hdr_req.headers.end() && expect_it->second == "100-continue") {
+	// 	// Send "100 Continue" response
+	// 	prepareResponse(conn, Response::continue_());
+	// 	conn->state = Connection::CONTINUE_SENT;
+	// }
 
-		char *endptr;
-		long parsed_length = std::strtol(cl_value.c_str(), &endptr, 10);
+	// In HTTP/1.1, a message body can be delimited in exactly one of these ways:
+	// Content-Length: N → body is exactly N bytes long.
+	// Transfer-Encoding: chunked → body is streamed in chunks until a zero-length chunk.
+	// No body expected → e.g. GET without body, or status codes like 204 / 304.
+	// ! They are mutually exclusive !
 
-		if (*endptr != '\0' || parsed_length < 0) {
-			conn->content_length = -1;
-		} else {
-			conn->content_length = static_cast<ssize_t>(parsed_length);
-		}
+	conn->chunked = hdr_req.chunked_encoding;
+	conn->chunked = hdr_req.chunked_encoding;
+	
+	// Case 1 : content length is present
+	if (hdr_req.content_length == 0) {
+		conn->state = Connection::REQUEST_COMPLETE;
+		return true;
+	}
+	
+	// a GET request has no content length
+	
+	// Clear the read_buffer since we've processed headers and moved body to body_data
+	conn->read_buffer.clear();
+	conn->read_buffer = temp;
 
-		conn->chunked = false;
-		conn->headers_buffer = headers;
+	conn->body_bytes_read = conn->body_data.size();
+	conn->state = Connection::READING_BODY;
 
-		// Handle any body data that came with headers
-		std::string remaining_data = conn->read_buffer.substr(header_end + 4);
-		if (!remaining_data.empty()) {
-			// Store remaining data as binary body data
-			conn->body_data.insert(conn->body_data.end(),
-			                       reinterpret_cast<const unsigned char *>(remaining_data.data()),
-			                       reinterpret_cast<const unsigned char *>(remaining_data.data() +
-			                                                               remaining_data.size()));
-		}
+	if (static_cast<ssize_t>(conn->body_bytes_read) >= conn->content_length) {
+		conn->state = Connection::REQUEST_COMPLETE;
+		return true;
+	}
 
-		// Clear the read_buffer since we've processed headers and moved body to body_data
-		conn->read_buffer.clear();
-		conn->read_buffer = temp;
+	return false;
 
-		conn->body_bytes_read = conn->body_data.size();
-		conn->state = Connection::READING_BODY;
-
-		if (static_cast<ssize_t>(conn->body_bytes_read) >= conn->content_length) {
-			conn->state = Connection::REQUEST_COMPLETE;
-			return true;
-		}
-
-		return false;
-
-	} else if (headers_lower.find("transfer-encoding: chunked") != std::string::npos) {
+	} 
+	else if (headers_lower.find("transfer-encoding: chunked") != std::string::npos) {
 		conn->chunked = true;
-		// conn->state = Connection::READING_CHUNK_SIZE;
 		conn->headers_buffer = headers;
 
 		if (headers_lower.find("expect: 100-continue") != std::string::npos) {
@@ -151,8 +157,12 @@ bool WebServer::isHeadersComplete(Connection *conn) {
 	return false;
 }
 
+
+
 bool WebServer::isRequestComplete(Connection *conn) {
+	
 	switch (conn->state) {
+		
 	case Connection::READING_HEADERS:
 		_lggr.debug("isRequestComplete->READING_HEADERS");
 		return isHeadersComplete(conn);
@@ -162,16 +172,7 @@ bool WebServer::isRequestComplete(Connection *conn) {
 		_lggr.debug(
 		    su::to_string(conn->content_length - static_cast<ssize_t>(conn->body_data.size())) +
 		    " bytes left to receive");
-			
-		// check max body size : config vs header request
-		if (!conn->getServerConfig()->serverInfiniteBodySize() 
-		    && conn->body_data.size() > conn->getServerConfig()->getServerMaxBodySize()) {
-			 _lggr.debug("Request body exceeds size limit");
-			handleRequestTooLarge(conn, conn->body_data.size());
-			conn->state = Connection::ERROR_READY;
-			return true;
-		}
-			
+					
 		if (static_cast<ssize_t>(conn->body_data.size()) >= conn->content_length) {
 			_lggr.debug("Read full content-length: " + su::to_string(conn->body_data.size()) +
 			            " bytes received");
@@ -181,9 +182,6 @@ bool WebServer::isRequestComplete(Connection *conn) {
 		}
 		return false;
 
-	case Connection::ERROR_READY:
-		return true;
-	
 		
 	case Connection::CONTINUE_SENT:
 		_lggr.debug("isRequestComplete->CONTINUE_SENT");
