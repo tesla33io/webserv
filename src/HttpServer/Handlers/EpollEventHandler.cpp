@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:06:48 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/19 11:43:01 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/19 19:17:12 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -54,7 +54,7 @@ void WebServer::handleClientEvent(int fd, uint32_t event_mask) {
 		if (event_mask & EPOLLOUT) {
 			if (conn->response_ready)
 				sendResponse(conn);
-			if (!conn->keep_persistent_connection)
+			if (!conn->keep_persistent_connection || conn->should_close)
 				closeConnection(conn); // risk of closing the connection before the response is ready?
 		}
 		if (event_mask & (EPOLLERR | EPOLLHUP)) {
@@ -145,6 +145,8 @@ bool WebServer::processReceivedData(Connection *conn, const char *buffer, ssize_
 		if (conn->chunked && conn->state == Connection::CONTINUE_SENT) {
 			return true;
 		}
+		if (conn->should_close)
+			return false;
 		return handleCompleteRequest(conn);
 	}
 

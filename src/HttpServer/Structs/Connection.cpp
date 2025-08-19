@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/08 13:41:32 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/19 12:24:31 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/19 19:03:47 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,6 +24,7 @@ Connection::Connection(int socket_fd)
       chunk_bytes_read(0),
       response_ready(false),
       request_count(0),
+      should_close(0),
       state(READING_HEADERS) {
 	updateActivity();
 }
@@ -57,8 +58,6 @@ std::string Connection::stateToString(Connection::State state) {
 			return "CHUNK_COMPLETE";
 		case Connection::REQUEST_COMPLETE:
 			return "REQUEST_COMPLETE";
-		case Connection::ERROR_READY:
-			return "ERROR_RESPONSE_READY";
 		default:
 			return "UNKNOWN_STATE";
 	}

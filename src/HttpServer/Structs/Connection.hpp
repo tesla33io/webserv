@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/08 13:38:20 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/19 15:50:57 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/19 18:51:43 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -55,11 +55,13 @@ class Connection {
 	size_t chunk_bytes_read;
 	std::string chunk_data;
 	std::string headers_buffer;
+	
 	ClientRequest parsed_request;
 
 	Response response;
 	bool response_ready;
 	int request_count;
+	bool should_close;
 
 	/// Represents the current state of request processing.
 	enum State {

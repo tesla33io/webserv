@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:10:22 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/19 15:57:55 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/19 19:12:06 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,8 +20,8 @@
 
 void WebServer::handleRequestTooLarge(Connection *conn, ssize_t bytes_read) {
 	_lggr.info("Reached max content length for fd: " + su::to_string(conn->fd) + ", " +
-	           su::to_string(bytes_read) + "/" +
-	           su::to_string(conn->locConfig->getMaxBodySize()));
+			   su::to_string(bytes_read) + "/" +
+			   su::to_string(conn->locConfig->getMaxBodySize()));
 	prepareResponse(conn, Response(413, conn));
 }
 
@@ -61,14 +61,14 @@ bool WebServer::isHeadersComplete(Connection *conn) {
 
 	// Headers are complete
 	std::string headers = conn->read_buffer.substr(0, header_end + 4);
-	std::string headers_lower = su::to_lower(headers);
 	
 	// Header request for early headers error detection
 	ClientRequest hdr_req;
 	hdr_req.clfd = conn->fd;
+	hdr_req.content_length = -1;
 
 	// On error: REQUEST_COMPLETE, Prepare Response
-	uint16_t error_code = RequestParsingUtils::parseRequestHeaders(headers_lower, hdr_req);
+	uint16_t error_code = RequestParsingUtils::parseRequestHeaders(headers, hdr_req);
 	_lggr.debug("[HEADER CHECK] Parsing headers request: " + hdr_req.toMiniString());
 	_lggr.debug("[HEADER CHECK] Error code post header request parsing : " + su::to_string(error_code));
 	if (error_code != 0) {
@@ -76,19 +76,37 @@ bool WebServer::isHeadersComplete(Connection *conn) {
 		conn->state = Connection::REQUEST_COMPLETE;
 		_lggr.logWithPrefix(Logger::ERROR, "BAD REQUEST", "Malformed or invalid headers");
 		prepareResponse(conn, Response(error_code, conn));
+		conn->should_close = true;
 		return true;
 	}
 
-	// Store parsed headers in connection
+	// Match location block, Normalize URI + Check traversal
+	if (!matchLocation(hdr_req, conn) || !normalizePath(hdr_req, conn)) {
+		conn->state = Connection::REQUEST_COMPLETE;
+		conn->should_close = true;
+		return true;
+	}
+	// Return, Method, Max body
+	if (!processValidRequestChecks(hdr_req, conn)) {
+		conn->state = Connection::REQUEST_COMPLETE;
+		conn->should_close = true;
+		return true;
+	}
+
+	// Valid request headers - store parsed headers in connection
 	conn->headers_buffer = headers;
 	conn->parsed_request = hdr_req;
+	conn->chunked = hdr_req.chunked_encoding;
+	conn->content_length = hdr_req.content_length;
 
-	// Expect and no chunk -> to verify
-	// if (expect_it != hdr_req.headers.end() && expect_it->second == "100-continue") {
-	// 	// Send "100 Continue" response
-	// 	prepareResponse(conn, Response::continue_());
-	// 	conn->state = Connection::CONTINUE_SENT;
-	// }
+	//Store remaining data as binary body data for Content-Length requests
+	std::string remaining_data = conn->read_buffer.substr(header_end + 4);
+	if (!remaining_data.empty() && !conn->chunked && conn->content_length > 0) {
+		conn->body_data.insert(conn->body_data.end(),
+							  reinterpret_cast<const unsigned char *>(remaining_data.data()),
+							  reinterpret_cast<const unsigned char *>(remaining_data.data() + remaining_data.size()));
+		conn->body_bytes_read = conn->body_data.size();
+	}
 
 	// In HTTP/1.1, a message body can be delimited in exactly one of these ways:
 	// Content-Length: N → body is exactly N bytes long.
@@ -96,68 +114,61 @@ bool WebServer::isHeadersComplete(Connection *conn) {
 	// No body expected → e.g. GET without body, or status codes like 204 / 304.
 	// ! They are mutually exclusive !
 
-	conn->chunked = hdr_req.chunked_encoding;
-	conn->chunked = hdr_req.chunked_encoding;
 	
-	// Case 1 : content length is present
-	if (hdr_req.content_length == 0) {
+	// Case 1 : content_length 0 or no content length)
+	if (conn->content_length <= 0) {
 		conn->state = Connection::REQUEST_COMPLETE;
 		return true;
 	}
-	
-	// a GET request has no content length
-	
-	// Clear the read_buffer since we've processed headers and moved body to body_data
-	conn->read_buffer.clear();
-	conn->read_buffer = temp;
-
-	conn->body_bytes_read = conn->body_data.size();
-	conn->state = Connection::READING_BODY;
-
-	if (static_cast<ssize_t>(conn->body_bytes_read) >= conn->content_length) {
-		conn->state = Connection::REQUEST_COMPLETE;
-		return true;
-	}
-
-	return false;
-
-	} 
-	else if (headers_lower.find("transfer-encoding: chunked") != std::string::npos) {
-		conn->chunked = true;
-		conn->headers_buffer = headers;
-
-		if (headers_lower.find("expect: 100-continue") != std::string::npos) {
-			prepareResponse(conn, Response::continue_());
-
-			conn->state = Connection::CONTINUE_SENT;
-
-			conn->read_buffer.clear();
-
-			conn->chunk_size = 0;
-			conn->chunk_bytes_read = 0;
-			conn->chunk_data.clear();
-
+	// Case 2: content_length specified
+	else if (conn->content_length > 0) {
+		conn->state = Connection::READING_BODY;
+		
+		// check if full body
+		if (static_cast<ssize_t>(conn->body_data.size()) >= conn->content_length) {
+			conn->state = Connection::REQUEST_COMPLETE;
+			reconstructRequest(conn);
 			return true;
-		} else {
-			conn->state = Connection::READING_CHUNK_SIZE;
-
-			conn->read_buffer = conn->read_buffer.substr(header_end + 4);
-
-			conn->chunk_size = 0;
-			conn->chunk_bytes_read = 0;
-			conn->chunk_data.clear();
-
-			return processChunkSize(conn);
 		}
-	} else {
-		conn->chunked = false;
+		// clear read_buffer since body data is in body_data vector
+		conn->read_buffer.clear();
+		return false;
+	}
+	// Case 3: chunked + expect 100
+	else if (conn->chunked && hdr_req.expect_continue) {
+		prepareResponse(conn, Response::continue_());
+		conn->state = Connection::CONTINUE_SENT;
+		conn->read_buffer.clear();
+		conn->chunk_size = 0;
+		conn->chunk_bytes_read = 0;
+		conn->chunk_data.clear();
+		return true;
+	}
+	// Case 4: chunked, no expect 100
+	else if (conn->chunked) {
+		conn->state = Connection::READING_CHUNK_SIZE;
+		conn->read_buffer = remaining_data; // Keep any data after headers for chunk processing
+		conn->chunk_size = 0;
+		conn->chunk_bytes_read = 0;
+		conn->chunk_data.clear();
+		return processChunkSize(conn);
+	}
+	// Case 5: not chunked, expect 100 - TODO: double check we use the chunk 
+	else if (hdr_req.expect_continue) {
+		prepareResponse(conn, Response::continue_());
+		conn->state = Connection::CONTINUE_SENT;
+		conn->read_buffer.clear();
+		conn->chunk_size = 0;
+		conn->chunk_bytes_read = 0;
+		conn->chunk_data.clear();
+		return true;
+	}
+	// Default
+	else {
 		conn->state = Connection::REQUEST_COMPLETE;
 		return true;
 	}
-	return false;
 }
-
-
 
 bool WebServer::isRequestComplete(Connection *conn) {
 	
@@ -170,12 +181,12 @@ bool WebServer::isRequestComplete(Connection *conn) {
 	case Connection::READING_BODY:
 		_lggr.debug("isRequestComplete->READING_BODY");
 		_lggr.debug(
-		    su::to_string(conn->content_length - static_cast<ssize_t>(conn->body_data.size())) +
-		    " bytes left to receive");
+			su::to_string(conn->content_length - static_cast<ssize_t>(conn->body_data.size())) +
+			" bytes left to receive");
 					
 		if (static_cast<ssize_t>(conn->body_data.size()) >= conn->content_length) {
 			_lggr.debug("Read full content-length: " + su::to_string(conn->body_data.size()) +
-			            " bytes received");
+						" bytes received");
 			conn->state = Connection::REQUEST_COMPLETE;
 			reconstructRequest(conn);
 			return true;
@@ -211,7 +222,6 @@ bool WebServer::isRequestComplete(Connection *conn) {
 	}
 }
 
-
 bool WebServer::reconstructRequest(Connection *conn) {
 	std::string reconstructed_request;
 
@@ -227,20 +237,20 @@ bool WebServer::reconstructRequest(Connection *conn) {
 
 	if (conn->content_length > 0) {
 		size_t body_size =
-		    std::min(static_cast<size_t>(conn->content_length), conn->body_data.size());
+			std::min(static_cast<size_t>(conn->content_length), conn->body_data.size());
 
 		reconstructed_request.append(reinterpret_cast<const char *>(&conn->body_data[0]),
-		                             body_size);
+									 body_size);
 
 		_lggr.debug("Reconstructed request with " + su::to_string(body_size) +
-		            " bytes of body data");
+					" bytes of body data");
 	}
 
 	conn->read_buffer = reconstructed_request;
 
 	size_t headers_end = conn->headers_buffer.size();
 	std::string debug_output =
-	    "Reconstructed request headers:\n" + conn->read_buffer.substr(0, headers_end);
+		"Reconstructed request headers:\n" + conn->read_buffer.substr(0, headers_end);
 	if (conn->content_length > 0) {
 		debug_output += "\n[Binary body data: " + su::to_string(conn->body_data.size()) + " bytes]";
 	}
@@ -251,7 +261,7 @@ bool WebServer::reconstructRequest(Connection *conn) {
 
 
 bool WebServer::parseRequest(Connection *conn, ClientRequest &req) {
-	_lggr.debug("Parsing request: " + req.toMiniString());
+	_lggr.debug("Parsing request: " + conn->read_buffer);
 	uint16_t error_code = RequestParsingUtils::parseRequest(conn->read_buffer, req);
 	_lggr.debug("Error code post request parsing : " + su::to_string(error_code));
 	if (error_code != 0) {
@@ -267,6 +277,7 @@ void WebServer::processRequest(Connection *conn) {
 	_lggr.info("Processing request from fd: " + su::to_string(conn->fd));
 
 	ClientRequest req;
+	req.content_length = -1;
 	req.clfd = conn->fd;
 
 
@@ -296,6 +307,7 @@ void WebServer::processRequest(Connection *conn) {
 
 	// TODO: this part breaks the req struct for some reason
 	//       can't debug on my own :(
+	// Can we remove it? Why is it parsing the request again?
 	if (req.chunked_encoding && conn->state == Connection::CHUNK_COMPLETE) {
 		_lggr.debug("Chunked request completed!");
 		_lggr.debug("Parsing complete chunked request");
@@ -317,78 +329,14 @@ void WebServer::processRequest(Connection *conn) {
 }
 
 
-bool WebServer::matchLocation(ClientRequest &req, Connection *conn) {
-	// initialize the correct locConfig // default "/"
-	LocConfig *match = findBestMatch(req.uri, conn->servConfig->getLocations());
-	if (!match) {
-		_lggr.error("[Resp] No matched location for : " + req.uri);
-		prepareResponse(conn, Response::internalServerError(conn));
-		return false;
-	}
-	conn->locConfig = match; 
-	conn->locConfig->setFullPath("");
-	_lggr.debug("[Resp] Matched location : " + conn->locConfig->path);
-	return true;
-}
-
-bool WebServer::normalizePath(ClientRequest &req, Connection *conn) {
-
-	// normalisation
-	std::string full_path = buildFullPath(req.path, conn->locConfig);
-	std::string root_full_path = buildFullPath("", conn->locConfig);
-	char resolved[PATH_MAX];
-	realpath(full_path.c_str(), resolved);
-	std::string normal_full_path(resolved);
-	if (su::back(full_path) == '/')
-		normal_full_path += "/";
-	_lggr.debug("[Resp] Normalized full path : " + normal_full_path);
-	_lggr.debug("[Resp] Root full path : " + root_full_path);
-
-	// std::string temp_full_path = normal_full_path + "/";
-	if (normal_full_path.compare(0, root_full_path.size(), root_full_path) != 0) {
-		_lggr.error("Resolved path is trying to access parent directory: " + normal_full_path);
-		prepareResponse(conn, Response::forbidden(conn));
-		return false;
-	}
-	
-	// this should maybe be in the connection info, not in the locConfig
-	conn->locConfig->setFullPath(normal_full_path);
-	return true;
-}
-
 
 void WebServer::processValidRequest(ClientRequest &req, Connection *conn) {
 		
 	const std::string& full_path = conn->locConfig->getFullPath();
 	_lggr.debug("[Resp] The matched location is an exact match: " + su::to_string(conn->locConfig->is_exact_()));
 
-	// Check against location's max body size
-	_lggr.logWithPrefix(Logger::DEBUG, "HTTP", 
-		                 "Request body is: " + su::to_string(req.body.size()) + 
-			                 " bytes, limit in the block  is " + su::to_string(conn->locConfig->getMaxBodySize()));
-	if (!conn->locConfig->infiniteBodySize() && 
-	    static_cast<size_t>(req.body.size()) > conn->locConfig->getMaxBodySize()) {
-		_lggr.logWithPrefix(Logger::WARNING, "HTTP", 
-		                 "Request body too large: " + su::to_string(req.body.size()) + 
-			                 " bytes exceeds limit of " + su::to_string(conn->locConfig->getMaxBodySize()));
-		prepareResponse(conn, Response::contentTooLarge(conn));
-		return;
-	}
-	
-	// check if RETURN directive in the matched location
-	if (conn->locConfig->hasReturn() && conn->locConfig->is_exact_()) {
-		_lggr.debug("[Resp] The matched location has a return directive.");
-		uint16_t code = conn->locConfig->return_code;
-		std::string target = conn->locConfig->return_target;
-		prepareResponse(conn, respReturnDirective(conn, code, target));
-		return;
-	}
-	
-	// method allowed?
-	if (!conn->locConfig->hasMethod(req.method)) {
-		_lggr.warn("[Resp] Method " + req.method + " is not allowed for location " +
-		          conn->locConfig->path);
-		prepareResponse(conn, Response::methodNotAllowed(conn, conn->locConfig->getAllowedMethodsString()));
+	// check max body size, return directive, method allowed
+	if (!processValidRequestChecks(req, conn)) {
 		return;
 	}
 	
@@ -408,7 +356,6 @@ void WebServer::processValidRequest(ClientRequest &req, Connection *conn) {
 		handleFileRequest(req, conn, end_slash);
 	} else {
 		_lggr.error("Unexpected file type for: " + full_path);
-		prepareResponse(conn, Response::notFound(conn));
+		prepareResponse(conn, Response::internalServerError(conn));
 	}
 }
-

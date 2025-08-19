@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/18 14:50:47 by htharrau          #+#    #+#             */
-/*   Updated: 2025/08/18 17:48:01 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/19 18:00:56 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,7 +14,7 @@
 #include "includes/Webserv.hpp"
 #include "src/ConfigParser/Struct.hpp"
 #include "src/Logger/Logger.hpp"
-#include "src/Utils/StringUtils.hpp"
+
 
 /////////////////////////
 // LOCCONFIG

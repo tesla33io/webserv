@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/08 13:44:09 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/18 15:50:27 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/19 17:28:05 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -138,14 +138,15 @@ class WebServer {
 
 	/* Request.cpp */
 
+
+	void processValidRequest(ClientRequest &req, Connection *conn);
+	bool processValidRequestChecks(ClientRequest &req, Connection *conn);
+
 	void handleDirectoryRequest(ClientRequest &req, Connection *conn, bool end_slash);
 	void handleFileRequest(ClientRequest &req, Connection *conn, bool end_slash);
 	bool handleFileSystemErrors(FileType file_type, const std::string& full_path, Connection *conn);
 	bool normalizePath(ClientRequest &req, Connection *conn);
 	bool matchLocation(ClientRequest &req, Connection *conn);
-
-
-	void processValidRequest(ClientRequest &req, Connection *conn);
 
 	bool reconstructRequest(Connection *conn);
 

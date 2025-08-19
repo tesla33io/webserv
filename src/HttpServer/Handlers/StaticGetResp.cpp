@@ -1,12 +1,12 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   HandleReq.cpp                                      :+:      :+:    :+:   */
+/*   StaticGetResp.cpp                                  :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/08/08 12:56:57 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/18 17:46:40 by htharrau         ###   ########.fr       */
+/*   Created: 2025/08/19 18:29:33 by htharrau          #+#    #+#             */
+/*   Updated: 2025/08/19 19:04:22 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,7 +15,6 @@
 #include "src/HttpServer/Structs/Response.hpp"
 #include "src/HttpServer/HttpServer.hpp"
 #include "src/Utils/ServerUtils.hpp"
-
 
 bool WebServer::handleFileSystemErrors(FileType file_type, const std::string& full_path, Connection *conn) {
 	if (file_type == NOT_FOUND_404) {
@@ -35,7 +34,6 @@ bool WebServer::handleFileSystemErrors(FileType file_type, const std::string& fu
 	}
 	return true;
 }
-
 
 void WebServer::handleDirectoryRequest(ClientRequest &req, Connection *conn, bool end_slash) {
 

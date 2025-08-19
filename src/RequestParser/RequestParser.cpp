@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/17 15:43:17 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/19 12:28:46 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/19 17:17:31 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -56,7 +56,7 @@ std::string ClientRequest::toMiniString() const {
 
 	it = headers.find("connection");
 	if (it != headers.end())
-		oss << "Connection: " << it->second << "\n";
+		oss << "Connection: " << it->second ;
 
 	return oss.str();
 }

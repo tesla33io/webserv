@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:04:56 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/14 14:20:19 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/19 18:02:35 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -297,6 +297,21 @@ inline bool iequals(const std::string &str1, const std::string &str2) {
  */
 inline char back(const std::string &s) {
 	return s[s.size() - 1];
+}
+
+inline std::string humanReadableBytes(size_t bytes) {
+	const char* units[] = {"bytes", "KB", "MB", "GB", "TB", "PB"};
+	size_t unitIndex = 0;
+	double size = static_cast<double>(bytes);
+
+	while (size >= 1024 && unitIndex < 5) {
+		size /= 1024;
+		++unitIndex;
+	}
+
+	std::ostringstream out;
+	out << std::fixed << std::setprecision(1) << size << "" << units[unitIndex];
+	return out.str();
 }
 
 } // namespace su

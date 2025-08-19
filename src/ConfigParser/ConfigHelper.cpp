@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 13:54:29 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/18 15:37:22 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/19 17:52:31 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -65,7 +65,7 @@ bool ConfigParser::isValidUri(const std::string &str) {
 		for (size_t i = 1; i < str.length(); ++i) {
 			char c = str[i];
 			if (!std::isalnum(c) && c != '/' && c != '-' && c != '_' && c != '?' && c != '&' &&
-			    c != '=' && c != '#' && c != '%' && c != ':' && c != '@' && c != '~') {
+				c != '=' && c != '#' && c != '%' && c != ':' && c != '@' && c != '~') {
 				return false;
 			}
 		}
@@ -79,7 +79,7 @@ bool ConfigParser::hasOKChar(const std::string &str) {
 	for (size_t i = 0; i < str.length(); ++i) {
 		char c = str[i];
 		if (!std::isalnum(c) && c != '/' && c != '-' && c != '_' && c != '?' && c != '.' &&
-		    c != '&' && c != '=' && c != '#' && c != '%' && c != ':' && c != '@' && c != '~') {
+			c != '&' && c != '=' && c != '#' && c != '%' && c != ':' && c != '@' && c != '~') {
 			return false;
 		}
 	}
@@ -98,9 +98,9 @@ bool ConfigParser::isHttp(const std::string &url) {
 }
 
 const int http_status_codes[] = {300, 301, 302, 303, 307, 308, 400, 401, 402, 403, 404, 405,
-                                 406, 407, 408, 409, 410, 411, 412, 413, 414, 415, 416, 417,
-                                 418, 421, 422, 423, 424, 425, 426, 428, 429, 431, 451, 500,
-                                 501, 502, 503, 504, 505, 506, 507, 508, 510, 511};
+								 406, 407, 408, 409, 410, 411, 412, 413, 414, 415, 416, 417,
+								 418, 421, 422, 423, 424, 425, 426, 428, 429, 431, 451, 500,
+								 501, 502, 503, 504, 505, 506, 507, 508, 510, 511};
 
 // Helper function to check if code is in the list
 bool ConfigParser::unknownCode(uint16_t code) {
@@ -133,7 +133,7 @@ std::string ConfigParser::joinArgs(const std::vector<std::string> &args) {
 	return result;
 }
 void ConfigParser::printTree(const ConfigNode &node, const std::string &prefix, bool isLast,
-                             std::ostream &os) const {
+							 std::ostream &os) const {
 	os << prefix;
 	os << (isLast ? "└── " : "├── ");
 	os << node.name_;
@@ -153,20 +153,6 @@ void ConfigParser::printTree(const ConfigNode &node, const std::string &prefix, 
 }
 
 
-std::string humanReadableBytes(size_t bytes) {
-    const char* units[] = {"bytes", "KB", "MB", "GB", "TB", "PB"};
-    size_t unitIndex = 0;
-    double size = static_cast<double>(bytes);
-
-    while (size >= 1024 && unitIndex < 5) {
-        size /= 1024;
-        ++unitIndex;
-    }
-
-    std::ostringstream out;
-    out << std::fixed << std::setprecision(1) << size << "" << units[unitIndex];
-    return out.str();
-}
 
 ////////////////
 // PRINT STRUCT
@@ -191,7 +177,7 @@ void ConfigParser::printLocationConfig(const LocConfig &loc, std::ostream &os) c
 		os << "    Index: " << loc.index << "\n";
 	}
 
-	os << "    Max body size: " << humanReadableBytes(loc.client_max_body_size) << "\n";
+	os << "    Max body size: " << su::humanReadableBytes(loc.client_max_body_size) << "\n";
 
 	// ADD THIS: Print upload_path if it's set
 	if (!loc.upload_path.empty()) {
@@ -217,7 +203,7 @@ void ConfigParser::printLocationConfig(const LocConfig &loc, std::ostream &os) c
 	if (!loc.cgi_extensions.empty()) {
 		os << "    CGI extensions:\n";
 		for (std::map<std::string, std::string>::const_iterator it = loc.cgi_extensions.begin();
-		     it != loc.cgi_extensions.end(); ++it) {
+			 it != loc.cgi_extensions.end(); ++it) {
 			os << "      " << it->first << " -> " << it->second << "\n";
 		}
 	}
@@ -228,11 +214,11 @@ void ConfigParser::printServerConfig(const ServerConfig &server, std::ostream &o
 	if (!server.error_pages.empty()) {
 		os << "  Error pages:\n";
 		for (std::map<uint16_t, std::string>::const_iterator it = server.error_pages.begin();
-		     it != server.error_pages.end(); ++it) {
+			 it != server.error_pages.end(); ++it) {
 			os << "    " << it->first << " -> " << it->second << "\n";
 		}
 	}
-	os << "  Max of max body size all loc: " << humanReadableBytes(server.maximum_body_size) << "\n\n";
+	os << "  Max of max body size all loc: " << su::humanReadableBytes(server.maximum_body_size) << "\n\n";
 
 	if (!server.locations.empty()) {
 		for (size_t i = 0; i < server.locations.size(); ++i) {

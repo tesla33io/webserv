@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/08 13:19:18 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/18 17:45:45 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/19 17:54:00 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -135,4 +135,3 @@ bool isPrefixMatch(const std::string &uri, LocConfig &loc) {
 	char next_char = uri[location_path.length()];
 	return next_char == '/' || location_path[location_path.length() - 1] == '/';
 }
-

@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:09:35 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/15 09:22:15 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/19 18:37:16 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -99,10 +99,10 @@ void WebServer::closeConnection(Connection *conn) {
 		return;
 
 	// TODO: redundant check may be removed
-	if (conn->keep_persistent_connection) {
-		_lggr.debug("Ignoring connection close request for fd: " + su::to_string(conn->fd));
-		return;
-	}
+	// if (conn->keep_persistent_connection) {
+	// 	_lggr.debug("Ignoring connection close request for fd: " + su::to_string(conn->fd));
+	// 	return;
+	// }
 	_lggr.debug("Closing connection for fd: " + su::to_string(conn->fd));
 
 	epoll_ctl(_epoll_fd, EPOLL_CTL_DEL, conn->fd, NULL);
