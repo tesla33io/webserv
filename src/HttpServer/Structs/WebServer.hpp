@@ -15,12 +15,12 @@
 
 #include "Connection.hpp"
 #include "Response.hpp"
-#include "src/HttpServer/HttpServer.hpp"
-#include "src/Logger/Logger.hpp"
 #include "includes/Types.hpp"
-#include "src/Utils/ServerUtils.hpp"
 #include "src/ConfigParser/ConfigParser.hpp"
 #include "src/ConfigParser/Struct.hpp"
+#include "src/HttpServer/HttpServer.hpp"
+#include "src/Logger/Logger.hpp"
+#include "src/Utils/ServerUtils.hpp"
 
 class ServerConfig; // Still needed to break potential circular dependencies
 class Connection;
@@ -42,7 +42,7 @@ class WebServer {
 	/// Constructs a WebServer with configurations and a root path prefix.
 	/// \param confs Vector of server configurations to initialize.
 	/// \param prefix_path Root directory prefix for serving files.
-	WebServer(std::vector<ServerConfig> &confs, std::string &prefix_path);
+	WebServer(std::vector<ServerConfig> &confs, std::string &prefix_path, int log_level);
 
 	~WebServer();
 
@@ -55,6 +55,7 @@ class WebServer {
 
 	/// Global flag indicating if the server should continue running.
 	static bool _running;
+	int log_level;
 
   private:
 	int _epoll_fd;
@@ -138,20 +139,19 @@ class WebServer {
 
 	/* Request.cpp */
 
-
 	void processValidRequest(ClientRequest &req, Connection *conn);
 	bool processValidRequestChecks(ClientRequest &req, Connection *conn);
 
 	void handleDirectoryRequest(ClientRequest &req, Connection *conn, bool end_slash);
 	void handleFileRequest(ClientRequest &req, Connection *conn, bool end_slash);
-	bool handleFileSystemErrors(FileType file_type, const std::string& full_path, Connection *conn);
+	bool handleFileSystemErrors(FileType file_type, const std::string &full_path, Connection *conn);
 	bool normalizePath(ClientRequest &req, Connection *conn);
 	bool matchLocation(ClientRequest &req, Connection *conn);
 
 	bool reconstructRequest(Connection *conn);
 
 	uint16_t handleCGIRequest(ClientRequest &req, Connection *conn);
-	//bool handleCGIRequest(ClientRequest &req, Connection *conn);
+	// bool handleCGIRequest(ClientRequest &req, Connection *conn);
 
 	/// Handles cases where request size exceeds limits.
 	/// \param conn The connection that sent the oversized request.
@@ -197,7 +197,6 @@ class WebServer {
 	FileType checkFileType(const std::string &path);
 	std::string buildFullPath(const std::string &uri, LocConfig *Location);
 
-
 	/* Handlers/ChunkedReq.cpp */
 
 	/// Processes chunked transfer encoding chunk size line.
@@ -227,7 +226,7 @@ class WebServer {
 	/* Handlers/Connection.cpp */
 
 	void updateConnectionActivity(int client_fd);
-	
+
 	/// Accepts a new client connection and adds it to the connection pool.
 	/// \param sc Pointer to the server configuration that received the connection.
 	void handleNewConnection(ServerConfig *sc);

@@ -71,7 +71,7 @@ bool WebServer::isHeadersComplete(Connection *conn) {
 	hdr_req.content_length = -1;
 
 	// On error: REQUEST_COMPLETE, Prepare Response
-	uint16_t error_code = RequestParsingUtils::parseRequestHeaders(headers, hdr_req);
+	uint16_t error_code = RequestParsingUtils::parseRequestHeaders(headers, hdr_req, _lggr);
 	_lggr.debug("[HEADER CHECK] ClientRequest post header parsing: " + hdr_req.printRequest());
 	_lggr.debug("[HEADER CHECK] Error code post header request parsing : " + su::to_string(error_code));
 	if (error_code != 0) {
@@ -228,15 +228,12 @@ bool WebServer::isRequestComplete(Connection *conn) {
 bool WebServer::reconstructRequest(Connection *conn) {
 	std::string reconstructed_request;
 
-	std::cout << "            INSIDE RECONSTRUCT\n";
 	if (conn->headers_buffer.empty()) {
 		_lggr.warn("Cannot reconstruct request: headers not available");
 		return false;
 	}
 
-	std::cout << "                                     HEADER BUFFER: " << conn->headers_buffer << std::endl;
 	reconstructed_request = conn->headers_buffer;
-	std::cout << "                                     RECONSTR BUFFER: " << conn->headers_buffer << std::endl;
 
 	if (conn->content_length > 0) {
 		size_t body_size =
@@ -265,7 +262,7 @@ bool WebServer::reconstructRequest(Connection *conn) {
 
 bool WebServer::parseRequest(Connection *conn, ClientRequest &req) {
 	_lggr.debug("Parsing request: " + conn->read_buffer);
-	uint16_t error_code = RequestParsingUtils::parseRequest(conn->read_buffer, req);
+	uint16_t error_code = RequestParsingUtils::parseRequest(conn->read_buffer, req, _lggr);
 	_lggr.debug("Error code post request parsing : " + su::to_string(error_code));
 	if (error_code != 0) {
 		_lggr.error("Parsing of the request failed.");
@@ -354,7 +351,6 @@ void WebServer::processValidRequest(ClientRequest &req, Connection *conn) {
 		
 	// we redirect if uri is missing the / (and vice versa), not the resolved path
 	bool end_slash = (!req.uri.empty() && su::back(req.uri) == '/');
-	std::cout << "end slash? " << end_slash << " URI: " << req.uri << std::endl;
 	// Route based on file type and request format
 	if (file_type == ISDIR) {
 		handleDirectoryRequest(req, conn, end_slash);

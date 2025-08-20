@@ -44,7 +44,6 @@ bool WebServer::sendResponse(Connection *conn) {
 	}
 	_lggr.debug("Sending response [" + conn->response.toShortString() +
 	            "] back to fd: " + su::to_string(conn->fd));
-	std::cout << conn->response.toShortString() << "] back to fd: " << su::to_string(conn->fd) << std::endl;
 	std::string raw_response = conn->response.toString();
 	epollManage(EPOLL_CTL_MOD, conn->fd, EPOLLIN);
 	conn->response.reset();

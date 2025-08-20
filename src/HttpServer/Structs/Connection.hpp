@@ -13,11 +13,10 @@
 #ifndef CONNECTION_HPP
 #define CONNECTION_HPP
 
-#include "includes/Webserv.hpp"
-#include "includes/Types.hpp"
-#include "src/ConfigParser/Struct.hpp"
 #include "Response.hpp"
-
+#include "includes/Types.hpp"
+#include "includes/Webserv.hpp"
+#include "src/ConfigParser/Struct.hpp"
 
 class WebServer;
 class Response;
@@ -34,7 +33,6 @@ class Response;
 /// keep-alive functionality.
 class Connection {
 	friend class WebServer;
-
 
 	int fd;
 
@@ -55,7 +53,7 @@ class Connection {
 	size_t chunk_bytes_read;
 	std::string chunk_data;
 	std::string headers_buffer;
-	
+
 	ClientRequest parsed_request;
 
 	Response response;
@@ -68,10 +66,10 @@ class Connection {
 		READING_HEADERS,  ///< Reading request headers
 		REQUEST_COMPLETE, ///< Complete request received
 		READING_BODY,     ///< Reading request body, when Content-Length > 0
-		
-		PARSED_HEADERS,  ///< Parsing the headers after they are recieved
-		ERROR_READY,     ///< After headers are read, we check for 413
-		
+
+		PARSED_HEADERS, ///< Parsing the headers after they are recieved
+		ERROR_READY,    ///< After headers are read, we check for 413
+
 		CONTINUE_SENT,         ///< 100-Continue response sent
 		READING_CHUNK_SIZE,    ///< Reading chunk size line
 		READING_CHUNK_DATA,    ///< Reading chunk data

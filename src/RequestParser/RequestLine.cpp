@@ -74,8 +74,7 @@ bool decodeNValidateUri(const std::string &uri, std::string &decoded) {
 }
 
 /* Checks */
-uint16_t RequestParsingUtils::checkReqLine(ClientRequest &request) {
-	Logger logger;
+uint16_t RequestParsingUtils::checkReqLine(ClientRequest &request, Logger &logger) {
 
 	if (request.method.empty() || request.uri.empty() || request.version.empty()) {
 		logger.logWithPrefix(Logger::WARNING, "HTTP", "Empty component in request line");
@@ -117,8 +116,8 @@ uint16_t RequestParsingUtils::checkReqLine(ClientRequest &request) {
 }
 
 /* Parsing */
-uint16_t RequestParsingUtils::parseReqLine(std::istringstream &stream, ClientRequest &request) {
-	Logger logger;
+uint16_t RequestParsingUtils::parseReqLine(std::istringstream &stream, ClientRequest &request,
+                                           Logger &logger) {
 	std::string line;
 	logger.logWithPrefix(Logger::DEBUG, "HTTP", "Parsing request line");
 
@@ -163,5 +162,5 @@ uint16_t RequestParsingUtils::parseReqLine(std::istringstream &stream, ClientReq
 	request.uri = trimmed_line.substr(first_space + 1, second_space - first_space - 1);
 	request.version = trimmed_line.substr(second_space + 1);
 
-	return (RequestParsingUtils::checkReqLine(request));
+	return (RequestParsingUtils::checkReqLine(request, logger));
 }
