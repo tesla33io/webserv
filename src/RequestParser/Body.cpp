@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/25 10:46:18 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/17 22:28:20 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/20 23:16:50 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -39,7 +39,7 @@ uint16_t RequestParsingUtils::parseBody(std::istringstream &stream, ClientReques
 		if (request.method == "POST") {
 			logger.logWithPrefix(Logger::WARNING, "HTTP", "Missing Content-Length for POST");
 			return 411; // Length Required
-		}
+		} // TODO jacopo should not check this before?
 
 		// For GET/DELETE: accept if no body follows
 		std::streampos start = stream.tellg();

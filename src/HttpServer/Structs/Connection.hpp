@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/08 13:38:20 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/20 12:14:52 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/20 19:41:09 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -45,7 +45,7 @@ class Connection {
 	bool keep_persistent_connection;
 
 	std::string read_buffer;
-	size_t body_bytes_read; // for client_max_body_size
+	size_t body_bytes_read;
 	ssize_t content_length; // ignore if -1
 
 	std::vector<unsigned char> body_data;

@@ -1,0 +1,54 @@
+# WebServ Comprehensive Testing - Equivalent Curl Commands
+# =========================================================
+# Generated at: 2025-08-20 19:18:26
+# Servers tested: Server1 (http://localhost:8080), Server2 (http://127.0.0.1:8081)
+# Total commands: 5
+#
+# Usage: Copy and paste commands to test manually
+# Note: Some tests require raw socket connections and cannot be replicated with curl
+
+
+# ===============================
+# BASIC TESTS
+# ===============================
+
+# Test: Basic headers
+# Note: Standard HTTP headers
+curl -v -X GET -H "Host: example.com" -H "User-Agent: WebServTester/1.0" -H "Accept: text/html,application/xhtml+xml" -H "Accept-Language: en-US,en;q=0.9" -H "Accept-Encoding: gzip, deflate" -H "Connection: keep-alive" -H "Cache-Control: no-cache" -H "Pragma: no-cache" "http://localhost:8080/"  # Standard HTTP headers
+# Expected: Check status code and response
+
+
+# ===============================
+# EMPTY TESTS
+# ===============================
+
+# Test: Empty header values
+# Note: Empty header value test
+curl -v -X GET -H "X-Empty: " -H "X-Test: value" "http://localhost:8080/"  # Empty header value test
+# Expected: Check status code and response
+
+
+# ===============================
+# HEADER TESTS
+# ===============================
+
+# Test: Header case sensitivity
+# Note: Mixed case headers
+curl -v -X GET -H "content-type: text/plain" -H "ACCEPT: text/html" -H "User-agent: test" "http://localhost:8080/"  # Mixed case headers
+# Expected: Check status code and response
+
+
+# ===============================
+# MALFORMED TESTS
+# ===============================
+
+# Test: Malformed: Header with spaces in name
+# Note: Should be rejected
+curl -v -X GET -H "Bad Header: value" "http://localhost:8080/"  # Should be rejected
+# Expected: Check status code and response
+
+# Test: Malformed: Header with colon in name
+# Note: Should be rejected
+curl -v -X GET -H "Bad:Header: value" "http://localhost:8080/"  # Should be rejected
+# Expected: Check status code and response
+

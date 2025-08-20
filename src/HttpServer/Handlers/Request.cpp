@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:10:22 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/20 14:06:47 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/20 23:18:54 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -67,7 +67,7 @@ bool WebServer::isHeadersComplete(Connection *conn) {
 	hdr_req.clfd = conn->fd;
 	hdr_req.content_length = -1;
 
-	// On error: REQUEST_COMPLETE, Prepare Response
+	// Header parsing - on error: REQUEST_COMPLETE, Prepare Response
 	uint16_t error_code = RequestParsingUtils::parseRequestHeaders(headers, hdr_req);
 	_lggr.debug("[HEADER CHECK] ClientRequest post header parsing: " + hdr_req.printRequest());
 	_lggr.debug("[HEADER CHECK] Error code post header request parsing : " + su::to_string(error_code));
@@ -98,76 +98,84 @@ bool WebServer::isHeadersComplete(Connection *conn) {
 	conn->parsed_request = hdr_req;
 	conn->chunked = hdr_req.chunked_encoding;
 	conn->content_length = hdr_req.content_length;
-
-	//Store remaining data as binary body data for Content-Length requests
-	std::string remaining_data = conn->read_buffer.substr(header_end + 4);
-	if (!remaining_data.empty() && !conn->chunked && conn->content_length > 0) {
-		conn->body_data.insert(conn->body_data.end(),
-							  reinterpret_cast<const unsigned char *>(remaining_data.data()),
-							  reinterpret_cast<const unsigned char *>(remaining_data.data() + remaining_data.size()));
-		conn->body_bytes_read = conn->body_data.size();
-	}
-
-	// In HTTP/1.1, a message body can be delimited in exactly one of these ways:
-	// Content-Length: N → body is exactly N bytes long.
-	// Transfer-Encoding: chunked → body is streamed in chunks until a zero-length chunk.
-	// No body expected → e.g. GET without body, or status codes like 204 / 304.
-	// ! They are mutually exclusive !
-
 	
-	// Case 1 : content_length 0 or no content length)
-	if (conn->content_length <= 0 && !conn->chunked) {
-		conn->state = Connection::REQUEST_COMPLETE;
-		return true;
-	}
-	// Case 2: content_length specified
-	else if (conn->content_length > 0) {
-		conn->state = Connection::READING_BODY;
-		// check if full body
-		if (static_cast<ssize_t>(conn->body_data.size()) >= conn->content_length) {
+	std::string remaining_data = conn->read_buffer.substr(header_end + 4);
+
+	if (!conn->chunked) { 	//Store remaining data as binary body data for Content-Length requests
+
+		if (!remaining_data.empty() && conn->content_length > 0) {
+			conn->body_data.insert(conn->body_data.end(),
+								reinterpret_cast<const unsigned char *>(remaining_data.data()),
+								reinterpret_cast<const unsigned char *>(remaining_data.data() + remaining_data.size()));
+			conn->body_bytes_read = conn->body_data.size();
+		}
+		_lggr.debug("Request POST HEADER content length: " + su::to_string(conn->content_length));
+		_lggr.debug("Request POST HEADER remaining data size: " + su::to_string(remaining_data.size()));
+
+		// ERROR handling if Body present when it should not
+		if ((conn->content_length <= 0 || hdr_req.expect_continue) && conn->body_bytes_read != 0) {
+			_lggr.debug("Body present when it should not: send 400");
+			prepareResponse(conn, Response(400, conn));
+			conn->should_close = true;
 			conn->state = Connection::REQUEST_COMPLETE;
-			reconstructRequest(conn);
 			return true;
 		}
-		// clear read_buffer since body data is in body_data vector
-		conn->read_buffer.clear();
-		return false;
+		
+		// Case : content_length 0 or no content length)
+		if (conn->content_length <= 0 && !hdr_req.expect_continue) {
+			conn->state = Connection::REQUEST_COMPLETE;
+			return true;
+		}
+		// Case : expect -- The body follows immediately after the server's 100 Continue.
+		// The initial request line and headers are not resent. -> recheck with artem
+		else if (hdr_req.expect_continue) {
+			prepareResponse(conn, Response::continue_());
+			conn->state = Connection::READING_BODY;
+			conn->read_buffer.clear();
+			return true;
+		}
+		// Case : content_length specified
+		else { // if (conn->content_length > 0 && !hdr_req.expect_continue)
+			conn->state = Connection::READING_BODY;
+			// check if full body
+			if (static_cast<ssize_t>(conn->body_data.size()) >= conn->content_length) {
+				conn->state = Connection::REQUEST_COMPLETE;
+				reconstructRequest(conn); 
+				// TODO: reconstruct request is a bool but we dont use the retrun value
+				return true;
+			}
+			// clear read_buffer since body data is in body_data vector
+			conn->read_buffer.clear();
+			return false;
+		}
 	}
-	// Case 3: chunked + expect 100
-	else if (conn->chunked && hdr_req.expect_continue) {
-		prepareResponse(conn, Response::continue_());
-		conn->state = Connection::CONTINUE_SENT;
-		conn->read_buffer.clear();
-		conn->chunk_size = 0;
-		conn->chunk_bytes_read = 0;
-		conn->chunk_data.clear();
-		return true;
-	}
-	// Case 4: chunked, no expect 100
-	else if (conn->chunked) {
-		conn->state = Connection::READING_CHUNK_SIZE;
-		conn->read_buffer = remaining_data; // Keep any data after headers for chunk processing
-		conn->chunk_size = 0;
-		conn->chunk_bytes_read = 0;
-		conn->chunk_data.clear();
-		return processChunkSize(conn);
-	}
-	// Case 5: not chunked, expect 100 - TODO: double check we use the chunk 
-	else if (hdr_req.expect_continue) {
-		prepareResponse(conn, Response::continue_());
-		conn->state = Connection::READING_HEADERS;
-		conn->read_buffer.clear();
-		conn->chunk_size = 0;
-		conn->chunk_bytes_read = 0;
-		conn->chunk_data.clear();
-		return true;
+	
+	else { // CHUNKED - store remaining data as string 
+		// Case : chunked + expect 100
+			if (hdr_req.expect_continue) {
+			prepareResponse(conn, Response::continue_());
+			conn->state = Connection::CONTINUE_SENT;
+			conn->read_buffer.clear();
+			conn->chunk_size = 0;
+			conn->chunk_bytes_read = 0;
+			conn->chunk_data.clear();
+			return true;
+		}
+		// Case : chunked, no expect 100
+		else {
+			conn->state = Connection::READING_CHUNK_SIZE;
+			conn->read_buffer = remaining_data; // Keep any data after headers for chunk processing
+			conn->chunk_size = 0;
+			conn->chunk_bytes_read = 0;
+			conn->chunk_data.clear();
+			//return processChunkSize(conn);
+			return true; // TODO: think about handling it
+		}
 	}
 	// Default
-	else {
-		_lggr.logWithPrefix(Logger::ERROR, "BAD REQUEST", "Impossible request");
-		conn->state = Connection::REQUEST_COMPLETE;
-		return true;
-	}
+	_lggr.logWithPrefix(Logger::ERROR, "BAD REQUEST", "Impossible request");
+	conn->state = Connection::REQUEST_COMPLETE;
+	return true;
 }
 
 bool WebServer::isRequestComplete(Connection *conn) {
@@ -225,6 +233,7 @@ bool WebServer::isRequestComplete(Connection *conn) {
 bool WebServer::reconstructRequest(Connection *conn) {
 	std::string reconstructed_request;
 
+	_lggr.debug("INSIDE RECONSTRUCT");
 	std::cout << "            INSIDE RECONSTRUCT\n";
 	if (conn->headers_buffer.empty()) {
 		_lggr.warn("Cannot reconstruct request: headers not available");
@@ -244,6 +253,7 @@ bool WebServer::reconstructRequest(Connection *conn) {
 
 		_lggr.debug("Reconstructed request with " + su::to_string(body_size) +
 					" bytes of body data");
+		
 	}
 
 	conn->read_buffer = reconstructed_request;
@@ -276,17 +286,17 @@ bool WebServer::parseRequest(Connection *conn, ClientRequest &req) {
 void WebServer::processRequest(Connection *conn) {
 	_lggr.info("Processing request from fd: " + su::to_string(conn->fd));
 
-	ClientRequest req;
-	req.content_length = -1;
-	req.clfd = conn->fd;
+	ClientRequest req = conn->parsed_request;
+	_lggr.debug("Request is complete, we are processing it: " + req.printRequest());
 
+	// req.content_length = -1;
+	// req.clfd = conn->fd;
+	
+	// if (!parseRequest(conn, req))
+	// 	return;
 
-	if (!parseRequest(conn, req))
-		return;
-	_lggr.debug("Request parsed successfully");
-
-	_lggr.debug("req.path: " + req.path);
-	_lggr.debug("req.uri: " + req.uri);
+	// _lggr.debug("req.path: " + req.path);
+	// _lggr.debug("req.uri: " + req.uri);
 
 	// RFC 2068 Section 8.1 -- presistent connection unless client or server sets connection header
 	// to 'close' -- indicating that the socket for this connection may be closed
@@ -308,21 +318,21 @@ void WebServer::processRequest(Connection *conn) {
 	// TODO: this part breaks the req struct for some reason
 	//       can't debug on my own :(
 	// Can we remove it? Why is it parsing the request again?
-	if (req.chunked_encoding && conn->state == Connection::CHUNK_COMPLETE) {
-		_lggr.debug("Chunked request completed!");
-		_lggr.debug("Parsing complete chunked request");
-		if (!parseRequest(conn, req))
-			return;
-		_lggr.debug("Chunked request parsed successfully");
-		_lggr.debug(conn->toString());
-		_lggr.debug(req.toString());
-	}
+	// if (req.chunked_encoding && conn->state == Connection::CHUNK_COMPLETE) {
+	// 	_lggr.debug("Chunked request completed!");
+	// 	_lggr.debug("Parsing complete chunked request");
+	// 	if (!parseRequest(conn, req))
+	// 		return;
+	// 	_lggr.debug("Chunked request parsed successfully");
+	// 	_lggr.debug(conn->toString());
+	// 	_lggr.debug(req.toString());
+	// }
 
 	_lggr.debug("FD " + su::to_string(req.clfd) + " ClientRequest {" + req.toString() + "}");
 	
-	// Match location block, Normalize URI + Check traversal
-	if (!matchLocation(req, conn) || !normalizePath(req, conn))	
-		return;
+	// // Match location block, Normalize URI + Check traversal
+	// if (!matchLocation(req, conn) || !normalizePath(req, conn))	
+	// 	return;
 	
 	// process the request
 	processValidRequest(req, conn);
@@ -333,12 +343,12 @@ void WebServer::processRequest(Connection *conn) {
 void WebServer::processValidRequest(ClientRequest &req, Connection *conn) {
 		
 	const std::string& full_path = conn->locConfig->getFullPath();
-	_lggr.debug("[Resp] The matched location is an exact match: " + su::to_string(conn->locConfig->is_exact_()));
+	// _lggr.debug("[Resp] The matched location is an exact match: " + su::to_string(conn->locConfig->is_exact_()));
 
-	// check max body size, return directive, method allowed
-	if (!processValidRequestChecks(req, conn)) {
-		return;
-	}
+	// // check max body size, return directive, method allowed
+	// if (!processValidRequestChecks(req, conn)) {
+	// 	return;
+	// }
 	
 	// File system check 
 	FileType file_type = checkFileType(full_path);

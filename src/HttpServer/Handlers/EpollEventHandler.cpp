@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:06:48 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/20 15:02:30 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/20 22:05:17 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -113,6 +113,19 @@ bool WebServer::processReceivedData(Connection *conn, const char *buffer, ssize_
 	} 
 	
 	else if (conn->state == Connection::READING_BODY) {
+		
+		// early body overflowing detection using the bytes read and the appended body_data.size()
+		if (conn->content_length > 0 && 
+		    static_cast<ssize_t>(conn->body_data.size() + bytes_read) > conn->content_length) {
+			_lggr.debug("New body size :" + su::to_string(conn->body_data.size() + bytes_read) + 
+			           ", Content-length :" + su::to_string(conn->content_length));
+			_lggr.error("Body size exceeds content-length");
+			prepareResponse(conn, Response(400, conn));
+			conn->state = Connection::REQUEST_COMPLETE;
+			conn->should_close = true;
+			return true;
+		}
+
 		conn->body_data.insert(conn->body_data.end(),
 		                       reinterpret_cast<const unsigned char *>(buffer),
 		                       reinterpret_cast<const unsigned char *>(buffer + bytes_read));
