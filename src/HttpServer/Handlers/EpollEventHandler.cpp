@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   EpollEventHandler.cpp                              :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
+/*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:06:48 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/19 19:17:12 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/20 16:20:20 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -52,8 +52,13 @@ void WebServer::handleClientEvent(int fd, uint32_t event_mask) {
 			handleClientRecv(conn);
 		}
 		if (event_mask & EPOLLOUT) {
-			if (conn->response_ready)
-				sendResponse(conn);
+			if (conn->response_ready) {
+				if (!sendResponse(conn))
+					closeConnection(conn);
+			} else {
+				_lggr.error("Response is not ready to be sent back to the client");
+				_lggr.debug("Error for clinet " + conn->toString());
+			}
 			if (!conn->keep_persistent_connection || conn->should_close)
 				closeConnection(conn); // risk of closing the connection before the response is ready?
 		}

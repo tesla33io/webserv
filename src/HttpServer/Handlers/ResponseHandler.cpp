@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ResponseHandler.cpp                                :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
+/*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:08:41 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/16 19:50:05 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/20 16:21:00 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,11 +37,11 @@ ssize_t WebServer::prepareResponse(Connection *conn, const Response &resp) {
 
 bool WebServer::sendResponse(Connection *conn) {
 	_lggr.debug("Current state of response [" + conn->response.toShortString());
-	if (!conn->response_ready) {
+	/* if (!conn->response_ready) {
 		_lggr.error("Response is not ready to be sent back to the client");
 		_lggr.debug("Error for clinet " + conn->toString());
 		return false;
-	}
+	} */
 	_lggr.debug("Sending response [" + conn->response.toShortString() +
 	            "] back to fd: " + su::to_string(conn->fd));
 	std::cout << conn->response.toShortString() << "] back to fd: " << su::to_string(conn->fd) << std::endl;
