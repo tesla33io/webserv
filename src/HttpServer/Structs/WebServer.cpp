@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/08 13:46:05 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/18 17:58:50 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/20 19:01:12 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,16 +23,6 @@ static bool interrupted = false;
 WebServer::WebServer(std::vector<ServerConfig> &confs)
     : _epoll_fd(-1),
       _backlog(SOMAXCONN),
-      _confs(confs),
-      _lggr("ws.log", Logger::DEBUG, true) {
-	_lggr.info("An instance of the Webserver was created.");
-}
-
-// DEPRECATED?
-WebServer::WebServer(std::vector<ServerConfig> &confs, std::string &prefix_path)
-    : _epoll_fd(-1),
-      _backlog(SOMAXCONN),
-      _root_prefix_path(prefix_path),
       _confs(confs),
       _lggr("ws.log", Logger::DEBUG, true) {
 	_lggr.info("An instance of the Webserver was created.");
@@ -344,7 +334,7 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
-	WebServer webserv(servers, args.prefix_path);
+	WebServer webserv(servers);
 
 	if (!webserv.initialize()) {
 		std::cerr << "Failed to initialize web server." << std::endl;

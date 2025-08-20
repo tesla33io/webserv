@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: Invalid date        by                   #+#    #+#             */
-/*   Updated: 2025/08/17 22:27:21 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/20 15:02:54 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -35,7 +35,6 @@ bool WebServer::processChunkSize(Connection *conn) {
 
 	chunk_size_line = su::trim(chunk_size_line);
 
-	// TODO: Check for negative?
 	conn->chunk_size = static_cast<size_t>(std::strtol(chunk_size_line.c_str(), NULL, 16));
 	conn->chunk_bytes_read = 0;
 
@@ -107,7 +106,7 @@ bool WebServer::processTrailer(Connection *conn) {
 	return processTrailer(conn);
 }
 
-// TODO: add more debuggin info
+
 void WebServer::reconstructChunkedRequest(Connection *conn) {
 	std::string reconstructed_request = conn->headers_buffer;
 

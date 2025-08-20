@@ -1,0 +1,5 @@
+# Test CRLF injection manually:
+curl -H "X-Test: value$(echo -e '\r\n')X-Injected: malicious" http://localhost:8080/
+
+# Test null byte injection:
+curl -H $'X-Test: value\x00injected' http://localhost:8080/

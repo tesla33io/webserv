@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:10:22 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/19 21:15:17 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/20 14:06:47 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -116,14 +116,13 @@ bool WebServer::isHeadersComplete(Connection *conn) {
 
 	
 	// Case 1 : content_length 0 or no content length)
-	if (conn->content_length <= 0) {
+	if (conn->content_length <= 0 && !conn->chunked) {
 		conn->state = Connection::REQUEST_COMPLETE;
 		return true;
 	}
 	// Case 2: content_length specified
 	else if (conn->content_length > 0) {
 		conn->state = Connection::READING_BODY;
-		
 		// check if full body
 		if (static_cast<ssize_t>(conn->body_data.size()) >= conn->content_length) {
 			conn->state = Connection::REQUEST_COMPLETE;
@@ -156,7 +155,7 @@ bool WebServer::isHeadersComplete(Connection *conn) {
 	// Case 5: not chunked, expect 100 - TODO: double check we use the chunk 
 	else if (hdr_req.expect_continue) {
 		prepareResponse(conn, Response::continue_());
-		conn->state = Connection::CONTINUE_SENT;
+		conn->state = Connection::READING_HEADERS;
 		conn->read_buffer.clear();
 		conn->chunk_size = 0;
 		conn->chunk_bytes_read = 0;
@@ -165,6 +164,7 @@ bool WebServer::isHeadersComplete(Connection *conn) {
 	}
 	// Default
 	else {
+		_lggr.logWithPrefix(Logger::ERROR, "BAD REQUEST", "Impossible request");
 		conn->state = Connection::REQUEST_COMPLETE;
 		return true;
 	}
@@ -350,8 +350,8 @@ void WebServer::processValidRequest(ClientRequest &req, Connection *conn) {
 		return;
 		
 	// we redirect if uri is missing the / (and vice versa), not the resolved path
-	bool end_slash = (!req.uri.empty() && su::back(req.uri) == '/');
-	std::cout << "end slash? " << end_slash << " URI: " << req.uri << std::endl;
+	bool end_slash = (!req.path.empty() && su::back(req.path) == '/');
+	std::cout << "end slash? " << end_slash << " URI: " << req.path << std::endl;
 	// Route based on file type and request format
 	if (file_type == ISDIR) {
 		handleDirectoryRequest(req, conn, end_slash);

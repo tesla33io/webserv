@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:08:41 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/16 19:50:05 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/20 14:56:08 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,9 +16,7 @@
 #include "src/HttpServer/HttpServer.hpp"
 
 ssize_t WebServer::prepareResponse(Connection *conn, const Response &resp) {
-	// TODO: some checks if the arguments are fine to work with
-	// TODO: make sure that Response has all required headers set up correctly (e.g. Content-Type,
-	// Content-Length, etc).
+
 	if (conn->response_ready) {
 		_lggr.error(
 		    "Trying to prepare a response for a connection that is ready to sent another one");

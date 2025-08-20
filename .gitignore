@@ -6,6 +6,7 @@ webserv
 .cache/
 www/uploads
 Response
+*.ig
 
 # Prerequisites
 *.d

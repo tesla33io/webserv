@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:06:48 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/19 19:17:12 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/20 15:02:30 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,7 +24,6 @@ void WebServer::processEpollEvents(const struct epoll_event *events, int event_c
 		//             describeEpollEvents(event_mask) + ")");
 
 		if (isListeningSocket(fd)) {
-			// TODO: NULL check
 			ServerConfig *sc = ServerConfig::find(_confs, fd);
 			handleNewConnection(sc);
 		} else if (isCGIFd(fd)) {
@@ -52,10 +51,11 @@ void WebServer::handleClientEvent(int fd, uint32_t event_mask) {
 			handleClientRecv(conn);
 		}
 		if (event_mask & EPOLLOUT) {
-			if (conn->response_ready)
-				sendResponse(conn);
-			if (!conn->keep_persistent_connection || conn->should_close)
-				closeConnection(conn); // risk of closing the connection before the response is ready?
+			if (conn->response_ready) {
+					sendResponse(conn);
+				if (!conn->keep_persistent_connection || conn->should_close)
+					closeConnection(conn); 
+			}
 		}
 		if (event_mask & (EPOLLERR | EPOLLHUP)) {
 			_lggr.error("Error/hangup event for fd: " + su::to_string(fd));
@@ -106,9 +106,6 @@ ssize_t WebServer::receiveData(int client_fd, char *buffer, size_t buffer_size) 
 
 bool WebServer::processReceivedData(Connection *conn, const char *buffer, ssize_t bytes_read) {
 	static int i = 0;
-
-	_lggr.debug("MAX BODY : bytes read " + su::to_string( conn->body_bytes_read) 
-			+ " / " + su::to_string(conn->getServerConfig()->getServerMaxBodySize()));
 			
 	if (conn->state == Connection::READING_HEADERS) {
 		conn->read_buffer += std::string(buffer, bytes_read);
@@ -130,9 +127,6 @@ bool WebServer::processReceivedData(Connection *conn, const char *buffer, ssize_
 	else {
 		// For chunked data and other states, keep existing behavior
 		conn->read_buffer += std::string(buffer, bytes_read);
-		if (conn->state == Connection::READING_BODY) {
-			conn->body_bytes_read += bytes_read;
-		}
 		std::cerr << i++ << " calls of processReceivedData (OTHER)" << std::endl;
 	}
 

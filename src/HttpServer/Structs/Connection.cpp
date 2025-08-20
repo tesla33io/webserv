@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/08 13:41:32 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/19 19:03:47 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/20 15:02:48 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -70,7 +70,7 @@ std::string Connection::toString() {
 	oss << "clfd: " << fd << ", ";
 
 	char time_buf[26];
-	// TODO: do we need thread-safety??
+
 #if defined(_MSC_VER)
 	ctime_s(time_buf, sizeof(time_buf), &last_activity);
 #else

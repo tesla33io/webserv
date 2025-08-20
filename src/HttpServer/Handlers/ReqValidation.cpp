@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/08 12:56:57 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/19 21:32:44 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/20 14:07:19 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,9 +18,9 @@
 
 bool WebServer::matchLocation(ClientRequest &req, Connection *conn) {
 	// initialize the correct locConfig // default "/"
-	LocConfig *match = findBestMatch(req.uri, conn->servConfig->getLocations());
+	LocConfig *match = findBestMatch(req.path, conn->servConfig->getLocations());
 	if (!match) {
-		_lggr.error("[Resp] No matched location for : " + req.uri);
+		_lggr.error("[Resp] No matched location for : " + req.path);
 		prepareResponse(conn, Response::internalServerError(conn));
 		return false;
 	}
@@ -33,7 +33,7 @@ bool WebServer::matchLocation(ClientRequest &req, Connection *conn) {
 bool WebServer::normalizePath(ClientRequest &req, Connection *conn) {
 
 	// normalisation
-	std::string full_path = buildFullPath(req.uri, conn->locConfig);
+	std::string full_path = buildFullPath(req.path, conn->locConfig);
 	std::string root_full_path = buildFullPath("", conn->locConfig);
 	char resolved[PATH_MAX];
 	realpath(full_path.c_str(), resolved);

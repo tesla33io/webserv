@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/08 13:44:09 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/19 17:28:05 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/20 19:01:39 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -38,12 +38,6 @@ class WebServer {
 	/// \param confs Vector of server configurations to initialize.
 	WebServer(std::vector<ServerConfig> &confs);
 
-	/// !!! DEPRECATED !!!
-	/// Constructs a WebServer with configurations and a root path prefix.
-	/// \param confs Vector of server configurations to initialize.
-	/// \param prefix_path Root directory prefix for serving files.
-	WebServer(std::vector<ServerConfig> &confs, std::string &prefix_path);
-
 	~WebServer();
 
 	/// Initializes all server sockets and prepares for accepting connections.
@@ -59,7 +53,7 @@ class WebServer {
   private:
 	int _epoll_fd;
 	int _backlog;
-	std::string _root_prefix_path;
+
 
 	std::vector<ServerConfig> _confs;
 	std::vector<ServerConfig> _have_pending_conn;
