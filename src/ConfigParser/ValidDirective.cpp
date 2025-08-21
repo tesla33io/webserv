@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 13:52:39 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/18 16:19:34 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/21 15:50:37 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -158,7 +158,7 @@ bool ConfigParser::validateListen(const ConfigNode &node) {
 	return true;
 }
 
-// RETURN : 300 - 399. If no code-> one arg (URL), otherwise code uri/url
+// RETURN : 300 - 599. If no code-> one arg (URL or error), otherwise code + uri/url
 bool ConfigParser::validateReturn(const ConfigNode &node) {
 	// 1 arg: url or error code
 	if (node.args_.size() == 1) {

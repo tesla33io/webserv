@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/18 14:50:47 by htharrau          #+#    #+#             */
-/*   Updated: 2025/08/21 15:25:02 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/21 15:45:21 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -81,7 +81,6 @@ class ServerConfig {
 	int port;
 	std::map<uint16_t, std::string> error_pages;
 	std::vector<LocConfig> locations;
-	size_t maximum_body_size;
 	std::string prefix_;
 	int server_fd;
 
