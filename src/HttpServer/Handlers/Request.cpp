@@ -10,18 +10,17 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "src/HttpServer/Structs/WebServer.hpp"
+#include "src/HttpServer/HttpServer.hpp"
 #include "src/HttpServer/Structs/Connection.hpp"
 #include "src/HttpServer/Structs/Response.hpp"
-#include "src/HttpServer/HttpServer.hpp"
+#include "src/HttpServer/Structs/WebServer.hpp"
 #include "src/Utils/ServerUtils.hpp"
 
 /* Request handlers */
 
 void WebServer::handleRequestTooLarge(Connection *conn, ssize_t bytes_read) {
 	_lggr.info("Reached max content length for fd: " + su::to_string(conn->fd) + ", " +
-			   su::to_string(bytes_read) + "/" +
-			   su::to_string(conn->locConfig->getMaxBodySize()));
+	           su::to_string(bytes_read) + "/" + su::to_string(conn->locConfig->getMaxBodySize()));
 	prepareResponse(conn, Response(413, conn));
 }
 
@@ -48,14 +47,14 @@ uint16_t WebServer::handleCGIRequest(ClientRequest &req, Connection *conn) {
 		_lggr.error("EPollManage for CGI request failed.");
 		return (502);
 	}
-	
+
 	return (0);
 }
 
 /* Request processing */
 
 bool WebServer::isHeadersComplete(Connection *conn) {
-	
+
 	std::string temp = conn->read_buffer;
 	size_t header_end = conn->read_buffer.find("\r\n\r\n");
 	if (header_end == std::string::npos) {
@@ -64,7 +63,7 @@ bool WebServer::isHeadersComplete(Connection *conn) {
 
 	// Headers are complete
 	std::string headers = conn->read_buffer.substr(0, header_end + 4);
-	
+
 	// Header request for early headers error detection
 	ClientRequest hdr_req;
 	hdr_req.clfd = conn->fd;
@@ -73,7 +72,8 @@ bool WebServer::isHeadersComplete(Connection *conn) {
 	// On error: REQUEST_COMPLETE, Prepare Response
 	uint16_t error_code = RequestParsingUtils::parseRequestHeaders(headers, hdr_req);
 	_lggr.debug("[HEADER CHECK] ClientRequest post header parsing: " + hdr_req.printRequest());
-	_lggr.debug("[HEADER CHECK] Error code post header request parsing : " + su::to_string(error_code));
+	_lggr.debug("[HEADER CHECK] Error code post header request parsing : " +
+	            su::to_string(error_code));
 	if (error_code != 0) {
 		_lggr.error("Parsing of the request's headers failed.");
 		conn->state = Connection::REQUEST_COMPLETE;
@@ -102,12 +102,12 @@ bool WebServer::isHeadersComplete(Connection *conn) {
 	conn->chunked = hdr_req.chunked_encoding;
 	conn->content_length = hdr_req.content_length;
 
-	//Store remaining data as binary body data for Content-Length requests
+	// Store remaining data as binary body data for Content-Length requests
 	std::string remaining_data = conn->read_buffer.substr(header_end + 4);
 	if (!remaining_data.empty() && !conn->chunked && conn->content_length > 0) {
-		conn->body_data.insert(conn->body_data.end(),
-							  reinterpret_cast<const unsigned char *>(remaining_data.data()),
-							  reinterpret_cast<const unsigned char *>(remaining_data.data() + remaining_data.size()));
+		conn->body_data.insert(
+		    conn->body_data.end(), reinterpret_cast<const unsigned char *>(remaining_data.data()),
+		    reinterpret_cast<const unsigned char *>(remaining_data.data() + remaining_data.size()));
 		conn->body_bytes_read = conn->body_data.size();
 	}
 
@@ -117,7 +117,6 @@ bool WebServer::isHeadersComplete(Connection *conn) {
 	// No body expected → e.g. GET without body, or status codes like 204 / 304.
 	// ! They are mutually exclusive !
 
-	
 	// Case 1 : content_length 0 or no content length)
 	if (conn->content_length <= 0) {
 		conn->state = Connection::REQUEST_COMPLETE;
@@ -126,7 +125,7 @@ bool WebServer::isHeadersComplete(Connection *conn) {
 	// Case 2: content_length specified
 	else if (conn->content_length > 0) {
 		conn->state = Connection::READING_BODY;
-		
+
 		// check if full body
 		if (static_cast<ssize_t>(conn->body_data.size()) >= conn->content_length) {
 			conn->state = Connection::REQUEST_COMPLETE;
@@ -156,7 +155,7 @@ bool WebServer::isHeadersComplete(Connection *conn) {
 		conn->chunk_data.clear();
 		return processChunkSize(conn);
 	}
-	// Case 5: not chunked, expect 100 - TODO: double check we use the chunk 
+	// Case 5: not chunked, expect 100 - TODO: double check we use the chunk
 	else if (hdr_req.expect_continue) {
 		prepareResponse(conn, Response::continue_());
 		conn->state = Connection::CONTINUE_SENT;
@@ -174,9 +173,9 @@ bool WebServer::isHeadersComplete(Connection *conn) {
 }
 
 bool WebServer::isRequestComplete(Connection *conn) {
-	
+
 	switch (conn->state) {
-		
+
 	case Connection::READING_HEADERS:
 		_lggr.debug("isRequestComplete->READING_HEADERS");
 		return isHeadersComplete(conn);
@@ -184,19 +183,18 @@ bool WebServer::isRequestComplete(Connection *conn) {
 	case Connection::READING_BODY:
 		_lggr.debug("isRequestComplete->READING_BODY");
 		_lggr.debug(
-			su::to_string(conn->content_length - static_cast<ssize_t>(conn->body_data.size())) +
-			" bytes left to receive");
-					
+		    su::to_string(conn->content_length - static_cast<ssize_t>(conn->body_data.size())) +
+		    " bytes left to receive");
+
 		if (static_cast<ssize_t>(conn->body_data.size()) >= conn->content_length) {
 			_lggr.debug("Read full content-length: " + su::to_string(conn->body_data.size()) +
-						" bytes received");
+			            " bytes received");
 			conn->state = Connection::REQUEST_COMPLETE;
 			reconstructRequest(conn);
 			return true;
 		}
 		return false;
 
-		
 	case Connection::CONTINUE_SENT:
 		_lggr.debug("isRequestComplete->CONTINUE_SENT");
 		conn->state = Connection::READING_CHUNK_SIZE;
@@ -234,26 +232,28 @@ bool WebServer::reconstructRequest(Connection *conn) {
 		return false;
 	}
 
-	std::cout << "                                     HEADER BUFFER: " << conn->headers_buffer << std::endl;
+	std::cout << "                                     HEADER BUFFER: " << conn->headers_buffer
+	          << std::endl;
 	reconstructed_request = conn->headers_buffer;
-	std::cout << "                                     RECONSTR BUFFER: " << conn->headers_buffer << std::endl;
+	std::cout << "                                     RECONSTR BUFFER: " << conn->headers_buffer
+	          << std::endl;
 
 	if (conn->content_length > 0) {
 		size_t body_size =
-			std::min(static_cast<size_t>(conn->content_length), conn->body_data.size());
+		    std::min(static_cast<size_t>(conn->content_length), conn->body_data.size());
 
 		reconstructed_request.append(reinterpret_cast<const char *>(&conn->body_data[0]),
-									 body_size);
+		                             body_size);
 
 		_lggr.debug("Reconstructed request with " + su::to_string(body_size) +
-					" bytes of body data");
+		            " bytes of body data");
 	}
 
 	conn->read_buffer = reconstructed_request;
 
 	size_t headers_end = conn->headers_buffer.size();
 	std::string debug_output =
-		"Reconstructed request headers:\n" + conn->read_buffer.substr(0, headers_end);
+	    "Reconstructed request headers:\n" + conn->read_buffer.substr(0, headers_end);
 	if (conn->content_length > 0) {
 		debug_output += "\n[Binary body data: " + su::to_string(conn->body_data.size()) + " bytes]";
 	}
@@ -261,7 +261,6 @@ bool WebServer::reconstructRequest(Connection *conn) {
 
 	return true;
 }
-
 
 bool WebServer::parseRequest(Connection *conn, ClientRequest &req) {
 	_lggr.debug("Parsing request: " + conn->read_buffer);
@@ -282,7 +281,6 @@ void WebServer::processRequest(Connection *conn) {
 	ClientRequest req;
 	req.content_length = -1;
 	req.clfd = conn->fd;
-
 
 	if (!parseRequest(conn, req))
 		return;
@@ -322,39 +320,37 @@ void WebServer::processRequest(Connection *conn) {
 	}
 
 	_lggr.debug("FD " + su::to_string(req.clfd) + " ClientRequest {" + req.toString() + "}");
-	
+
 	// Match location block, Normalize URI + Check traversal
-	if (!matchLocation(req, conn) || !normalizePath(req, conn))	
+	if (!matchLocation(req, conn) || !normalizePath(req, conn))
 		return;
-	
+
 	// process the request
 	processValidRequest(req, conn);
 }
 
-
-
 void WebServer::processValidRequest(ClientRequest &req, Connection *conn) {
-		
-	const std::string& full_path = conn->locConfig->getFullPath();
-	_lggr.debug("[Resp] The matched location is an exact match: " + su::to_string(conn->locConfig->is_exact_()));
+
+	const std::string &full_path = conn->locConfig->getFullPath();
+	_lggr.debug("[Resp] The matched location is an exact match: " +
+	            su::to_string(conn->locConfig->is_exact_()));
 
 	// check max body size, return directive, method allowed
 	if (!processValidRequestChecks(req, conn)) {
 		return;
 	}
-	
-	// File system check 
+
+	// File system check
 	FileType file_type = checkFileType(full_path);
 	_lggr.debug("[Resp] checkFileType for " + full_path + " is " + fileTypeToString(file_type));
-
 
 	// File system errors
 	if (!handleFileSystemErrors(file_type, full_path, conn))
 		return;
-		
+
 	// we redirect if uri is missing the / (and vice versa), not the resolved path
-	bool end_slash = (!req.path.empty() && su::back(req.path) == '/');
-	std::cout << "end slash? " << end_slash << " URI: " << req.path << std::endl;
+	bool end_slash = (!req.uri.empty() && su::back(req.uri) == '/');
+	std::cout << "end slash? " << end_slash << " URI: " << req.uri << std::endl;
 	// Route based on file type and request format
 	if (file_type == ISDIR) {
 		handleDirectoryRequest(req, conn, end_slash);

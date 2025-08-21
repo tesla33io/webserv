@@ -23,7 +23,7 @@ std::string ClientRequest::toString() const {
 
 	oss << "headers: [";
 	for (std::map<std::string, std::string>::const_iterator it = headers.begin();
-		 it != headers.end(); ++it) {
+	     it != headers.end(); ++it) {
 		oss << it->first << ":" << it->second << ", ";
 	}
 	oss << "], ";
@@ -48,9 +48,10 @@ std::string ClientRequest::printRequest() const {
 	oss << method << " " << uri << " " << version << "\r\n";
 
 	// Print all headers (case-insensitive keys)
-	for (std::map<std::string, std::string>::const_iterator it = headers.begin(); it != headers.end(); ++it) {
-		const std::string& key = it->first;
-		const std::string& val = it->second;
+	for (std::map<std::string, std::string>::const_iterator it = headers.begin();
+	     it != headers.end(); ++it) {
+		const std::string &key = it->first;
+		const std::string &val = it->second;
 		// Capitalize header keys for better readability (optional)
 		std::string headerKey = key;
 		oss << headerKey << ": " << val << "\r\n";
@@ -66,7 +67,6 @@ std::string ClientRequest::printRequest() const {
 
 	return oss.str();
 }
-
 
 /* Utils */
 const char *RequestParsingUtils::findHeader(ClientRequest &request, const std::string &header) {
@@ -85,14 +85,15 @@ std::string RequestParsingUtils::trimSide(const std::string &s, int type) {
 	}
 	if (type == 2 || type == 3) {
 		while (!result.empty() &&
-			   (result[result.size() - 1] == ' ' || result[result.size() - 1] == '\t'))
+		       (result[result.size() - 1] == ' ' || result[result.size() - 1] == '\t'))
 			result.erase(result.size() - 1);
 	}
 	return (result);
 }
 
 /* Trailing headers parser */
-uint16_t RequestParsingUtils::parseTrailingHeaders(std::istringstream &stream, ClientRequest &request) {
+uint16_t RequestParsingUtils::parseTrailingHeaders(std::istringstream &stream,
+                                                   ClientRequest &request) {
 	Logger logger;
 	std::string line;
 	logger.logWithPrefix(Logger::INFO, "HTTP", "Parsing trailing headers");
@@ -127,7 +128,7 @@ uint16_t RequestParsingUtils::parseTrailingHeaders(std::istringstream &stream, C
 			char c = name[i];
 			if (!std::isalnum(c) && c != '-' && c != '_') {
 				logger.logWithPrefix(Logger::WARNING, "HTTP",
-									 "Invalid character in header name: " + name);
+				                     "Invalid character in header name: " + name);
 				return 400;
 			}
 		}
@@ -172,6 +173,7 @@ uint16_t RequestParsingUtils::parseRequest(const std::string &raw_request, Clien
 		return 400;
 	}
 
+	logger.logWithPrefix(Logger::DEBUG, "HTTP", "Parsing request");
 	request.chunked_encoding = false;
 	request.file_upload = false;
 	request.extension = "";
@@ -208,9 +210,9 @@ uint16_t RequestParsingUtils::parseRequest(const std::string &raw_request, Clien
 	return 0;
 }
 
-
 /* Parser */
-uint16_t RequestParsingUtils::parseRequestHeaders(const std::string &raw_request, ClientRequest &request) {
+uint16_t RequestParsingUtils::parseRequestHeaders(const std::string &raw_request,
+                                                  ClientRequest &request) {
 	Logger logger;
 	if (raw_request.empty()) {
 		logger.logWithPrefix(Logger::WARNING, "HTTP", "No request received");
