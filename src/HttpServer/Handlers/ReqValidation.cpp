@@ -6,7 +6,7 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/08 12:56:57 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/21 10:34:04 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/21 11:09:30 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,7 +33,6 @@ bool WebServer::matchLocation(ClientRequest &req, Connection *conn) {
 bool WebServer::normalizePath(ClientRequest &req, Connection *conn) {
 
 	// normalisation
-	//std::string full_path = buildFullPath(req.uri, conn->locConfig);
 	std::string full_path = buildFullPath(req.path, conn->locConfig);
 	std::string root_full_path = buildFullPath("", conn->locConfig);
 	char resolved[PATH_MAX];
