@@ -59,6 +59,7 @@ class Connection {
 	ClientRequest parsed_request;
 
 	Response response;
+	std::string cgi_response;
 	bool response_ready;
 	int request_count;
 	bool should_close;

@@ -58,6 +58,36 @@ bool WebServer::sendCGIResponse(CGI *cgi, Connection *conn) {
 	return (true);
 }
 
+ssize_t WebServer::prepareCGIResponse(CGI *cgi, Connection *conn) {
+	Logger logger;
+	std::string cgi_output;
+	char buffer[4096];
+	ssize_t bytes_read;
+
+	while ((bytes_read = read(cgi->getOutputFd(), buffer, sizeof(buffer))) > 0) {
+		cgi_output.append(buffer, bytes_read);
+	}
+
+	if (bytes_read == -1) {
+		logger.logWithPrefix(Logger::ERROR, "CGI", "Error reading from CGI script");
+		close(cgi->getOutputFd());
+		waitpid(cgi->getPid(), NULL, 0);
+		return (false);
+	}
+	printCGIResponse(cgi_output);
+	if (conn->response_ready) {
+		_lggr.error(
+		    "Trying to prepare a response for a connection that is ready to sent another one");
+		return (-1);
+	}
+	conn->cgi_response = cgi_output;
+	conn->response_ready = true;
+	cgi->cleanup();
+	delete cgi;
+	conn->response_ready = true;
+	return (conn->cgi_response.size());
+}
+
 void WebServer::handleCGIOutput(int fd) {
 	CGI *cgi;
 	Connection *conn;

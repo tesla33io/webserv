@@ -22,6 +22,7 @@ Connection::Connection(int socket_fd)
       chunked(false),
       chunk_size(0),
       chunk_bytes_read(0),
+	  cgi_response(""),
       response_ready(false),
       request_count(0),
       should_close(0),

@@ -36,6 +36,8 @@ ssize_t WebServer::prepareResponse(Connection *conn, const Response &resp) {
 }
 
 bool WebServer::sendResponse(Connection *conn) {
+	std::string raw_response;
+
 	_lggr.debug("Current state of response [" + conn->response.toShortString());
 	/* if (!conn->response_ready) {
 		_lggr.error("Response is not ready to be sent back to the client");
@@ -45,9 +47,14 @@ bool WebServer::sendResponse(Connection *conn) {
 	_lggr.debug("Sending response [" + conn->response.toShortString() +
 	            "] back to fd: " + su::to_string(conn->fd));
 	std::cout << conn->response.toShortString() << "] back to fd: " << su::to_string(conn->fd) << std::endl;
-	std::string raw_response = conn->response.toString();
+	if (conn->cgi_response != "") {
+		raw_response = conn->cgi_response;
+		conn->cgi_response = "";
+	} else {
+		raw_response = conn->response.toString();
+		conn->response.reset();
+	}
 	epollManage(EPOLL_CTL_MOD, conn->fd, EPOLLIN);
-	conn->response.reset();
 	conn->response_ready = false;
     conn->state = Connection::READING_HEADERS;
 	return send(conn->fd, raw_response.c_str(), raw_response.size(), MSG_NOSIGNAL) != -1;
