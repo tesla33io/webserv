@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/18 14:50:47 by htharrau          #+#    #+#             */
-/*   Updated: 2025/08/18 17:48:03 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/21 15:25:02 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -103,9 +103,6 @@ class ServerConfig {
 	std::vector<LocConfig> &getLocations();
 	std::string getErrorPage(uint16_t status) const;
 
-	// SETTERS
-	size_t getServerMaxBodySize() const;
-	bool serverInfiniteBodySize() const;
 
 	// The default location
 	LocConfig *defaultLocation();

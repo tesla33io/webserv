@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   EpollEventHandler.cpp                              :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:06:48 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/20 16:20:20 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/21 15:05:41 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -112,8 +112,8 @@ ssize_t WebServer::receiveData(int client_fd, char *buffer, size_t buffer_size) 
 bool WebServer::processReceivedData(Connection *conn, const char *buffer, ssize_t bytes_read) {
 	static int i = 0;
 
-	_lggr.debug("MAX BODY : bytes read " + su::to_string( conn->body_bytes_read) 
-			+ " / " + su::to_string(conn->getServerConfig()->getServerMaxBodySize()));
+	// _lggr.debug("MAX BODY : bytes read " + su::to_string( conn->body_bytes_read) 
+	// 		+ " / " + su::to_string(conn->getServerConfig()->getServerMaxBodySize()));
 			
 	if (conn->state == Connection::READING_HEADERS) {
 		conn->read_buffer += std::string(buffer, bytes_read);

@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/18 14:50:47 by htharrau          #+#    #+#             */
-/*   Updated: 2025/08/19 18:00:56 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/21 15:24:36 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -145,13 +145,6 @@ std::string ServerConfig::getErrorPage(uint16_t status) const {
 	return (it != error_pages.end()) ? it->second : "";
 }
 
-size_t ServerConfig::getServerMaxBodySize() const { 
-	return maximum_body_size; 
-}
-
-bool ServerConfig::serverInfiniteBodySize() const { 
-	return (maximum_body_size == 0) ? true : false;
-}
 
 // The default location
 LocConfig *ServerConfig::defaultLocation() {
