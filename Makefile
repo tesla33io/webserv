@@ -3,10 +3,10 @@
 #                                                         :::      ::::::::    #
 #    Makefile                                           :+:      :+:    :+:    #
 #                                                     +:+ +:+         +:+      #
-#    By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+         #
+#    By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: Invalid date        by         __/       #+#    #+#              #
-#    Updated: 2025/08/19 19:22:14 by htharrau         ###   ########.fr        #
+#    Updated: 2025/08/21 10:35:37 by jalombar         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -40,7 +40,6 @@ SRC_FILES		+= src/CGI/CGIHandler.cpp
 SRC_FILES		+= src/HttpServer/Handlers/ChunkedReq.cpp
 SRC_FILES		+= src/HttpServer/Handlers/Connection.cpp
 SRC_FILES		+= src/HttpServer/Handlers/EpollEventHandler.cpp
-SRC_FILES		+= src/HttpServer/Handlers/MethodsHandler.cpp
 SRC_FILES		+= src/HttpServer/Handlers/Request.cpp
 SRC_FILES		+= src/HttpServer/Handlers/ReqValidation.cpp
 SRC_FILES		+= src/HttpServer/Handlers/ResponseHandler.cpp

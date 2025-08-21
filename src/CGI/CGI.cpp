@@ -6,7 +6,7 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/31 09:07:54 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/20 15:22:17 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/20 16:51:58 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,6 +14,8 @@
 
 CGI::CGI(ClientRequest &request, LocConfig *locConfig)
     : script_path_(locConfig->getFullPath()) {
+	std::cout << "FULL PATH: " << locConfig->getFullPath() << std::endl;
+	std::cout << "OTHER PATH: " << request.path;
 	setEnv("SCRIPT_FILENAME", locConfig->getFullPath());
 	setEnv("SCRIPT_NAME", "/" + request.path);
 	setEnv("REQUEST_METHOD", request.method);

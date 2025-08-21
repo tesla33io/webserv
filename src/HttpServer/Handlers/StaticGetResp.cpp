@@ -6,7 +6,7 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/19 18:29:33 by htharrau          #+#    #+#             */
-/*   Updated: 2025/08/20 15:23:21 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/21 10:35:04 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -42,8 +42,8 @@ void WebServer::handleDirectoryRequest(ClientRequest &req, Connection *conn, boo
 	_lggr.debug("Directory request: " + full_path);
 
 	if (!end_slash) {
-		_lggr.debug("Directory request without trailing slash, redirecting to : " + req.uri + "/");
-		std::string redirectPath = req.uri + "/";
+		_lggr.debug("Directory request without trailing slash, redirecting to : " + req.path + "/");
+		std::string redirectPath = req.path + "/";
 		prepareResponse(conn, respReturnDirective(conn, 301, redirectPath));
 		return;
 	} else {
@@ -59,8 +59,8 @@ void  WebServer::handleFileRequest(ClientRequest &req, Connection *conn, bool en
 	
 	// Trailing '/'? Redirect
 	if (end_slash ) { //&& !conn->locConfig->is_exact_()
-		_lggr.debug("File request with trailing slash, redirecting: " + req.uri);
-		std::string redirectPath = req.uri.substr(0, req.uri.length() - 1);
+		_lggr.debug("File request with trailing slash, redirecting: " + req.path);
+		std::string redirectPath = req.path.substr(0, req.path.length() - 1);
 		prepareResponse(conn, respReturnDirective(conn, 301, redirectPath));
 		return;
 	}

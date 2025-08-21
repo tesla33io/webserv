@@ -6,7 +6,7 @@
 /*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:10:22 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/20 15:22:54 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/21 10:33:46 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -353,8 +353,8 @@ void WebServer::processValidRequest(ClientRequest &req, Connection *conn) {
 		return;
 		
 	// we redirect if uri is missing the / (and vice versa), not the resolved path
-	bool end_slash = (!req.uri.empty() && su::back(req.uri) == '/');
-	std::cout << "end slash? " << end_slash << " URI: " << req.uri << std::endl;
+	bool end_slash = (!req.path.empty() && su::back(req.path) == '/');
+	std::cout << "end slash? " << end_slash << " URI: " << req.path << std::endl;
 	// Route based on file type and request format
 	if (file_type == ISDIR) {
 		handleDirectoryRequest(req, conn, end_slash);
