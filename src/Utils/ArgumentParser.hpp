@@ -27,7 +27,7 @@ struct ServerArgs {
 	      prefix_path(""),
 	      show_help(false),
 	      show_version(false),
-	      log_level(2) {}
+	      log_level(1) {}
 };
 
 class ArgumentParser {

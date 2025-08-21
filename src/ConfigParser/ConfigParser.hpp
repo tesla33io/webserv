@@ -49,7 +49,7 @@ class ConfigNode {
 class ConfigParser {
 
   public:
-	ConfigParser();
+	ConfigParser(int log_level);
 
 	typedef bool (ConfigParser::*ValidationFunction)(const ConfigNode &);
 
@@ -72,7 +72,7 @@ class ConfigParser {
 	};
 
 	// PARSING THE CONFIGURATION FILE
-	bool loadConfig(const std::string &filePath, std::vector<ServerConfig> &servers, std::string &prefix);
+	bool loadConfig(const std::string &filePath, std::vector<ServerConfig> &servers, std::string &prefix, int log_level);
 
   private:
 	Logger logg_;

@@ -12,8 +12,7 @@
 
 #include "RequestParser.hpp"
 
-uint16_t RequestParsingUtils::checkNTrimLine(std::string &line) {
-	Logger logger;
+uint16_t RequestParsingUtils::checkNTrimLine(std::string &line, Logger &logger) {
 	// Check line ending (\r\n)
 	if (line.empty()) {
 		logger.logWithPrefix(Logger::WARNING, "HTTP", "Invalid line ending");
@@ -28,11 +27,10 @@ uint16_t RequestParsingUtils::checkNTrimLine(std::string &line) {
 	return 0;
 }
 
-uint16_t RequestParsingUtils::parseBody(std::istringstream &stream, ClientRequest &request) {
-	Logger logger;
+uint16_t RequestParsingUtils::parseBody(std::istringstream &stream, ClientRequest &request, Logger &logger) {
 	logger.logWithPrefix(Logger::DEBUG, "HTTP", "Parsing message body");
 
-	const char *content_length_value = findHeader(request, "content-length");
+	const char *content_length_value = findHeader(request, "content-length", logger);
 
 	// Enforce Content-Length for POST even if body is empty
 	if (!content_length_value) {

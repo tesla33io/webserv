@@ -11,11 +11,11 @@
 /* ************************************************************************** */
 
 #include "WebServer.hpp"
+#include "Logger/Logger.hpp"
+#include "src/ConfigParser/Struct.hpp"
 #include "src/HttpServer/HttpServer.hpp"
 #include "src/HttpServer/Structs/Connection.hpp"
 #include "src/HttpServer/Structs/Response.hpp"
-#include "src/HttpServer/HttpServer.hpp"
-#include "src/ConfigParser/Struct.hpp"
 
 bool WebServer::_running;
 static bool interrupted = false;
@@ -29,12 +29,17 @@ WebServer::WebServer(std::vector<ServerConfig> &confs)
 }
 
 // DEPRECATED?
-WebServer::WebServer(std::vector<ServerConfig> &confs, std::string &prefix_path)
+WebServer::WebServer(std::vector<ServerConfig> &confs, std::string &prefix_path, int log_level)
     : _epoll_fd(-1),
       _backlog(SOMAXCONN),
       _root_prefix_path(prefix_path),
       _confs(confs),
-      _lggr("ws.log", Logger::DEBUG, true) {
+      _lggr("ws.log",
+            log_level == 0 ? Logger::ERROR
+                           : (log_level == 1     ? Logger::WARNING
+                              : (log_level == 2) ? Logger::INFO
+                                                 : Logger::DEBUG),
+            true) {
 	_lggr.info("An instance of the Webserver was created.");
 }
 
@@ -96,11 +101,11 @@ void WebServer::run() {
 		cleanupExpiredConnections();
 	}
 
-	for (std::vector<ServerConfig>::iterator it = _confs.begin(); it != _confs.end(); ++it) {
-		if (it->getServerFD() != -1) {
-			close(it->getServerFD());
-		}
-	}
+	//for (std::vector<ServerConfig>::iterator it = _confs.begin(); it != _confs.end(); ++it) {
+	//	if (it->getServerFD() != -1) {
+	//		close(it->getServerFD());
+	//	}
+	//}
 }
 
 void sigint_handler(int sig) {
@@ -309,7 +314,6 @@ std::string getCurrentWorkingDirectory() {
 	return dir;
 }
 
-
 int main(int argc, char *argv[]) {
 	ArgumentParser ap;
 	ServerArgs args;
@@ -334,18 +338,19 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
-	ConfigParser configparser;
+	ConfigParser configparser(args.log_level);
 	std::vector<ServerConfig> servers;
 
-	if (!configparser.loadConfig(args.config_file, servers, args.prefix_path)) {
+	if (!configparser.loadConfig(args.config_file, servers, args.prefix_path, args.log_level)) {
 		std::cerr << "Error: Failed to open or parse configuration file '" << args.config_file
 		          << "'" << std::endl;
 		std::cerr << "Please check the configuration file syntax and try again." << std::endl;
 		return 1;
 	}
 
-	WebServer webserv(servers, args.prefix_path);
+	WebServer webserv(servers, args.prefix_path, args.log_level);
 
+    webserv.log_level = args.log_level;
 	if (!webserv.initialize()) {
 		std::cerr << "Failed to initialize web server." << std::endl;
 		return 1;

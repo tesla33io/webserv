@@ -10,10 +10,10 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "src/HttpServer/Structs/WebServer.hpp"
 #include "src/HttpServer/Structs/Connection.hpp"
-#include "src/HttpServer/Structs/Response.hpp"
 #include "src/HttpServer/HttpServer.hpp"
+#include "src/HttpServer/Structs/Response.hpp"
+#include "src/HttpServer/Structs/WebServer.hpp"
 
 void WebServer::handleNewConnection(ServerConfig *sc) {
 	struct sockaddr_in client_addr;
@@ -98,11 +98,6 @@ void WebServer::closeConnection(Connection *conn) {
 	if (!conn)
 		return;
 
-	// TODO: redundant check may be removed
-	// if (conn->keep_persistent_connection) {
-	// 	_lggr.debug("Ignoring connection close request for fd: " + su::to_string(conn->fd));
-	// 	return;
-	// }
 	_lggr.debug("Closing connection for fd: " + su::to_string(conn->fd));
 
 	epoll_ctl(_epoll_fd, EPOLL_CTL_DEL, conn->fd, NULL);
@@ -113,4 +108,5 @@ void WebServer::closeConnection(Connection *conn) {
 		_connections.erase(conn->fd);
 	}
 	_lggr.debug("Connection cleanup completed for fd: " + su::to_string(conn->fd));
+	delete conn;
 }
