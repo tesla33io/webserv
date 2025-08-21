@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: Invalid date        by                   #+#    #+#             */
-/*   Updated: 2025/08/17 22:27:21 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/21 17:53:39 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -35,12 +35,40 @@ bool WebServer::processChunkSize(Connection *conn) {
 
 	chunk_size_line = su::trim(chunk_size_line);
 
-	// TODO: Check for negative?
-	conn->chunk_size = static_cast<size_t>(std::strtol(chunk_size_line.c_str(), NULL, 16));
-	conn->chunk_bytes_read = 0;
-
+	// VALIDATION chunk size valid? -TODO: check again, not working, see tests/bashchunk.sh
+	char *end;
+	errno = 0;
+	long size = std::strtol(chunk_size_line.c_str(), &end, 16);
+	// strtol returns 0 and sets endptr == str
+	if (end == chunk_size_line.c_str() || errno == ERANGE || size < 0) {
+		// invalid chunk size
+		_lggr.error("Invalid chunk size: " + su::to_string(conn->chunk_size));
+		prepareResponse(conn, Response(400, conn));
+		conn->should_close = true;
+		conn->state = Connection::REQUEST_COMPLETE;
+		return true;
+	}
+	conn->chunk_size = static_cast<size_t>(size);
 	_lggr.debug("Chunk size: " + su::to_string(conn->chunk_size));
 
+	conn->chunk_bytes_read = 0;
+	
+
+	// MAX BODY SIZE - vs CHUNKDATA + new chunk size
+		if (!conn->locConfig->infiniteBodySize() && conn->locConfig->getMaxBodySize() > 0) {
+			size_t total_body_size = conn->chunk_data.length() + conn->chunk_size;
+			if (static_cast<size_t>(total_body_size) > conn->locConfig->getMaxBodySize()) {
+				_lggr.error("Chunked body size (" + su::to_string(total_body_size) + 
+						") would exceed max body size (" + su::to_string(conn->locConfig->getMaxBodySize()) + ")");
+				prepareResponse(conn, Response(413, conn)); // Request Entity Too Large
+				conn->should_close = true;
+				conn->state = Connection::REQUEST_COMPLETE;
+				return true;
+			}
+		}
+
+
+	
 	if (conn->chunk_size == 0) {
 		// Last chunk, read trailers
 		conn->state = Connection::READING_TRAILER;
@@ -69,13 +97,23 @@ bool WebServer::processChunkData(Connection *conn) {
 	conn->read_buffer = conn->read_buffer.substr(bytes_to_read);
 
 	// Check if there are trailing CRLF
-	if (conn->read_buffer.length() < 2) {
-		return false;
-	}
+	// if (conn->read_buffer.length() < 2) {
+	// 	return false;
+	// }
 
-	if (conn->read_buffer.substr(0, 2) != "\r\n") {
-		_lggr.error("Invalid chunk format: missing trailing CRLF");
-		return false;
+	// if (conn->read_buffer.substr(0, 2) != "\r\n") {
+	// 	_lggr.error("Invalid chunk format: missing trailing CRLF");
+	// 	return false;
+	// }
+
+
+	// Check if there are trailing CRLF - check we should return true
+	if ((conn->read_buffer.length() < 2) || (conn->read_buffer.substr(0, 2) != "\r\n")) {
+		_lggr.error("Invalid chunk format: no trailing CRLF");
+		prepareResponse(conn, Response(400, conn)); // Bad Request
+		conn->should_close = true;
+		conn->state = Connection::REQUEST_COMPLETE;
+		return true;
 	}
 
 	// Remove trailing CRLF
@@ -120,6 +158,19 @@ void WebServer::reconstructChunkedRequest(Connection *conn) {
 		if (line_end != std::string::npos) {
 			// Remove the Transfer-Encoding line
 			reconstructed_request.erase(te_pos, line_end - te_pos + 2);
+		}
+	}
+
+
+	// Final check: total reconstructed body is < MaxBody
+	if (!conn->locConfig->infiniteBodySize() && conn->locConfig->getMaxBodySize() > 0) {
+		if (static_cast<size_t>(conn->chunk_data.length()) > conn->locConfig->getMaxBodySize()) {
+			_lggr.error("Final chunked body size (" + su::to_string(conn->chunk_data.length()) + 
+			           ") exceeds max body size (" + su::to_string(conn->locConfig->getMaxBodySize()) + ")");
+			prepareResponse(conn, Response(400, conn)); // Bad Request - should have been caught earlier
+			conn->should_close = true;
+			conn->state = Connection::REQUEST_COMPLETE;
+			return;
 		}
 	}
 
