@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 13:54:29 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/19 17:52:31 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/21 14:55:49 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -218,7 +218,6 @@ void ConfigParser::printServerConfig(const ServerConfig &server, std::ostream &o
 			os << "    " << it->first << " -> " << it->second << "\n";
 		}
 	}
-	os << "  Max of max body size all loc: " << su::humanReadableBytes(server.maximum_body_size) << "\n\n";
 
 	if (!server.locations.empty()) {
 		for (size_t i = 0; i < server.locations.size(); ++i) {
