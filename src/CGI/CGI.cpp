@@ -23,6 +23,7 @@ CGI::CGI(ClientRequest &request, LocConfig *locConfig)
 		setEnv("CONTENT_LENGTH", request.headers["content-length"]);
 	}
 	if (request.method == "POST" || request.method == "DELETE") {
+		setEnv("PHPRC", locConfig->getFullPath().substr(0, locConfig->getFullPath().size() - 11));
 		if (request.extension == ".php")
 			setEnv("UPLOAD_DIR", locConfig->getUploadPath());
 		else

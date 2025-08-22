@@ -64,7 +64,7 @@ uint16_t CGIUtils::runCGIScript(ClientRequest &req, CGI &cgi) {
 		close(output_pipe[1]);
 
 		// Set alarm for timeout
-		alarm(3);
+		alarm(10);
 
 		// Execute the CGI script
 		char *argv[] = {(char *)cgi.getInterpreter(), (char *)cgi.getScriptPath(), NULL};

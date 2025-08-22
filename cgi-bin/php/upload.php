@@ -1,8 +1,5 @@
 <?php
 
-// Prevent script from printing default headers
-ini_set('default_mimetype', '');
-
 // Start output buffering to calculate content length
 ob_start();
 
