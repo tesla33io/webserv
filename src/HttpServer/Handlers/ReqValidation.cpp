@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/08 12:56:57 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/22 13:55:06 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/22 15:55:09 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,6 +18,7 @@
 
 bool WebServer::matchLocation(ClientRequest &req, Connection *conn) {
 	// initialize the correct locConfig // default "/"
+	_lggr.debug("Path to match : " + req.path);
 	LocConfig *match = findBestMatch(req.path, conn->servConfig->getLocations());
 	if (!match) {
 		_lggr.error("[Resp] No matched location for : " + req.path);

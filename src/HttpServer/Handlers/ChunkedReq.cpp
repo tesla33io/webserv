@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: Invalid date        by                   #+#    #+#             */
-/*   Updated: 2025/08/22 13:49:37 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/22 16:44:14 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,7 +25,6 @@ bool WebServer::processChunkSize(Connection *conn) {
 	}
 
 	std::string chunk_size_line = conn->read_buffer.substr(0, crlf_pos);
-
 	conn->read_buffer = conn->read_buffer.substr(crlf_pos + 2);
 
 	// ignore chunk extensions after ';'
@@ -36,7 +35,7 @@ bool WebServer::processChunkSize(Connection *conn) {
 
 	chunk_size_line = su::trim(chunk_size_line);
 
-	// VALIDATION chunk size valid? -TODO: check again, not working, see tests/bashchunk.sh
+	// VALIDATION chunk size valid?
 	char *end;
 	errno = 0;
 	long size = std::strtol(chunk_size_line.c_str(), &end, 16);
@@ -47,8 +46,20 @@ bool WebServer::processChunkSize(Connection *conn) {
 		prepareResponse(conn, Response(400, conn));
 		conn->should_close = true;
 		conn->state = Connection::REQUEST_COMPLETE;
-		return false;
+		return true; // Request is "complete" with error response
 	}
+	
+	// // Check for trailing garbage after valid hex digits
+	// while (*end == ' ' || *end == '\t') end++; // Skip whitespace
+	// if (*end != '\0') {
+	// 	_lggr.error("Invalid chunk size with trailing characters: '" + chunk_size_line + "'");
+	// 	prepareResponse(conn, Response(400, conn));
+	// 	conn->should_close = true;
+	// 	conn->state = Connection::REQUEST_COMPLETE;
+	// 	return true;
+	// }
+
+
 	conn->chunk_size = static_cast<size_t>(size);
 	_lggr.debug("Chunk size: " + su::to_string(conn->chunk_size));
 
@@ -83,9 +94,9 @@ bool WebServer::processChunkSize(Connection *conn) {
 }
 
 bool WebServer::processChunkData(Connection *conn) {
+	
 	size_t available_data = conn->read_buffer.length();
 	size_t bytes_needed = conn->chunk_size - conn->chunk_bytes_read;
-
 	if (available_data < bytes_needed + 2) { // +2 for trailing CRLF
 		// Need more data
 		return false;
@@ -99,24 +110,13 @@ bool WebServer::processChunkData(Connection *conn) {
 
 	conn->read_buffer = conn->read_buffer.substr(bytes_to_read);
 
-	// Check if there are trailing CRLF
-	// if (conn->read_buffer.length() < 2) {
-	// 	return false;
-	// }
-
-	// if (conn->read_buffer.substr(0, 2) != "\r\n") {
-	// 	_lggr.error("Invalid chunk format: missing trailing CRLF");
-	// 	return false;
-	// }
-
-
 	// Check if there are trailing CRLF - check we should return true
 	if ((conn->read_buffer.length() < 2) || (conn->read_buffer.substr(0, 2) != "\r\n")) {
 		_lggr.error("Invalid chunk format: no trailing CRLF");
 		prepareResponse(conn, Response(400, conn)); // Bad Request
 		conn->should_close = true;
 		conn->state = Connection::REQUEST_COMPLETE;
-		return false;
+		return true;
 	}
 
 	// Remove trailing CRLF
@@ -161,21 +161,21 @@ void WebServer::reconstructChunkedRequest(Connection *conn) {
 		if (line_end != std::string::npos) {
 			// Remove the Transfer-Encoding line
 			reconstructed_request.erase(te_pos, line_end - te_pos + 2);
+			_lggr.debug("Removed Transfer-Encoding header from reconstruction");
 		}
 	}
 
-
 	// Final check: total reconstructed body is < MaxBody
 	_lggr.debug("Final chunked body size (" + su::to_string(conn->chunk_data.length()) + 
-	           ") vs max body size (" + su::to_string(conn->locConfig->getMaxBodySize()) + ")");
+			") vs max body size (" + su::to_string(conn->locConfig->getMaxBodySize()) + ")");
 	if (!conn->locConfig->infiniteBodySize() && conn->locConfig->getMaxBodySize() > 0) {
 		if (static_cast<size_t>(conn->chunk_data.length()) > conn->locConfig->getMaxBodySize()) {
 			_lggr.error("Final chunked body size (" + su::to_string(conn->chunk_data.length()) + 
-			           ") exceeds max body size (" + su::to_string(conn->locConfig->getMaxBodySize()) + ")");
-			prepareResponse(conn, Response(400, conn)); // Bad Request - should have been caught earlier
+					") exceeds max body size (" + su::to_string(conn->locConfig->getMaxBodySize()) + ")");
+			prepareResponse(conn, Response(413, conn)); // 413 Request Entity Too Large
 			conn->should_close = true;
 			conn->state = Connection::REQUEST_COMPLETE;
-			return;
+			return ;
 		}
 	}
 
@@ -183,13 +183,22 @@ void WebServer::reconstructChunkedRequest(Connection *conn) {
 	size_t final_crlf = reconstructed_request.find("\r\n\r\n");
 	if (final_crlf != std::string::npos) {
 		std::string content_length_header =
-		    "\r\nContent-Length: " + su::to_string(conn->chunk_data.length()) + "\r\n";
+			"\r\nContent-Length: " + su::to_string(conn->chunk_data.length()) + "\r\n";
 		reconstructed_request.insert(final_crlf, content_length_header);
+		_lggr.debug("Added Content-Length header: " + su::to_string(conn->chunk_data.length()));
 	}
 
+	// Store the reconstructed request but don't overwrite read_buffer yet
+	// The body will be handled separately in processRequest()
 	conn->read_buffer = reconstructed_request + conn->chunk_data;
 	conn->state = Connection::REQUEST_COMPLETE;
 
-	_lggr.debug("Reconstructed chunked request, total body size: " +
-	            su::to_string(conn->chunk_data.length()));
+	_lggr.debug("Chunked request reconstruction completed successfully");
+	_lggr.debug("Reconstructed request, total body size: " +
+				su::to_string(conn->chunk_data.length()));
+	
+	// Debug: show first part of reconstructed request
+	std::string debug_preview = conn->read_buffer.substr(0, std::min(size_t(200), conn->read_buffer.size()));
+	_lggr.debug("Reconstructed request preview: " + debug_preview);
+
 }

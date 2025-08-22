@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:10:22 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/22 15:18:30 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/22 16:41:38 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,6 +17,19 @@
 #include "src/Utils/ServerUtils.hpp"
 
 /* Request handlers */
+
+bool WebServer::handleIncompleteChunkedRequest(Connection *conn) {
+    // Check if connection has been in chunked state too long without progress
+    time_t current_time = time(NULL);
+    if ((current_time - conn->last_activity) > CHUNKED_TIMEOUT) {
+        _lggr.warn("Chunked request timeout for fd: " + su::to_string(conn->fd));
+        prepareResponse(conn, Response(408, conn)); // Request Timeout
+        conn->should_close = true;
+        return false;
+    }
+    return true;
+}
+
 
 void WebServer::handleRequestTooLarge(Connection *conn, ssize_t bytes_read) {
 	_lggr.info("Reached max content length for fd: " + su::to_string(conn->fd) + ", " +
@@ -156,8 +169,11 @@ bool WebServer::isHeadersComplete(Connection *conn) {
 	}
 	
 	else { // CHUNKED - store remaining data as string 
+		_lggr.debug("CHUNKED : req.expect_continue" + su::to_string(req.expect_continue));
+		
 		// Case : chunked + expect 100
 			if (req.expect_continue) {
+			_lggr.debug("CHUNKED : req.expect_continue" + su::to_string(req.expect_continue));
 			prepareResponse(conn, Response::continue_());
 			conn->state = Connection::CONTINUE_SENT;
 			conn->read_buffer.clear();
@@ -165,9 +181,7 @@ bool WebServer::isHeadersComplete(Connection *conn) {
 			conn->chunk_bytes_read = 0;
 			conn->chunk_data.clear();
 			return true;
-		}
-		// Case : chunked, no expect 100
-		else {
+		} else { // Case : chunked, no expect 100
 			conn->state = Connection::READING_CHUNK_SIZE;
 			conn->read_buffer = remaining_data; // Keep any data after headers for chunk processing
 			conn->chunk_size = 0;
@@ -349,37 +363,45 @@ void WebServer::processRequest(Connection *conn) {
 	_lggr.info("Processing request from fd: " + su::to_string(conn->fd));
 
 	ClientRequest req = conn->parsed_request;
-	if (conn->headers_buffer.size() <= conn->read_buffer.size()) {
+	
+
+	 // Handle body extraction differently for chunked vs non-chunked
+	if (req.chunked_encoding && conn->state == Connection::CHUNK_COMPLETE) {
+		req.body = conn->chunk_data;
+		_lggr.debug("Using chunked body data: " + su::to_string(req.body.length()) + " bytes");
+	} else if (!req.chunked_encoding && conn->headers_buffer.size() <= conn->read_buffer.size()) {
 		req.body = conn->read_buffer.substr(conn->headers_buffer.size());
 	} else {
-		_lggr.error("read buffer shorter than header buffer: impossible");
+		_lggr.debug("No body data or headers not properly parsed");
 		req.body = "";
 	}
 
+	
 	_lggr.debug("req.body: " + req.body);
+	_lggr.debug("req.headers: " + conn->headers_buffer);
 	_lggr.debug("req.uri: " + req.uri);
 
-	if (req.chunked_encoding && conn->state == Connection::READING_HEADERS) {
-		// Accept chunked requests sequence
-		_lggr.debug("Accepting a chunked request");
-		conn->state = Connection::READING_CHUNK_SIZE;
-		conn->chunked = true;
-		prepareResponse(conn, Response::continue_());
-		return;
-	}
+	// if (req.chunked_encoding && conn->state == Connection::READING_HEADERS) {
+	// 	// Accept chunked requests sequence
+	// 	_lggr.debug("Accepting a chunked request");
+	// 	conn->state = Connection::READING_CHUNK_SIZE;
+	// 	conn->chunked = true;
+	// 	prepareResponse(conn, Response::continue_());
+	// 	return;
+	// }
 
-	// TODO: this part breaks the req struct for some reason
-	//       can't debug on my own :(
-	// Can we remove it? Why is it parsing the request again?
-	if (req.chunked_encoding && conn->state == Connection::CHUNK_COMPLETE) {
-		_lggr.debug("Chunked request completed!");
-		_lggr.debug("Parsing complete chunked request");
-		// if (!parseRequest(conn, req))
-		// 	return;
-		_lggr.debug("Chunked request parsed successfully");
-		_lggr.debug(conn->toString());
-		_lggr.debug(req.toString());
-	}
+	// // TODO: this part breaks the req struct for some reason
+	// //       can't debug on my own :(
+	// // Can we remove it? Why is it parsing the request again?
+	// if (req.chunked_encoding && conn->state == Connection::CHUNK_COMPLETE) {
+	// 	_lggr.debug("Chunked request completed!");
+	// 	_lggr.debug("Parsing complete chunked request");
+	// 	// if (!parseRequest(conn, req))
+	// 	// 	return;
+	// 	_lggr.debug("Chunked request parsed successfully");
+	// 	_lggr.debug(conn->toString());
+	// 	_lggr.debug(req.toString());
+	// }
 
 	_lggr.debug("FD " + su::to_string(req.clfd) + " ClientRequest {" + req.toString() + "}");
 	

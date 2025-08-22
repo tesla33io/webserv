@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/25 10:46:05 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/19 15:57:46 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/22 16:47:41 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -51,6 +51,8 @@ uint16_t RequestParsingUtils::checkHeader(std::string &name, std::string &value,
 	if (l_name == "expect") {
 		if (l_value == "100-continue") {
 			request.expect_continue = true;
+			logger.debug("Expect header: " + l_value);
+
 		} else {
 			logger.logWithPrefix(Logger::WARNING, "HTTP", "Unsupported Expect header: " + value);
 			return 417; // expectation failed
