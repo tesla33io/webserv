@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   StaticGetResp.cpp                                  :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/19 18:29:33 by htharrau          #+#    #+#             */
-/*   Updated: 2025/08/21 10:35:04 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/22 15:10:36 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -90,6 +90,7 @@ void  WebServer::handleFileRequest(ClientRequest &req, Connection *conn, bool en
 		return;
 	}
 }
+
 
 // struct dirent {
 //     ino_t          d_ino;       // Inode number

@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/25 10:46:18 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/22 13:58:28 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/22 15:25:29 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -35,7 +35,7 @@ uint16_t RequestParsingUtils::parseBody(std::istringstream &stream, ClientReques
 	const char *content_length_value = findHeader(request, "content-length");
 
 	// Enforce Content-Length for POST even if body is empty
-	if (!content_length_value) {
+	if (!content_length_value ) {
 		if (request.method == "POST") {
 			logger.logWithPrefix(Logger::WARNING, "HTTP", "Missing Content-Length for POST");
 			return 411; // Length Required
