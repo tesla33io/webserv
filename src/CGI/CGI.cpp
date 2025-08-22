@@ -25,7 +25,8 @@ CGI::CGI(ClientRequest &request, LocConfig *locConfig)
 	if (request.method == "POST" || request.method == "DELETE") {
 		setEnv("UPLOAD_DIR", locConfig->getUploadPath());
 		if (request.extension == ".php")
-			setEnv("PHPRC", locConfig->getFullPath().substr(0, locConfig->getFullPath().size() - 11));
+			setEnv("PHPRC",
+			       locConfig->getFullPath().substr(0, locConfig->getFullPath().size() - 11));
 	}
 	setEnv("SERVER_SOFTWARE", "CustomCGI/1.0");
 	setEnv("GATEWAY_INTERFACE", "CGI/1.1");
@@ -100,18 +101,17 @@ uint16_t CGI::cleanup() {
 	// 8. Wait for child process and check exit status
 	int status;
 	if (waitpid(getPid(), &status, 0) == -1) {
-		logger.logWithPrefix(Logger::ERROR, "CGI", "Failed to wait for CGI process");
-		close(getOutputFd());
-		return (502);
+	    logger.logWithPrefix(Logger::ERROR, "CGI", "Failed to wait for CGI process");
+	    close(getOutputFd());
+	    return (502);
 	}
 
 	if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
-		logger.logWithPrefix(Logger::ERROR, "CGI", "CGI script failed or was terminated");
-		close(getOutputFd());
-		return (502);
+	    logger.logWithPrefix(Logger::ERROR, "CGI", "CGI script failed or was terminated");
+	    close(getOutputFd());
+	    return (502);
 	} */
 	// 9. Clean up
 	close(getOutputFd());
 	return (0);
 }
-

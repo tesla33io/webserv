@@ -11,11 +11,10 @@
 /* ************************************************************************** */
 
 #include "WebServer.hpp"
+#include "src/ConfigParser/Struct.hpp"
 #include "src/HttpServer/HttpServer.hpp"
 #include "src/HttpServer/Structs/Connection.hpp"
 #include "src/HttpServer/Structs/Response.hpp"
-#include "src/HttpServer/HttpServer.hpp"
-#include "src/ConfigParser/Struct.hpp"
 
 bool WebServer::_running;
 static bool interrupted = false;
@@ -232,7 +231,7 @@ bool WebServer::epollManage(int op, int socket_fd, uint32_t events) {
 		                        : op == EPOLL_CTL_MOD ? "modify "
 		                                              : "delete ") +
 		            "fd: " + su::to_string(socket_fd) + " (" + describeEpollEvents(events) +
-		            "), but encountered an error");
+		            "), but encountered an error (" + std::string(strerror(errno)) + ")");
 		return false;
 	}
 	_lggr.debug("Fd: " + su::to_string(socket_fd) +
@@ -308,7 +307,6 @@ std::string getCurrentWorkingDirectory() {
 	std::string dir(cwd);
 	return dir;
 }
-
 
 int main(int argc, char *argv[]) {
 	ArgumentParser ap;

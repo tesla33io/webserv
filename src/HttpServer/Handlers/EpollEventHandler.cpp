@@ -60,7 +60,8 @@ void WebServer::handleClientEvent(int fd, uint32_t event_mask) {
 				_lggr.debug("Error for clinet " + conn->toString());
 			}
 			if (!conn->keep_persistent_connection || conn->should_close)
-				closeConnection(conn); // risk of closing the connection before the response is ready?
+				closeConnection(
+				    conn); // risk of closing the connection before the response is ready?
 		}
 		if (event_mask & (EPOLLERR | EPOLLHUP)) {
 			_lggr.error("Error/hangup event for fd: " + su::to_string(fd));
@@ -68,6 +69,8 @@ void WebServer::handleClientEvent(int fd, uint32_t event_mask) {
 		}
 	} else {
 		_lggr.debug("Ignoring event for unknown fd: " + su::to_string(fd));
+		epollManage(EPOLL_CTL_DEL, fd, 0);
+		close(fd);
 	}
 }
 
@@ -112,14 +115,14 @@ ssize_t WebServer::receiveData(int client_fd, char *buffer, size_t buffer_size) 
 bool WebServer::processReceivedData(Connection *conn, const char *buffer, ssize_t bytes_read) {
 	static int i = 0;
 
-	_lggr.debug("MAX BODY : bytes read " + su::to_string( conn->body_bytes_read) 
-			+ " / " + su::to_string(conn->getServerConfig()->getServerMaxBodySize()));
-			
+	_lggr.debug("MAX BODY : bytes read " + su::to_string(conn->body_bytes_read) + " / " +
+	            su::to_string(conn->getServerConfig()->getServerMaxBodySize()));
+
 	if (conn->state == Connection::READING_HEADERS) {
 		conn->read_buffer += std::string(buffer, bytes_read);
 		std::cerr << i++ << " calls of processReceivedData (HEADERS)" << std::endl;
-	} 
-	
+	}
+
 	else if (conn->state == Connection::READING_BODY) {
 		conn->body_data.insert(conn->body_data.end(),
 		                       reinterpret_cast<const unsigned char *>(buffer),
@@ -130,8 +133,8 @@ bool WebServer::processReceivedData(Connection *conn, const char *buffer, ssize_
 		std::cerr << "Body data size: " << conn->body_data.size() << " bytes" << std::endl;
 
 		_lggr.debug("Read " + su::to_string(conn->body_bytes_read) + " bytes of body so far");
-	} 
-	
+	}
+
 	else {
 		// For chunked data and other states, keep existing behavior
 		conn->read_buffer += std::string(buffer, bytes_read);

@@ -68,11 +68,13 @@ $content = ob_get_contents();
 ob_end_clean();
 $content_length = strlen($content);
 
+echo substr($exit_status, 0, 3) . "\n";
+
 // Set headers
-echo "HTTP/1.1 " . $exit_status . "\r\n";
-echo "Content-Type: text/html; charset=UTF-8\r\n";
+//echo "HTTP/1.1 " . $exit_status . "\r\n";
+/* echo "Content-Type: text/html; charset=UTF-8\r\n";
 echo "Content-Length: " . $content_length . "\r\n";
-echo "\r\n";
+echo "\r\n"; */
 
 // Output content
 echo $content;

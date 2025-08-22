@@ -10,10 +10,10 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "src/HttpServer/Structs/WebServer.hpp"
+#include "src/HttpServer/HttpServer.hpp"
 #include "src/HttpServer/Structs/Connection.hpp"
 #include "src/HttpServer/Structs/Response.hpp"
-#include "src/HttpServer/HttpServer.hpp"
+#include "src/HttpServer/Structs/WebServer.hpp"
 
 ssize_t WebServer::prepareResponse(Connection *conn, const Response &resp) {
 	// TODO: some checks if the arguments are fine to work with
@@ -32,31 +32,24 @@ ssize_t WebServer::prepareResponse(Connection *conn, const Response &resp) {
 	conn->response = resp;
 	conn->response_ready = true;
 	return conn->response.toString().size();
-	// return send(clfd, raw_response.c_str(), raw_response.length(), 0);
 }
 
 bool WebServer::sendResponse(Connection *conn) {
 	std::string raw_response;
 
 	_lggr.debug("Current state of response [" + conn->response.toShortString());
-	/* if (!conn->response_ready) {
+	if (!conn->response_ready) {
 		_lggr.error("Response is not ready to be sent back to the client");
 		_lggr.debug("Error for clinet " + conn->toString());
 		return false;
-	} */
+	}
 	_lggr.debug("Sending response [" + conn->response.toShortString() +
 	            "] back to fd: " + su::to_string(conn->fd));
-	std::cout << conn->response.toShortString() << "] back to fd: " << su::to_string(conn->fd) << std::endl;
-	if (conn->cgi_response != "") {
-		raw_response = conn->cgi_response;
-		conn->cgi_response = "";
-	} else {
-		raw_response = conn->response.toString();
-		conn->response.reset();
-	}
+	raw_response = conn->response.toString();
+	conn->response.reset();
 	epollManage(EPOLL_CTL_MOD, conn->fd, EPOLLIN);
 	conn->response_ready = false;
-    conn->state = Connection::READING_HEADERS;
+	conn->state = Connection::READING_HEADERS;
 	return send(conn->fd, raw_response.c_str(), raw_response.size(), MSG_NOSIGNAL) != -1;
 }
 
@@ -90,7 +83,7 @@ Response WebServer::respFileRequest(Connection *conn, const std::string &fullFil
 	_lggr.debug("Handling file request: " + fullFilePath);
 	// Read file content
 	std::string content = getFileContent(fullFilePath);
-	// this check is redondant as it has already been checked 
+	// this check is redondant as it has already been checked
 	if (content.empty()) {
 		_lggr.error("Failed to read file: " + fullFilePath);
 		return Response::notFound(conn);
@@ -103,7 +96,6 @@ Response WebServer::respFileRequest(Connection *conn, const std::string &fullFil
 	            su::to_string(content.length()) + " bytes)");
 	return resp;
 }
-
 
 Response WebServer::respReturnDirective(Connection *conn, uint16_t code, std::string target) {
 	_lggr.debug("Handling return directive '" + su::to_string(code) + "' to " + target);
