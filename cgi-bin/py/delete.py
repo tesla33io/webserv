@@ -37,31 +37,23 @@ if request_method == 'POST':
 			filename = form['filename'].value
 			
 			if filename:
-				# Sanitize filename - prevent directory traversal
-				filename = os.path.basename(filename)
-				filename = re.sub(r'[^a-zA-Z0-9._-]', '', filename)
-				
-				if filename:
-					file_path = os.path.join(upload_dir, filename)
-					
-					# Verify file exists and is writable before deletion
-					if os.path.exists(file_path) and os.access(file_path, os.W_OK):
-						try:
-							os.unlink(file_path)
-							deleted = True
-							exit_status = '200 OK'
-							
-						except Exception as e:
-							error_message = 'Delete operation failed (server error)'
-							exit_status = '502 Bad Gateway'
-					else:
-						error_message = 'File not found or not writable'
-						exit_status = '404 Not Found'
+				file_path = os.path.join(upload_dir, filename)
+
+				# Verify file exists and is writable before deletion
+				if os.path.exists(file_path) and os.access(file_path, os.W_OK):
+					try:
+						os.unlink(file_path)
+						deleted = True
+						exit_status = '200 OK'
+						
+					except Exception as e:
+						error_message = 'Delete operation failed (server error)'
+						exit_status = '502 Bad Gateway'
 				else:
-					error_message = 'Invalid filename after sanitization'
-					exit_status = '400 Bad Request'
+					error_message = 'File not found or not writable'
+					exit_status = '404 Not Found'
 			else:
-				error_message = 'No filename provided'
+				error_message = 'Invalid filename after sanitization'
 				exit_status = '400 Bad Request'
 		else:
 			error_message = 'No filename field found'

@@ -23,11 +23,9 @@ CGI::CGI(ClientRequest &request, LocConfig *locConfig)
 		setEnv("CONTENT_LENGTH", request.headers["content-length"]);
 	}
 	if (request.method == "POST" || request.method == "DELETE") {
-		setEnv("PHPRC", locConfig->getFullPath().substr(0, locConfig->getFullPath().size() - 11));
+		setEnv("UPLOAD_DIR", locConfig->getUploadPath());
 		if (request.extension == ".php")
-			setEnv("UPLOAD_DIR", locConfig->getUploadPath());
-		else
-			setEnv("UPLOAD_DIR", locConfig->getUploadPath());
+			setEnv("PHPRC", locConfig->getFullPath().substr(0, locConfig->getFullPath().size() - 11));
 	}
 	setEnv("SERVER_SOFTWARE", "CustomCGI/1.0");
 	setEnv("GATEWAY_INTERFACE", "CGI/1.1");
@@ -98,7 +96,7 @@ int CGI::getOutputFd() const { return (output_fd_); }
 /* CGI HANDLER */
 
 uint16_t CGI::cleanup() {
-	Logger logger;
+	/* Logger logger;
 	// 8. Wait for child process and check exit status
 	int status;
 	if (waitpid(getPid(), &status, 0) == -1) {
@@ -111,7 +109,7 @@ uint16_t CGI::cleanup() {
 		logger.logWithPrefix(Logger::ERROR, "CGI", "CGI script failed or was terminated");
 		close(getOutputFd());
 		return (502);
-	}
+	} */
 	// 9. Clean up
 	close(getOutputFd());
 	return (0);
