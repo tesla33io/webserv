@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/08 13:38:20 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/19 18:51:43 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/22 13:51:42 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -69,9 +69,6 @@ class Connection {
 		READING_HEADERS,  ///< Reading request headers
 		REQUEST_COMPLETE, ///< Complete request received
 		READING_BODY,     ///< Reading request body, when Content-Length > 0
-		
-		PARSED_HEADERS,  ///< Parsing the headers after they are recieved
-		ERROR_READY,     ///< After headers are read, we check for 413
 		
 		CONTINUE_SENT,         ///< 100-Continue response sent
 		READING_CHUNK_SIZE,    ///< Reading chunk size line

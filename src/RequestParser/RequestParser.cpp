@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/17 15:43:17 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/21 17:58:29 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/22 13:58:52 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -186,23 +186,23 @@ uint16_t RequestParsingUtils::parseRequest(const std::string &raw_request, Clien
 	error_code = parseHeaders(stream, request);
 	if (error_code != 0)
 		return error_code;
-
-	// // Parse body
-	// error_code = parseBody(stream, request);
+		
+	// Parse body
+	error_code = parseBody(stream, request);
 	// if (error_code != 0)
 	// 	return error_code;
 
-	// // Parse trailing headers (if any)
-	// if (request.chunked_encoding) {
-	// 	error_code = parseTrailingHeaders(stream, request);
-	// 	if (error_code != 0)
-	// 		return error_code;
-	// }
+	// Parse trailing headers (if any)
+	if (request.chunked_encoding) {
+		error_code = parseTrailingHeaders(stream, request);
+		// if (error_code != 0)
+		// 	return error_code;
+	}
 
 	// Check if file upload
 	error_code = checkFileUpload(request);
-	if (error_code != 0)
-		return error_code;
+	// if (error_code != 0)
+	// 	return error_code;
 
 	logger.logWithPrefix(Logger::INFO, "HTTP", "Request parsing completed");
 	return 0;

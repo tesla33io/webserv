@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ReqValidation.cpp                                  :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/08 12:56:57 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/21 11:09:30 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/22 13:55:06 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -47,7 +47,7 @@ bool WebServer::normalizePath(ClientRequest &req, Connection *conn) {
 		prepareResponse(conn, Response::forbidden(conn));
 		return false;
 	}
-	_lggr.debug("[Resp] The normalized full path is safe : " + normal_full_path);
+	_lggr.debug("[Resp] Normalized full path is safe : " + normal_full_path);
 	
 	// this should maybe be in the connection info, not in the locConfig
 	conn->locConfig->setFullPath(normal_full_path);
@@ -65,16 +65,17 @@ bool WebServer::processValidRequestChecks(ClientRequest &req, Connection *conn) 
 		prepareResponse(conn, respReturnDirective(conn, code, target));
 		return false;
 	}
-	_lggr.debug("[Resp] The matched location does not have return directive or the match is not exact.");
+	_lggr.debug("[Resp] No return directive ( or no exact match)");
 	
 	// method allowed?
 	if (!conn->locConfig->hasMethod(req.method)) {
-		_lggr.warn("[Resp] Method " + req.method + " is not allowed for location " +
+		_lggr.error("[Resp] Method " + req.method + " is not allowed for location " +
 				  conn->locConfig->path);
 		prepareResponse(conn, Response::methodNotAllowed(conn, conn->locConfig->getAllowedMethodsString()));
 		return false;
 	}
-	_lggr.debug("[Resp] Method " + req.method + " is allowed " + conn->locConfig->getAllowedMethodsString());
+	_lggr.debug("[Resp] Method " + req.method + " is allowed ( allowed: " 
+		         + conn->locConfig->getAllowedMethodsString() + ")");
 	
 	// Check against location's max body size
 	if ((req.content_length != -1) && !conn->locConfig->infiniteBodySize() && 

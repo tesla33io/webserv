@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: Invalid date        by                   #+#    #+#             */
-/*   Updated: 2025/08/21 17:53:39 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/22 13:49:37 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,6 +17,7 @@
 #include "src/HttpServer/HttpServer.hpp"
 
 bool WebServer::processChunkSize(Connection *conn) {
+	_lggr.debug("In processChunkSize");
 	size_t crlf_pos = findCRLF(conn->read_buffer);
 	if (crlf_pos == std::string::npos) {
 		// Need more data to read chunk size
@@ -39,14 +40,14 @@ bool WebServer::processChunkSize(Connection *conn) {
 	char *end;
 	errno = 0;
 	long size = std::strtol(chunk_size_line.c_str(), &end, 16);
-	// strtol returns 0 and sets endptr == str
+	// strtol returns 0 and sets endptr == str on error
 	if (end == chunk_size_line.c_str() || errno == ERANGE || size < 0) {
 		// invalid chunk size
 		_lggr.error("Invalid chunk size: " + su::to_string(conn->chunk_size));
 		prepareResponse(conn, Response(400, conn));
 		conn->should_close = true;
 		conn->state = Connection::REQUEST_COMPLETE;
-		return true;
+		return false;
 	}
 	conn->chunk_size = static_cast<size_t>(size);
 	_lggr.debug("Chunk size: " + su::to_string(conn->chunk_size));
@@ -55,17 +56,19 @@ bool WebServer::processChunkSize(Connection *conn) {
 	
 
 	// MAX BODY SIZE - vs CHUNKDATA + new chunk size
-		if (!conn->locConfig->infiniteBodySize() && conn->locConfig->getMaxBodySize() > 0) {
-			size_t total_body_size = conn->chunk_data.length() + conn->chunk_size;
-			if (static_cast<size_t>(total_body_size) > conn->locConfig->getMaxBodySize()) {
-				_lggr.error("Chunked body size (" + su::to_string(total_body_size) + 
-						") would exceed max body size (" + su::to_string(conn->locConfig->getMaxBodySize()) + ")");
-				prepareResponse(conn, Response(413, conn)); // Request Entity Too Large
-				conn->should_close = true;
-				conn->state = Connection::REQUEST_COMPLETE;
-				return true;
-			}
-		}
+	// if (!conn->locConfig->infiniteBodySize() && conn->locConfig->getMaxBodySize() > 0) {
+	// 	size_t total_body_size = conn->chunk_data.length() + conn->chunk_size;
+	// 	_lggr.debug("Chunk_data.length +  next chunk: " + su::to_string(total_body_size));
+
+	// 	if (static_cast<size_t>(total_body_size) > conn->locConfig->getMaxBodySize()) {
+	// 		_lggr.error("Chunked body size (" + su::to_string(total_body_size) + 
+	// 				") would exceed max body size (" + su::to_string(conn->locConfig->getMaxBodySize()) + ")");
+	// 		prepareResponse(conn, Response(413, conn)); // Request Entity Too Large
+	// 		conn->should_close = true;
+	// 		conn->state = Connection::REQUEST_COMPLETE;
+	// 		return false;
+	// 	}
+	// }
 
 
 	
@@ -113,7 +116,7 @@ bool WebServer::processChunkData(Connection *conn) {
 		prepareResponse(conn, Response(400, conn)); // Bad Request
 		conn->should_close = true;
 		conn->state = Connection::REQUEST_COMPLETE;
-		return true;
+		return false;
 	}
 
 	// Remove trailing CRLF
@@ -163,6 +166,8 @@ void WebServer::reconstructChunkedRequest(Connection *conn) {
 
 
 	// Final check: total reconstructed body is < MaxBody
+	_lggr.debug("Final chunked body size (" + su::to_string(conn->chunk_data.length()) + 
+	           ") vs max body size (" + su::to_string(conn->locConfig->getMaxBodySize()) + ")");
 	if (!conn->locConfig->infiniteBodySize() && conn->locConfig->getMaxBodySize() > 0) {
 		if (static_cast<size_t>(conn->chunk_data.length()) > conn->locConfig->getMaxBodySize()) {
 			_lggr.error("Final chunked body size (" + su::to_string(conn->chunk_data.length()) + 
