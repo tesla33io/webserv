@@ -13,12 +13,11 @@
 #include "ConfigParser.hpp"
 // #include "Struct.hpp"
 
-
-
-bool ConfigParser::loadConfig(const std::string &filePath, std::vector<ServerConfig> &servers, std::string &prefix) {
+bool ConfigParser::loadConfig(const std::string &filePath, std::vector<ServerConfig> &servers,
+                              std::string &prefix, int log_level) {
 
 	ConfigNode tree;
-	ConfigParser configparser;
+	ConfigParser configparser(log_level);
 
 	if (!configparser.parseTree(filePath, tree))
 		return false;

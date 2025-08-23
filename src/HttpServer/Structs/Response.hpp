@@ -58,8 +58,8 @@ class Response {
 	static Response notFound();
 	static Response internalServerError();
 	static Response badRequest();
-	static Response methodNotAllowed(const std::string& allowed);
-	static Response contentTooLarge(); 
+	static Response methodNotAllowed(const std::string &allowed);
+	static Response contentTooLarge();
 	static Response notImplemented();
 	static Response forbidden();
 	static Response badGateway();
@@ -70,8 +70,8 @@ class Response {
 	static Response notFound(Connection *conn);
 	static Response internalServerError(Connection *conn);
 	static Response badRequest(Connection *conn);
-	static Response methodNotAllowed(Connection *conn, const std::string& allowed);
-	static Response contentTooLarge(Connection *conn); 
+	static Response methodNotAllowed(Connection *conn, const std::string &allowed);
+	static Response contentTooLarge(Connection *conn);
 	static Response notImplemented(Connection *conn);
 	static Response forbidden(Connection *conn);
 	static Response badGateway(Connection *conn);
@@ -79,11 +79,9 @@ class Response {
 	static Response HttpNotSupported(Connection *conn);
 
   private:
-  	static Logger logg_;
 	std::string getReasonPhrase(uint16_t code) const;
 	void initFromStatusCode(uint16_t code);
 	void initFromCustomErrorPage(uint16_t code, Connection *conn);
-
 };
 
 #endif /* end of include guard: RESPONSE_HPP */

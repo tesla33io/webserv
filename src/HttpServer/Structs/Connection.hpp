@@ -6,18 +6,17 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/08 13:38:20 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/22 15:25:24 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/24 00:48:29 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #ifndef CONNECTION_HPP
 #define CONNECTION_HPP
 
-#include "includes/Webserv.hpp"
-#include "includes/Types.hpp"
-#include "src/ConfigParser/Struct.hpp"
 #include "Response.hpp"
-
+#include "includes/Types.hpp"
+#include "includes/Webserv.hpp"
+#include "src/ConfigParser/Struct.hpp"
 
 class WebServer;
 class Response;
@@ -34,7 +33,6 @@ class Response;
 /// keep-alive functionality.
 class Connection {
 	friend class WebServer;
-
 
 	int fd;
 
@@ -55,7 +53,7 @@ class Connection {
 	size_t chunk_bytes_read;
 	std::string chunk_data;
 	std::string headers_buffer;
-	
+
 	ClientRequest parsed_request;
 
 	Response response;

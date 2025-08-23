@@ -2,6 +2,7 @@
 
 // Prevent script from printing default headers
 ini_set('default_mimetype', '');
+header_remove("X-Powered-By");
 
 // Start output buffering to calculate content length
 ob_start();

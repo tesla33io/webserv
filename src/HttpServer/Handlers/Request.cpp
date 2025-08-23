@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:10:22 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/24 00:43:29 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/24 00:47:28 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -248,15 +248,12 @@ bool WebServer::isRequestComplete(Connection *conn) {
 bool WebServer::reconstructRequest(Connection *conn) {
 	std::string reconstructed_request;
 
-	std::cout << "            INSIDE RECONSTRUCT\n";
 	if (conn->headers_buffer.empty()) {
 		_lggr.warn("Cannot reconstruct request: headers not available");
 		return false;
 	}
 
-	std::cout << "                                     HEADER BUFFER: " << conn->headers_buffer << std::endl;
 	reconstructed_request = conn->headers_buffer;
-	std::cout << "                                     RECONSTR BUFFER: " << conn->headers_buffer << std::endl;
 
 	if (conn->content_length > 0) {
 		size_t body_size =
@@ -284,7 +281,7 @@ bool WebServer::reconstructRequest(Connection *conn) {
 // Deprecated
 bool WebServer::parseRequest(Connection *conn, ClientRequest &req) {
 	_lggr.debug("Parsing request: " + conn->read_buffer);
-	uint16_t error_code = RequestParsingUtils::parseRequest(conn->read_buffer, req);
+	uint16_t error_code = RequestParsingUtils::parseRequest(conn->read_buffer, req, _lggr);
 	_lggr.debug("Error code post request parsing : " + su::to_string(error_code));
 	if (error_code != 0) {
 		_lggr.error("Parsing of the request failed.");
@@ -375,8 +372,7 @@ void WebServer::processValidRequest(ClientRequest &req, Connection *conn) {
 		return;
 
 	// we redirect if uri is missing the / (and vice versa), not the resolved path
-	bool end_slash = (!req.path.empty() && su::back(req.path) == '/');
-	std::cout << "end slash? " << end_slash << " URI: " << req.path << std::endl;
+	bool end_slash = (!req.uri.empty() && su::back(req.uri) == '/');
 	// Route based on file type and request format
 	if (file_type == ISDIR) {
 		handleDirectoryRequest(req, conn, end_slash);

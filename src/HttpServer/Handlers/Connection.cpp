@@ -10,10 +10,10 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "src/HttpServer/Structs/WebServer.hpp"
 #include "src/HttpServer/Structs/Connection.hpp"
-#include "src/HttpServer/Structs/Response.hpp"
 #include "src/HttpServer/HttpServer.hpp"
+#include "src/HttpServer/Structs/Response.hpp"
+#include "src/HttpServer/Structs/WebServer.hpp"
 
 void WebServer::handleNewConnection(ServerConfig *sc) {
 	struct sockaddr_in client_addr;
@@ -99,12 +99,18 @@ void WebServer::closeConnection(Connection *conn) {
 
 	_lggr.debug("Closing connection for fd: " + su::to_string(conn->fd));
 
+	std::map<int, Connection *>::iterator it = _connections.find(conn->fd);
+	if (it == _connections.end()) {
+		_lggr.debug("Connection already closed for fd: " + su::to_string(conn->fd));
+		return;
+	}
+	if (it->second != conn) {
+		_lggr.error("Connection object mismatch for fd: " + su::to_string(conn->fd));
+		return;
+	}
 	epoll_ctl(_epoll_fd, EPOLL_CTL_DEL, conn->fd, NULL);
 	close(conn->fd);
-
-	std::map<int, Connection *>::iterator it = _connections.find(conn->fd);
-	if (it != _connections.end()) {
-		_connections.erase(conn->fd);
-	}
+	_connections.erase(it);
 	_lggr.debug("Connection cleanup completed for fd: " + su::to_string(conn->fd));
+	delete conn;
 }
