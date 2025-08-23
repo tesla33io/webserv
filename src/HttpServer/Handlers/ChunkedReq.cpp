@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: Invalid date        by                   #+#    #+#             */
-/*   Updated: 2025/08/23 18:04:42 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/23 19:49:22 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -73,7 +73,6 @@ bool WebServer::processChunkSize(Connection *conn) {
 
 	
 	if (conn->chunk_size == 0) {
-		// Last chunk, read trailers
 		conn->state = Connection::READING_TRAILER;
 		return processTrailer(conn);
 	} else {

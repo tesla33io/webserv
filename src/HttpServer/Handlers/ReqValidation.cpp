@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/08 12:56:57 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/22 15:55:09 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/23 20:01:58 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -66,7 +66,7 @@ bool WebServer::processValidRequestChecks(ClientRequest &req, Connection *conn) 
 		prepareResponse(conn, respReturnDirective(conn, code, target));
 		return false;
 	}
-	_lggr.debug("[Resp] No return directive ( or no exact match)");
+	_lggr.debug("[Resp] No return directive (or no exact match)");
 	
 	// method allowed?
 	if (!conn->locConfig->hasMethod(req.method)) {
@@ -75,7 +75,16 @@ bool WebServer::processValidRequestChecks(ClientRequest &req, Connection *conn) 
 		prepareResponse(conn, Response::methodNotAllowed(conn, conn->locConfig->getAllowedMethodsString()));
 		return false;
 	}
-	_lggr.debug("[Resp] Method " + req.method + " is allowed ( allowed: " 
+	_lggr.debug("[Resp] Method " + req.method + " is allowed (allowed: " 
+		         + conn->locConfig->getAllowedMethodsString() + ")");
+
+	// expect 100 -> only with POST
+	if (req.expect_continue && req.method != "POST") {
+		_lggr.error("[Resp] Method " + req.method + " is not allowed with expect : Continue");
+		prepareResponse(conn, Response(400, conn));
+		return false;
+	}
+	_lggr.debug("[Resp] Method " + req.method + " is allowed (allowed: " 
 		         + conn->locConfig->getAllowedMethodsString() + ")");
 	
 	// Check against location's max body size

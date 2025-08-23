@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:10:22 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/23 18:34:52 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/23 20:04:26 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -81,10 +81,7 @@ bool WebServer::isHeadersComplete(Connection *conn) {
 		conn->should_close = true;
 		return true;
 	}
-	if (req.expect_continue) {
-		prepareResponse(conn, Response::continue_());
-		return false; // not sure
-	}
+
 
 	// Match location block, Normalize URI + Check traversal
 	if (!matchLocation(req, conn) || !normalizePath(req, conn)) {
@@ -96,6 +93,13 @@ bool WebServer::isHeadersComplete(Connection *conn) {
 	if (!processValidRequestChecks(req, conn)) {
 		conn->state = Connection::REQUEST_COMPLETE;
 		conn->should_close = true;
+		return true;
+	}
+	if (req.expect_continue) {
+		_lggr.debug("Expect: 100-continue, sending immediate response");
+		prepareResponse(conn, Response::continue_());
+		conn->state = Connection::CONTINUE_SENT;
+		conn->read_buffer.clear();
 		return true;
 	}
 
@@ -145,9 +149,7 @@ bool WebServer::isHeadersComplete(Connection *conn) {
 			conn->state = Connection::READING_BODY;
 			// check if full body
 			if (static_cast<ssize_t>(conn->body_data.size()) >= conn->content_length) {
-				conn->state = Connection::REQUEST_COMPLETE;
-				
-				
+				conn->state = Connection::REQUEST_COMPLETE;	
 				req.body = reconstructRequest(conn); 
 				_lggr.debug("1 req.body" + req.body);
 				return true;

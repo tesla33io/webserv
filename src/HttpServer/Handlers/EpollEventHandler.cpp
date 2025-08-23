@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:06:48 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/23 18:29:08 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/23 19:30:23 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -139,22 +139,12 @@ bool WebServer::processReceivedData(Connection *conn, const char *buffer, ssize_
 		std::cerr << i++ << " calls of processReceivedData (OTHER)" << std::endl;
 	}
 
-	_lggr.debug("Sending a response 100");
-	if (conn->response_ready) {
-		if (!epollManage(EPOLL_CTL_MOD, conn->fd, EPOLLOUT)) {
-			return false;
-		}
-	}
-
 	_lggr.debug("Checking if request was completed");
 	if (isRequestComplete(conn)) {
 		if (!epollManage(EPOLL_CTL_MOD, conn->fd, EPOLLOUT)) {
 			return false;
 		}
 		_lggr.debug("Request was completed");
-		if (conn->chunked && conn->state == Connection::CONTINUE_SENT) {
-			return true;
-		}
 		if (conn->should_close)
 			return false;
 		return handleCompleteRequest(conn);

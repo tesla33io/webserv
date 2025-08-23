@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ResponseHandler.cpp                                :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:08:41 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/20 16:21:00 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/23 20:04:53 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,9 +16,6 @@
 #include "src/HttpServer/HttpServer.hpp"
 
 ssize_t WebServer::prepareResponse(Connection *conn, const Response &resp) {
-	// TODO: some checks if the arguments are fine to work with
-	// TODO: make sure that Response has all required headers set up correctly (e.g. Content-Type,
-	// Content-Length, etc).
 	if (conn->response_ready) {
 		_lggr.error(
 		    "Trying to prepare a response for a connection that is ready to sent another one");
@@ -32,7 +29,6 @@ ssize_t WebServer::prepareResponse(Connection *conn, const Response &resp) {
 	conn->response = resp;
 	conn->response_ready = true;
 	return conn->response.toString().size();
-	// return send(clfd, raw_response.c_str(), raw_response.length(), 0);
 }
 
 bool WebServer::sendResponse(Connection *conn) {
@@ -47,6 +43,7 @@ bool WebServer::sendResponse(Connection *conn) {
 	_lggr.debug("Sending response [" + conn->response.toShortString() +
 	            "] back to fd: " + su::to_string(conn->fd));
 	std::cout << conn->response.toShortString() << "] back to fd: " << su::to_string(conn->fd) << std::endl;
+	
 	if (conn->cgi_response != "") {
 		raw_response = conn->cgi_response;
 		conn->cgi_response = "";
@@ -54,10 +51,23 @@ bool WebServer::sendResponse(Connection *conn) {
 		raw_response = conn->response.toString();
 		conn->response.reset();
 	}
+	bool send_success = send(conn->fd, raw_response.c_str(), raw_response.size(), MSG_NOSIGNAL) != -1;
+	if (!send_success) {
+		return false;
+	}
+
+	if (conn->state == Connection::CONTINUE_SENT) {
+		_lggr.debug("Sent 100 Continue, waiting for request body");
+		epollManage(EPOLL_CTL_MOD, conn->fd, EPOLLIN);
+		conn->response_ready = false;
+		conn->state = Connection::READING_BODY;  // Now read the body
+		return true;
+	}
+
 	epollManage(EPOLL_CTL_MOD, conn->fd, EPOLLIN);
 	conn->response_ready = false;
-    conn->state = Connection::READING_HEADERS;
-	return send(conn->fd, raw_response.c_str(), raw_response.size(), MSG_NOSIGNAL) != -1;
+	conn->state = Connection::READING_HEADERS;
+	return true;
 }
 
 // Serving the index file or listing if possible
