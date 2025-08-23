@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:10:22 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/23 21:56:14 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/24 00:24:00 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -145,10 +145,17 @@ bool WebServer::isHeadersComplete(Connection *conn) {
 		else { // if (conn->content_length > 0 && !req.expect_continue)
 			conn->state = Connection::READING_BODY;
 			// check if full body
-			if (static_cast<ssize_t>(conn->body_data.size()) >= conn->content_length) {
+			if (static_cast<ssize_t>(conn->body_data.size()) == conn->content_length) {
 				conn->state = Connection::REQUEST_COMPLETE;	
 				req.body = reconstructRequest(conn); 
 				_lggr.debug("1 req.body" + req.body);
+				return true;
+			}
+			if (static_cast<ssize_t>(conn->body_data.size()) > conn->content_length) {
+				conn->state = Connection::REQUEST_COMPLETE;	
+				prepareResponse(conn, Response(400));
+				_lggr.debug("Content length mismatch" + req.body);
+				conn->should_close = true;
 				return true;
 			}
 			// clear read_buffer since body data is in body_data vector
@@ -200,7 +207,7 @@ bool WebServer::isRequestComplete(Connection *conn) {
 			su::to_string(conn->content_length - static_cast<ssize_t>(conn->body_data.size())) +
 			" bytes left to receive");
 					
-		if (static_cast<ssize_t>(conn->body_data.size()) >= conn->content_length) {
+		if (static_cast<ssize_t>(conn->body_data.size()) == conn->content_length) {
 			_lggr.debug("Read full content-length: " + su::to_string(conn->body_data.size()) +
 						" bytes received");
 			conn->state = Connection::REQUEST_COMPLETE;
@@ -303,7 +310,6 @@ void WebServer::processRequest(Connection *conn) {
 		_lggr.debug("No body data or headers not properly parsed");
 		req.body = "";
 	}
-
 	
 	_lggr.debug("req.body: " + req.body);
 	_lggr.debug("req.headers: " + conn->headers_buffer);
@@ -342,30 +348,19 @@ void WebServer::processRequest(Connection *conn) {
 
 	_lggr.debug("FD " + su::to_string(req.clfd) + " ClientRequest {" + req.toString() + "}");
 	
-	// Match location block, Normalize URI + Check traversal
-	// if (!matchLocation(req, conn) || !normalizePath(req, conn))	
-	// 	return;
-	
 	// process the request
 	processValidRequest(req, conn);
 }
-
 
 
 void WebServer::processValidRequest(ClientRequest &req, Connection *conn) {
 		
 	const std::string& full_path = conn->locConfig->getFullPath();
 	_lggr.debug("[Resp] The matched location is an exact match: " + su::to_string(conn->locConfig->is_exact_()));
-
-	// check max body size, return directive, method allowed
-	if (!processValidRequestChecks(req, conn)) {
-		return;
-	}
 	
 	// File system check 
 	FileType file_type = checkFileType(full_path);
 	_lggr.debug("[Resp] checkFileType for " + full_path + " is " + fileTypeToString(file_type));
-
 
 	// File system errors
 	if (!handleFileSystemErrors(file_type, full_path, conn))

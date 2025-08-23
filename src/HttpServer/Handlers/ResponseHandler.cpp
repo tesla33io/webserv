@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:08:41 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/23 20:04:53 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/23 23:42:53 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,7 +18,7 @@
 ssize_t WebServer::prepareResponse(Connection *conn, const Response &resp) {
 	if (conn->response_ready) {
 		_lggr.error(
-		    "Trying to prepare a response for a connection that is ready to sent another one");
+		    "Trying to prepare a response for a connection that is ready to send another one");
 		_lggr.error("Current response: " + conn->response.toShortString());
 		_lggr.error("Trying to prepare response: " + resp.toShortString());
 		return -1;

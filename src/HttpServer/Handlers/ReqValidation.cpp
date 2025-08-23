@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/08 12:56:57 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/23 20:35:46 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/24 00:27:32 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,7 +19,7 @@
 bool WebServer::matchLocation(ClientRequest &req, Connection *conn) {
 	// initialize the correct locConfig // default "/"
 	_lggr.debug("Path to match : " + req.path);
-	LocConfig *match = findBestMatch(req.path, conn->servConfig->getLocations());
+	LocConfig *match = findBestMatch(req.path, conn->servConfig->getLocations(), _lggr);
 	if (!match) {
 		_lggr.error("[Resp] No matched location for : " + req.path);
 		prepareResponse(conn, Response::internalServerError(conn));
@@ -59,7 +59,7 @@ bool WebServer::normalizePath(ClientRequest &req, Connection *conn) {
 bool WebServer::processValidRequestChecks(ClientRequest &req, Connection *conn) {
 	
 	// check if RETURN directive in the matched location
-	if (conn->locConfig->hasReturn() && conn->locConfig->is_exact_()) {
+	if (conn->locConfig->hasReturn() && conn->locConfig->path == req.path) {
 		_lggr.debug("[Resp] The matched location has a return directive.");
 		uint16_t code = conn->locConfig->return_code;
 		std::string target = conn->locConfig->return_target;
@@ -83,6 +83,11 @@ bool WebServer::processValidRequestChecks(ClientRequest &req, Connection *conn) 
 		_lggr.error("[Resp] Method " + req.method + " is not allowed with expect : Continue");
 		prepareResponse(conn, Response(400, conn));
 		return false;
+	}
+
+	if (req.content_length == -1 && req.chunked_encoding == false && req.method != "GET") {
+		_lggr.error("No content length, not chunked");
+		prepareResponse(conn, Response(411, conn));
 	}
 	
 	// Check against location's max body size

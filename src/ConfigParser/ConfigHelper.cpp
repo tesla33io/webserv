@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 13:54:29 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/21 14:55:49 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/24 00:23:04 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -179,12 +179,12 @@ void ConfigParser::printLocationConfig(const LocConfig &loc, std::ostream &os) c
 
 	os << "    Max body size: " << su::humanReadableBytes(loc.client_max_body_size) << "\n";
 
-	// ADD THIS: Print upload_path if it's set
 	if (!loc.upload_path.empty()) {
 		os << "    Upload path: " << loc.upload_path << "\n";
 	}
 
 	os << "    Autoindex: " << (loc.autoindex ? "on" : "off") << "\n";
+	os << "    Exact match only: " << (loc.exact_match ? "on" : "off") << "\n";
 
 	if (!loc.allowed_methods.empty()) {
 		os << "    Allowed methods: ";

@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/25 10:33:32 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/23 22:32:36 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/23 22:44:53 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -89,7 +89,7 @@ uint16_t RequestParsingUtils::checkReqLine(ClientRequest &request) {
 		return 400;
 	}
 
-	if (request.method != "POST" && request.method != "POST" && request.method != "DELETE") {
+	if (request.method != "POST" && request.method != "GET" && request.method != "DELETE") {
 		logger.logWithPrefix(Logger::WARNING, "HTTP", "Unsupported HTTP method: " + request.method);
 		return 501;
 	}

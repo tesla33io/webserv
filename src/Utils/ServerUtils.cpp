@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ServerUtils.cpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/08 13:19:18 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/20 15:23:47 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/24 00:28:03 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -124,17 +124,17 @@ std::string detectContentType(const std::string &path) {
 	return "application/octet-stream";
 }
 
-LocConfig *findBestMatch(const std::string &uri, std::vector<LocConfig> &locations) {
+LocConfig *findBestMatch(const std::string &uri, std::vector<LocConfig> &locations, Logger& logger) {
 	for (std::vector<LocConfig>::iterator it = locations.begin(); it != locations.end(); ++it) {
-		if (isPrefixMatch(uri, *it)) {
+		if (isPrefixMatch(uri, *it, logger)) {
 			return &(*it);
 		}
 	}
 	return NULL;
 }
 
-bool isPrefixMatch(const std::string &uri, LocConfig &loc) {
-	Logger log;
+bool isPrefixMatch(const std::string &uri, LocConfig &loc, Logger& log) {
+
 	std::string location_path = loc.getPath();
 
 	// reached only at last since the locconfig are sorted -> no better match 
@@ -149,8 +149,7 @@ bool isPrefixMatch(const std::string &uri, LocConfig &loc) {
 		return false;
 	}
 	if (uri.length() == location_path.length()) {
-		loc.setExact(true);
-		log.debug("EXACT PATH MATCH - uri : " + uri + " loc : " + location_path);
+		log.debug(" uri : " + uri + " loc : " + location_path);
 		return true; // Exact match
 	}
 	if (loc.is_exact_()) {
@@ -160,3 +159,4 @@ bool isPrefixMatch(const std::string &uri, LocConfig &loc) {
 	char next_char = uri[location_path.length()];
 	return next_char == '/' || location_path[location_path.length() - 1] == '/';
 }
+

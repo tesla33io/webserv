@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ServerCGI.cpp                                      :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/08 11:38:44 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/20 12:19:13 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/23 23:43:00 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -77,7 +77,7 @@ ssize_t WebServer::prepareCGIResponse(CGI *cgi, Connection *conn) {
 	printCGIResponse(cgi_output);
 	if (conn->response_ready) {
 		_lggr.error(
-		    "Trying to prepare a response for a connection that is ready to sent another one");
+		    "Trying to prepare a response for a connection that is ready to send another one");
 		return (-1);
 	}
 	conn->cgi_response = cgi_output;

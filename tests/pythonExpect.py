@@ -19,7 +19,7 @@ def test_expect_continue(host="127.0.0.1", port=8080):
     try:
         # Prepare request headers
         headers = (
-            "POST /cgi-bin/test HTTP/1.1\r\n"
+            "POST /cgi-bin/ HTTP/1.1\r\n"
             f"Host: {host}:{port}\r\n"
             "Content-Length: 11\r\n"
             "Expect: 100-continue\r\n"
