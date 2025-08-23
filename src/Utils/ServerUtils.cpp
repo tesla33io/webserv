@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/08 13:19:18 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/24 00:28:03 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/24 00:38:49 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -58,6 +58,8 @@ FileType WebServer::checkFileType(const std::string &path) {
 	}
 	return FILE_SYSTEM_ERROR_500;
 }
+
+
 
 
 std::string fileTypeToString(FileType type) {

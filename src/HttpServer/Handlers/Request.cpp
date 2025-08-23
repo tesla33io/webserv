@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:10:22 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/24 00:24:00 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/24 00:43:29 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -362,6 +362,14 @@ void WebServer::processValidRequest(ClientRequest &req, Connection *conn) {
 	FileType file_type = checkFileType(full_path);
 	_lggr.debug("[Resp] checkFileType for " + full_path + " is " + fileTypeToString(file_type));
 
+	if (file_type == NOT_FOUND_404 && su::back(full_path) == '/') {
+		std::string pathWithoutSlash = full_path.substr(0, full_path.length() - 1);
+		FileType fileTypeWithoutSlash = checkFileType(pathWithoutSlash);
+		if (fileTypeWithoutSlash == ISREG) {
+			file_type = ISREG;
+		}
+	}
+	
 	// File system errors
 	if (!handleFileSystemErrors(file_type, full_path, conn))
 		return;

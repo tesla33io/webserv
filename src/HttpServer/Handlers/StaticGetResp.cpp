@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/19 18:29:33 by htharrau          #+#    #+#             */
-/*   Updated: 2025/08/22 15:10:36 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/24 00:41:13 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -58,13 +58,13 @@ void  WebServer::handleFileRequest(ClientRequest &req, Connection *conn, bool en
 	_lggr.debug("File request: " + full_path);
 	
 	// Trailing '/'? Redirect
-	if (end_slash ) { //&& !conn->locConfig->is_exact_()
+	if (end_slash) { //&& !conn->locConfig->is_exact_()
 		_lggr.debug("File request with trailing slash, redirecting: " + req.path);
 		std::string redirectPath = req.path.substr(0, req.path.length() - 1);
 		prepareResponse(conn, respReturnDirective(conn, 301, redirectPath));
 		return;
 	}
-
+	
 	// HANDLE CGI
 	std::string extension = getExtension(full_path);
 	if (conn->locConfig->acceptExtension(extension)) {
