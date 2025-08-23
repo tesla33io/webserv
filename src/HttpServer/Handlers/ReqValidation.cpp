@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ReqValidation.cpp                                  :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/08 12:56:57 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/21 11:09:30 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/25 11:49:01 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -103,6 +103,7 @@ bool WebServer::processValidRequestChecks(ClientRequest &req, Connection *conn) 
 	if (req.content_length == -1 && req.chunked_encoding == false && req.method != "GET") {
 		_lggr.error("No content length, not chunked");
 		prepareResponse(conn, Response(411, conn));
+		return false;
 	}
 	
 	// Check against location's max body size

@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:10:22 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/21 10:33:46 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/25 11:48:51 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -145,7 +145,7 @@ bool WebServer::isHeadersComplete(Connection *conn) {
 			// check if full body
 			if (static_cast<ssize_t>(conn->body_data.size()) == conn->content_length) {
 				conn->state = Connection::REQUEST_COMPLETE;	
-				req.body = reconstructRequest(conn); 
+				// req.body = reconstructRequest(conn); 
 				_lggr.debug("1 req.body" + req.body);
 				return true;
 			}
