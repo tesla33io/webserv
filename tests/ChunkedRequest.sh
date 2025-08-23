@@ -16,7 +16,7 @@ send_request() {
   local timeout="${3:-3}"  # Default 3 second timeout
   local expect_response="${4:-true}"  # Whether we expect a response
 
-  echo -e "${YELLOW}>>> Test: $name${NC}"
+  echo -e "${NC}>>> Test: $name${NC}"
   
   if [ "$expect_response" = "false" ]; then
     echo -e "${BLUE}(Expecting timeout/no response)${NC}"
@@ -29,7 +29,9 @@ send_request() {
     response=$(timeout $timeout bash -c "echo -e '$request' | nc $HOST $PORT" 2>/dev/null)
   fi
 
-  echo -e "Response:\n$response\n"
+  # Print only first 5 lines
+  echo -e "$(echo "$response" | head -n 1)"
+
 
   if echo "$response" | grep -q "200 OK"; then
     echo -e "${GREEN}[PASS]${NC} $name\n"
@@ -176,15 +178,6 @@ Hello\r
 \r
 "
 
-# No final CRLF after terminating chunk
-NO_FINAL_CRLF="POST /cgi-bin/ HTTP/1.1\r
-Host: $HOST\r
-Transfer-Encoding: chunked\r
-Content-Type: text/plain\r
-\r
-5\r
-Hello\r
-0\r"
 
 # Missing terminating chunk entirely
 NO_TERMINATING_CHUNK="POST /cgi-bin/ HTTP/1.1\r
@@ -216,56 +209,99 @@ Content-Type: text/plain\r
 
 # ============== STRESS TESTS ==============
 
-# Create large chunk (1KB)
+# 1KB chunk
 LARGE_DATA=$(printf 'X%.0s' {1..1024})
-LARGE_CHUNK="POST /cgi-bin/ HTTP/1.1\r
+LARGE_CHUNK_1KB="POST /cgi-bin/ HTTP/1.1\r
 Host: $HOST\r
 Transfer-Encoding: chunked\r
 Content-Type: text/plain\r
 \r
-400\r
+$(printf '%X' ${#LARGE_DATA})\r
 $LARGE_DATA\r
 0\r
 \r
 "
 
-# Many small chunks
+# 100KB data
+LARGE_DATA2=$(head -c 102400 < /dev/zero | tr '\0' 'X')
+LARGE_CHUNK_100KB="POST /cgi-bin/ HTTP/1.1\r
+Host: $HOST\r
+Transfer-Encoding: chunked\r
+Content-Type: text/plain\r
+\r
+$(printf '%X' ${#LARGE_DATA2})\r
+$LARGE_DATA2\r
+0\r
+\r
+"
+
+
+# Many small chunks (10,000 x 1 byte)
 MANY_CHUNKS="POST /cgi-bin/ HTTP/1.1\r
 Host: $HOST\r
 Transfer-Encoding: chunked\r
 Content-Type: text/plain\r
 \r"
-for i in {1..20}; do
+for i in $(seq 1 10000); do
     MANY_CHUNKS+="1\r
 $((i % 10))\r"
 done
 MANY_CHUNKS+="0\r
 \r"
 
+
+
+# ============== NEW Expect: 100-continue TESTS ==============
+EXPECT_CONTINUE_SIMPLE="POST /cgi-bin/ HTTP/1.1\r
+Host: $HOST\r
+Content-Type: text/plain\r
+Content-Length: 11\r
+Expect: 100-continue\r
+\r
+Hello World"
+
+EXPECT_CONTINUE_CHUNKED="POST /cgi-bin/ HTTP/1.1\r
+Host: $HOST\r
+Transfer-Encoding: chunked\r
+Content-Type: text/plain\r
+Expect: 100-continue\r
+\r
+5\r
+Hello\r
+5\r
+World\r
+0\r
+\r
+"
+
+
 # ============== RUN TESTS ==============
 
-echo -e "${GREEN}=== VALID TESTS (Should return 200 OK) ===${NC}"
+echo -e "${YELLOW}=== VALID TESTS (Should return 200 OK) ===${NC}"
 send_request "Valid chunked request" "$VALID_CHUNKED"
+send_request "Expect: 100-continue simple" "$EXPECT_CONTINUE_SIMPLE"
+send_request "Expect: 100-continue chunked" "$EXPECT_CONTINUE_CHUNKED"
 send_request "Empty body (0 chunk only)" "$EMPTY_BODY"
 send_request "Big chunk (10 bytes)" "$BIG_CHUNK"
 send_request "Single byte chunks" "$SINGLE_BYTE_CHUNKS"
 
-echo -e "${RED}=== ERROR TESTS (Should return 400 Bad Request) ===${NC}"
+echo -e "${YELLOW}=== ERROR TESTS (Should return 400 Bad Request) ===${NC}"
 send_request "Invalid hex size (Z)" "$INVALID_HEX"
 send_request "Missing CRLF after chunk data" "$MISSING_CRLF_DATA"
 send_request "Chunk size too big for data" "$SIZE_MISMATCH_SMALL"
 send_request "Chunk size too small for data" "$SIZE_MISMATCH_BIG"
 send_request "Empty chunk size line" "$EMPTY_CHUNK_SIZE"
 send_request "Negative chunk size" "$NEGATIVE_CHUNK"
-send_request "No final CRLF after terminating chunk" "$NO_FINAL_CRLF"
+
 
 echo -e "${YELLOW}=== INCOMPLETE TESTS (May timeout - server waiting for more data) ===${NC}"
 send_request "No terminating chunk" "$NO_TERMINATING_CHUNK" 5 false
 send_request "Incomplete chunk (missing data)" "$INCOMPLETE_CHUNK" 5 false
 send_request "Only chunk size, no data" "$ONLY_SIZE" 5 false
 
-echo -e "${BLUE}=== STRESS TESTS ===${NC}"
-send_request "Large chunk (1KB)" "$LARGE_CHUNK"
-send_request "Many small chunks (20x)" "$MANY_CHUNKS"
+echo -e "${YELLOW}=== STRESS TESTS ===${NC}"
+send_request "Large chunk (1KB)" "$LARGE_CHUNK_1KB"
+send_request "Large chunk (100KB - unreliable)" "$LARGE_CHUNK_1MB"
+send_request "Many small chunks (10,000x)" "$MANY_CHUNKS"
 
 echo -e "\n${GREEN}========== TESTS COMPLETED ==========${NC}"

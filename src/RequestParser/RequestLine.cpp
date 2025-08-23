@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/25 10:33:32 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/17 22:28:24 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/23 22:32:36 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -87,6 +87,11 @@ uint16_t RequestParsingUtils::checkReqLine(ClientRequest &request) {
 	    request.version.find(' ') != std::string::npos) {
 		logger.logWithPrefix(Logger::WARNING, "HTTP", "Extra spaces in request line");
 		return 400;
+	}
+
+	if (request.method != "POST" && request.method != "POST" && request.method != "DELETE") {
+		logger.logWithPrefix(Logger::WARNING, "HTTP", "Unsupported HTTP method: " + request.method);
+		return 501;
 	}
 
 	if (request.uri.length() > MAX_URI_LENGTH) {

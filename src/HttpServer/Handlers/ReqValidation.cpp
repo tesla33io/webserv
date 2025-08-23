@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/08 12:56:57 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/23 20:01:58 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/23 20:35:46 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -84,8 +84,6 @@ bool WebServer::processValidRequestChecks(ClientRequest &req, Connection *conn) 
 		prepareResponse(conn, Response(400, conn));
 		return false;
 	}
-	_lggr.debug("[Resp] Method " + req.method + " is allowed (allowed: " 
-		         + conn->locConfig->getAllowedMethodsString() + ")");
 	
 	// Check against location's max body size
 	if ((req.content_length != -1) && !conn->locConfig->infiniteBodySize() && 

@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:10:22 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/23 20:04:26 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/23 21:56:14 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,7 +16,7 @@
 #include "src/HttpServer/HttpServer.hpp"
 #include "src/Utils/ServerUtils.hpp"
 
-/* Request handlers */
+/* Request handlers */ // deprecated
 void WebServer::handleRequestTooLarge(Connection *conn, ssize_t bytes_read) {
 	_lggr.info("Reached max content length for fd: " + su::to_string(conn->fd) + ", " +
 			   su::to_string(bytes_read) + "/" +
@@ -54,34 +54,32 @@ uint16_t WebServer::handleCGIRequest(ClientRequest &req, Connection *conn) {
 /* Request processing */
 
 bool WebServer::isHeadersComplete(Connection *conn) {
-	
+	_lggr.debug("isHeadersComplete");
 	std::string temp = conn->read_buffer;
 	size_t header_end = conn->read_buffer.find("\r\n\r\n");
 	if (header_end == std::string::npos) {
+		_lggr.debug("[HEADER CHECK] INCOMPLETE returning false");
 		return false;
 	}
 
 	// Headers are complete
 	std::string headers = conn->read_buffer.substr(0, header_end + 4);
-	
+	std::string remaining_data = conn->read_buffer.substr(header_end + 4);
+
 	// Header request for early headers error detection
 	ClientRequest req;
 	req.clfd = conn->fd;
-	req.content_length = -1;
 
 	// On error: REQUEST_COMPLETE, Prepare Response
 	uint16_t error_code = RequestParsingUtils::parseRequestHeaders(headers, req);
-	_lggr.debug("[HEADER CHECK] ClientRequest post header parsing: " + req.printRequest());
-	_lggr.debug("[HEADER CHECK] Error code post header request parsing : " + su::to_string(error_code));
+	_lggr.debug("[HEADER CHECK] Status post header request parsing : " + su::to_string(error_code));
 	if (error_code != 0) {
-		_lggr.error("Parsing of the request's headers failed.");
-		conn->state = Connection::REQUEST_COMPLETE;
 		_lggr.logWithPrefix(Logger::ERROR, "BAD REQUEST", "Malformed or invalid headers");
 		prepareResponse(conn, Response(error_code, conn));
+		conn->state = Connection::REQUEST_COMPLETE;
 		conn->should_close = true;
 		return true;
 	}
-
 
 	// Match location block, Normalize URI + Check traversal
 	if (!matchLocation(req, conn) || !normalizePath(req, conn)) {
@@ -109,7 +107,6 @@ bool WebServer::isHeadersComplete(Connection *conn) {
 	conn->chunked = req.chunked_encoding;
 	conn->content_length = req.content_length;
 	
-	std::string remaining_data = conn->read_buffer.substr(header_end + 4);
 
 	if (!conn->chunked) { 	//Store remaining data as binary body data for Content-Length requests
 
@@ -188,61 +185,6 @@ bool WebServer::isHeadersComplete(Connection *conn) {
 	return true;
 }
 
-	
-	// // Case 1 : content_length 0 or no content length)
-	// if (conn->content_length <= 0) {
-	// 	conn->state = Connection::REQUEST_COMPLETE;
-	// 	return true;
-	// }
-	// // Case 2: content_length specified
-	// else if (conn->content_length > 0) {
-	// 	conn->state = Connection::READING_BODY;
-		
-	// 	// check if full body
-	// 	if (static_cast<ssize_t>(conn->body_data.size()) >= conn->content_length) {
-	// 		conn->state = Connection::REQUEST_COMPLETE;
-	// 		reconstructRequest(conn);
-	// 		return true;
-	// 	}
-	// 	// clear read_buffer since body data is in body_data vector
-	// 	conn->read_buffer.clear();
-	// 	return false;
-	// }
-	// // Case 3: chunked + expect 100
-	// else if (conn->chunked && req.expect_continue) {
-	// 	prepareResponse(conn, Response::continue_());
-	// 	conn->state = Connection::CONTINUE_SENT;
-	// 	conn->read_buffer.clear();
-	// 	conn->chunk_size = 0;
-	// 	conn->chunk_bytes_read = 0;
-	// 	conn->chunk_data.clear();
-	// 	return true;
-	// }
-	// // Case 4: chunked, no expect 100
-	// else if (conn->chunked) {
-	// 	conn->state = Connection::READING_CHUNK_SIZE;
-	// 	conn->read_buffer = remaining_data; // Keep any data after headers for chunk processing
-	// 	conn->chunk_size = 0;
-	// 	conn->chunk_bytes_read = 0;
-	// 	conn->chunk_data.clear();
-	// 	return processChunkSize(conn);
-	// }
-	// // Case 5: not chunked, expect 100 - TODO: double check we use the chunk 
-	// else if (req.expect_continue) {
-	// 	prepareResponse(conn, Response::continue_());
-	// 	conn->state = Connection::CONTINUE_SENT;
-	// 	conn->read_buffer.clear();
-	// 	conn->chunk_size = 0;
-	// 	conn->chunk_bytes_read = 0;
-	// 	conn->chunk_data.clear();
-	// 	return true;
-	// }
-	// // Default
-	// else {
-	// 	conn->state = Connection::REQUEST_COMPLETE;
-	// 	return true;
-	// }
-// }
 
 bool WebServer::isRequestComplete(Connection *conn) {
 	
@@ -332,7 +274,7 @@ bool WebServer::reconstructRequest(Connection *conn) {
 	return true;
 }
 
-
+// Deprecated
 bool WebServer::parseRequest(Connection *conn, ClientRequest &req) {
 	_lggr.debug("Parsing request: " + conn->read_buffer);
 	uint16_t error_code = RequestParsingUtils::parseRequest(conn->read_buffer, req);
@@ -351,7 +293,6 @@ void WebServer::processRequest(Connection *conn) {
 
 	ClientRequest req = conn->parsed_request;
 	
-
 	 // Handle body extraction differently for chunked vs non-chunked
 	if (req.chunked_encoding && conn->state == Connection::CHUNK_COMPLETE) {
 		req.body = conn->chunk_data;
@@ -367,6 +308,15 @@ void WebServer::processRequest(Connection *conn) {
 	_lggr.debug("req.body: " + req.body);
 	_lggr.debug("req.headers: " + conn->headers_buffer);
 	_lggr.debug("req.uri: " + req.uri);
+
+	_lggr.debug("[Resp] Payload vs content size: " + su::to_string(req.content_length) 
+		            + ", payload size: " + su::to_string(req.body.size()) );
+	if (req.content_length >= 0 && static_cast<ssize_t>(req.body.size()) != req.content_length) {
+		_lggr.error("[Resp] Payload mismatch, content size: " + su::to_string(req.content_length) 
+		            + ", payload size: " + su::to_string(req.body.size()) );
+		prepareResponse(conn, Response::contentTooLarge(conn));
+		return;
+	}
 
 	// if (req.chunked_encoding && conn->state == Connection::READING_HEADERS) {
 	// 	// Accept chunked requests sequence
@@ -393,8 +343,8 @@ void WebServer::processRequest(Connection *conn) {
 	_lggr.debug("FD " + su::to_string(req.clfd) + " ClientRequest {" + req.toString() + "}");
 	
 	// Match location block, Normalize URI + Check traversal
-	if (!matchLocation(req, conn) || !normalizePath(req, conn))	
-		return;
+	// if (!matchLocation(req, conn) || !normalizePath(req, conn))	
+	// 	return;
 	
 	// process the request
 	processValidRequest(req, conn);
