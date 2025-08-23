@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:10:22 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/22 16:41:38 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/23 18:34:52 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,20 +17,6 @@
 #include "src/Utils/ServerUtils.hpp"
 
 /* Request handlers */
-
-bool WebServer::handleIncompleteChunkedRequest(Connection *conn) {
-    // Check if connection has been in chunked state too long without progress
-    time_t current_time = time(NULL);
-    if ((current_time - conn->last_activity) > CHUNKED_TIMEOUT) {
-        _lggr.warn("Chunked request timeout for fd: " + su::to_string(conn->fd));
-        prepareResponse(conn, Response(408, conn)); // Request Timeout
-        conn->should_close = true;
-        return false;
-    }
-    return true;
-}
-
-
 void WebServer::handleRequestTooLarge(Connection *conn, ssize_t bytes_read) {
 	_lggr.info("Reached max content length for fd: " + su::to_string(conn->fd) + ", " +
 			   su::to_string(bytes_read) + "/" +
@@ -95,6 +81,10 @@ bool WebServer::isHeadersComplete(Connection *conn) {
 		conn->should_close = true;
 		return true;
 	}
+	if (req.expect_continue) {
+		prepareResponse(conn, Response::continue_());
+		return false; // not sure
+	}
 
 	// Match location block, Normalize URI + Check traversal
 	if (!matchLocation(req, conn) || !normalizePath(req, conn)) {
@@ -129,13 +119,13 @@ bool WebServer::isHeadersComplete(Connection *conn) {
 		_lggr.debug("Request POST HEADER remaining data size: " + su::to_string(remaining_data.size()));
 
 		// ERROR handling if Body present when it should not
-		// if ((conn->content_length <= 0 || req.expect_continue) && conn->body_bytes_read != 0) {
-		// 	_lggr.debug("Body present when it should not: send 400");
-		// 	prepareResponse(conn, Response(400, conn));
-		// 	conn->should_close = true;
-		// 	conn->state = Connection::REQUEST_COMPLETE;
-		// 	return true;
-		// }
+		if ((conn->content_length <= 0 || req.expect_continue) && conn->body_bytes_read != 0) {
+			_lggr.debug("Body present when it should not: send 400");
+			prepareResponse(conn, Response(400, conn));
+			conn->should_close = true;
+			conn->state = Connection::REQUEST_COMPLETE;
+			return true;
+		}
 		
 		// Case : content_length 0 or no content length)
 		if (conn->content_length <= 0 && !req.expect_continue) {
@@ -171,29 +161,24 @@ bool WebServer::isHeadersComplete(Connection *conn) {
 	else { // CHUNKED - store remaining data as string 
 		_lggr.debug("CHUNKED : req.expect_continue" + su::to_string(req.expect_continue));
 		
-		// Case : chunked + expect 100
-			if (req.expect_continue) {
-			_lggr.debug("CHUNKED : req.expect_continue" + su::to_string(req.expect_continue));
-			prepareResponse(conn, Response::continue_());
-			conn->state = Connection::CONTINUE_SENT;
-			conn->read_buffer.clear();
-			conn->chunk_size = 0;
-			conn->chunk_bytes_read = 0;
-			conn->chunk_data.clear();
-			return true;
-		} else { // Case : chunked, no expect 100
+		// // Case : chunked + expect 100
+		// 	if (req.expect_continue) {
+		// 	_lggr.debug("CHUNKED : req.expect_continue" + su::to_string(req.expect_continue));
+		// 	prepareResponse(conn, Response::continue_());
+		// 	conn->state = Connection::CONTINUE_SENT;
+		// 	conn->read_buffer.clear();
+		// 	conn->chunk_size = 0;
+		// 	conn->chunk_bytes_read = 0;
+		// 	conn->chunk_data.clear();
+		// 	return true;
+		// } else { // Case : chunked, no expect 100
 			conn->state = Connection::READING_CHUNK_SIZE;
 			conn->read_buffer = remaining_data; // Keep any data after headers for chunk processing
 			conn->chunk_size = 0;
 			conn->chunk_bytes_read = 0;
 			conn->chunk_data.clear();
-			// if (!remaining_data.empty()) {
-			// 	return processChunkSize(conn);  // Process chunks if we have data
-			// }
-			// return false;
 			return processChunkSize(conn);
-			//return true; 
-		}
+		// }
 	}
 	// Default
 	_lggr.logWithPrefix(Logger::ERROR, "BAD REQUEST", "Impossible request");

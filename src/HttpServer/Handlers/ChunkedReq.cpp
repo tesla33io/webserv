@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: Invalid date        by                   #+#    #+#             */
-/*   Updated: 2025/08/22 16:44:14 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/23 18:04:42 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -49,17 +49,6 @@ bool WebServer::processChunkSize(Connection *conn) {
 		return true; // Request is "complete" with error response
 	}
 	
-	// // Check for trailing garbage after valid hex digits
-	// while (*end == ' ' || *end == '\t') end++; // Skip whitespace
-	// if (*end != '\0') {
-	// 	_lggr.error("Invalid chunk size with trailing characters: '" + chunk_size_line + "'");
-	// 	prepareResponse(conn, Response(400, conn));
-	// 	conn->should_close = true;
-	// 	conn->state = Connection::REQUEST_COMPLETE;
-	// 	return true;
-	// }
-
-
 	conn->chunk_size = static_cast<size_t>(size);
 	_lggr.debug("Chunk size: " + su::to_string(conn->chunk_size));
 
@@ -67,19 +56,19 @@ bool WebServer::processChunkSize(Connection *conn) {
 	
 
 	// MAX BODY SIZE - vs CHUNKDATA + new chunk size
-	// if (!conn->locConfig->infiniteBodySize() && conn->locConfig->getMaxBodySize() > 0) {
-	// 	size_t total_body_size = conn->chunk_data.length() + conn->chunk_size;
-	// 	_lggr.debug("Chunk_data.length +  next chunk: " + su::to_string(total_body_size));
+	if (!conn->locConfig->infiniteBodySize() && conn->locConfig->getMaxBodySize() > 0) {
+		size_t total_body_size = conn->chunk_data.length() + conn->chunk_size;
+		_lggr.debug("Chunk_data.length +  next chunk: " + su::to_string(total_body_size));
 
-	// 	if (static_cast<size_t>(total_body_size) > conn->locConfig->getMaxBodySize()) {
-	// 		_lggr.error("Chunked body size (" + su::to_string(total_body_size) + 
-	// 				") would exceed max body size (" + su::to_string(conn->locConfig->getMaxBodySize()) + ")");
-	// 		prepareResponse(conn, Response(413, conn)); // Request Entity Too Large
-	// 		conn->should_close = true;
-	// 		conn->state = Connection::REQUEST_COMPLETE;
-	// 		return false;
-	// 	}
-	// }
+		if (static_cast<size_t>(total_body_size) > conn->locConfig->getMaxBodySize()) {
+			_lggr.error("Chunked body size (" + su::to_string(total_body_size) + 
+					") would exceed max body size (" + su::to_string(conn->locConfig->getMaxBodySize()) + ")");
+			prepareResponse(conn, Response(413, conn)); // Request Entity Too Large
+			conn->should_close = true;
+			conn->state = Connection::REQUEST_COMPLETE;
+			return false;
+		}
+	}
 
 
 	
@@ -98,7 +87,7 @@ bool WebServer::processChunkData(Connection *conn) {
 	size_t available_data = conn->read_buffer.length();
 	size_t bytes_needed = conn->chunk_size - conn->chunk_bytes_read;
 	if (available_data < bytes_needed + 2) { // +2 for trailing CRLF
-		// Need more data
+		_lggr.debug("Not enough data available, waiting for more");
 		return false;
 	}
 
@@ -109,6 +98,16 @@ bool WebServer::processChunkData(Connection *conn) {
 	conn->chunk_bytes_read += bytes_to_read;
 
 	conn->read_buffer = conn->read_buffer.substr(bytes_to_read);
+
+	// Exactly the announced number of bytes 
+	if (conn->chunk_bytes_read != conn->chunk_size) {
+		_lggr.error("Chunk data length mismatch: expected " + su::to_string(conn->chunk_size) + 
+		           " bytes, but read " + su::to_string(conn->chunk_bytes_read) + " bytes");
+		prepareResponse(conn, Response(400, conn));
+		conn->should_close = true;
+		conn->state = Connection::REQUEST_COMPLETE;
+		return true;
+	}
 
 	// Check if there are trailing CRLF - check we should return true
 	if ((conn->read_buffer.length() < 2) || (conn->read_buffer.substr(0, 2) != "\r\n")) {
@@ -121,7 +120,9 @@ bool WebServer::processChunkData(Connection *conn) {
 
 	// Remove trailing CRLF
 	conn->read_buffer = conn->read_buffer.substr(2);
+	_lggr.debug("Chunk data processed successfully: " + su::to_string(conn->chunk_size) + " bytes");
 
+	conn->chunk_bytes_read = 0;
 	conn->state = Connection::READING_CHUNK_SIZE;
 	return processChunkSize(conn);
 }
@@ -129,8 +130,8 @@ bool WebServer::processChunkData(Connection *conn) {
 bool WebServer::processTrailer(Connection *conn) {
 	size_t trailer_end = findCRLF(conn->read_buffer);
 
+	// Need more data
 	if (trailer_end == std::string::npos) {
-		// Need more data
 		return false;
 	}
 
@@ -140,7 +141,7 @@ bool WebServer::processTrailer(Connection *conn) {
 	// If trailer line is empty, we're done
 	if (trailer_line.empty()) {
 		conn->state = Connection::CHUNK_COMPLETE;
-
+		_lggr.debug("Trailer line is empty, chunk complete");
 		reconstructChunkedRequest(conn);
 		return true;
 	}

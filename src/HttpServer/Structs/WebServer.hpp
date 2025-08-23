@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/08 13:44:09 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/22 16:16:47 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/23 18:30:21 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -149,7 +149,6 @@ class WebServer {
 	bool matchLocation(ClientRequest &req, Connection *conn);
 
 	bool reconstructRequest(Connection *conn);
-	bool handleIncompleteChunkedRequest(Connection *conn);
 
 
 	uint16_t handleCGIRequest(ClientRequest &req, Connection *conn);
