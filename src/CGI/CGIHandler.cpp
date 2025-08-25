@@ -141,6 +141,5 @@ uint16_t CGIUtils::createCGI(CGI *&cgi, ClientRequest &req, LocConfig *locConfig
 	uint16_t exit_code = runCGIScript(req, *cgi);
 	if (exit_code)
 		return (exit_code);
-
 	return (0);
 }
