@@ -16,12 +16,9 @@
 #include "src/HttpServer/Structs/WebServer.hpp"
 
 ssize_t WebServer::prepareResponse(Connection *conn, const Response &resp) {
-	// TODO: some checks if the arguments are fine to work with
-	// TODO: make sure that Response has all required headers set up correctly (e.g. Content-Type,
-	// Content-Length, etc).
 	if (conn->response_ready) {
 		_lggr.error(
-		    "Trying to prepare a response for a connection that is ready to sent another one");
+		    "Trying to prepare a response for a connection that is ready to send another one");
 		_lggr.error("Current response: " + conn->response.toShortString());
 		_lggr.error("Trying to prepare response: " + resp.toShortString());
 		return -1;
@@ -38,19 +35,39 @@ bool WebServer::sendResponse(Connection *conn) {
 	std::string raw_response;
 
 	_lggr.debug("Current state of response [" + conn->response.toShortString());
-	if (!conn->response_ready) {
+	/* if (!conn->response_ready) {
 		_lggr.error("Response is not ready to be sent back to the client");
 		_lggr.debug("Error for clinet " + conn->toString());
 		return false;
-	}
+	} */
 	_lggr.debug("Sending response [" + conn->response.toShortString() +
 	            "] back to fd: " + su::to_string(conn->fd));
-	raw_response = conn->response.toString();
-	conn->response.reset();
+	std::cout << conn->response.toShortString() << "] back to fd: " << su::to_string(conn->fd) << std::endl;
+	
+	if (conn->cgi_response != "") {
+		raw_response = conn->cgi_response;
+		conn->cgi_response = "";
+	} else {
+		raw_response = conn->response.toString();
+		conn->response.reset();
+	}
+	bool send_success = send(conn->fd, raw_response.c_str(), raw_response.size(), MSG_NOSIGNAL) != -1;
+	if (!send_success) {
+		return false;
+	}
+
+	if (conn->state == Connection::CONTINUE_SENT) {
+		_lggr.debug("Sent 100 Continue, waiting for request body");
+		epollManage(EPOLL_CTL_MOD, conn->fd, EPOLLIN);
+		conn->response_ready = false;
+		conn->state = Connection::READING_BODY;  // Now read the body
+		return true;
+	}
+
 	epollManage(EPOLL_CTL_MOD, conn->fd, EPOLLIN);
 	conn->response_ready = false;
 	conn->state = Connection::READING_HEADERS;
-	return send(conn->fd, raw_response.c_str(), raw_response.size(), MSG_NOSIGNAL) != -1;
+	return true;
 }
 
 // Serving the index file or listing if possible

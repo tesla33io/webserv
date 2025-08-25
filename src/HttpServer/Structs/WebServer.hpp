@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   WebServer.hpp                                      :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/08 13:44:09 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/20 15:23:38 by jalombar         ###   ########.fr       */
+/*   Updated: 2025/08/23 18:30:21 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -42,7 +42,7 @@ class WebServer {
 	/// Constructs a WebServer with configurations and a root path prefix.
 	/// \param confs Vector of server configurations to initialize.
 	/// \param prefix_path Root directory prefix for serving files.
-	WebServer(std::vector<ServerConfig> &confs, std::string &prefix_path);
+	WebServer(std::vector<ServerConfig> &confs, std::string &prefix_path, int log_level);
 
 	~WebServer();
 
@@ -55,6 +55,7 @@ class WebServer {
 
 	/// Global flag indicating if the server should continue running.
 	static bool _running;
+	int log_level;
 
   private:
 	int _epoll_fd;
@@ -148,6 +149,7 @@ class WebServer {
 	bool matchLocation(ClientRequest &req, Connection *conn);
 
 	bool reconstructRequest(Connection *conn);
+
 
 	uint16_t handleCGIRequest(ClientRequest &req, Connection *conn);
 	// bool handleCGIRequest(ClientRequest &req, Connection *conn);

@@ -6,14 +6,14 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:09:35 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/19 18:37:16 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/23 18:08:41 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "src/HttpServer/Structs/WebServer.hpp"
 #include "src/HttpServer/Structs/Connection.hpp"
-#include "src/HttpServer/Structs/Response.hpp"
 #include "src/HttpServer/HttpServer.hpp"
+#include "src/HttpServer/Structs/Response.hpp"
+#include "src/HttpServer/Structs/WebServer.hpp"
 
 void WebServer::handleNewConnection(ServerConfig *sc) {
 	struct sockaddr_in client_addr;
@@ -21,7 +21,7 @@ void WebServer::handleNewConnection(ServerConfig *sc) {
 
 	int client_fd = accept(sc->getServerFD(), (struct sockaddr *)&client_addr, &client_len);
 	if (client_fd == -1) {
-		// TODO: cannot accept a connection with the client
+		return;
 	}
 
 	if (!setNonBlocking(client_fd)) {
@@ -29,7 +29,6 @@ void WebServer::handleNewConnection(ServerConfig *sc) {
 		return;
 	}
 
-	// TODO: error checks
 	Connection *conn = addConnection(client_fd, sc);
 
 	if (!epollManage(EPOLL_CTL_ADD, client_fd, EPOLLIN)) {
@@ -98,19 +97,20 @@ void WebServer::closeConnection(Connection *conn) {
 	if (!conn)
 		return;
 
-	// TODO: redundant check may be removed
-	// if (conn->keep_persistent_connection) {
-	// 	_lggr.debug("Ignoring connection close request for fd: " + su::to_string(conn->fd));
-	// 	return;
-	// }
 	_lggr.debug("Closing connection for fd: " + su::to_string(conn->fd));
 
+	std::map<int, Connection *>::iterator it = _connections.find(conn->fd);
+	if (it == _connections.end()) {
+		_lggr.debug("Connection already closed for fd: " + su::to_string(conn->fd));
+		return;
+	}
+	if (it->second != conn) {
+		_lggr.error("Connection object mismatch for fd: " + su::to_string(conn->fd));
+		return;
+	}
 	epoll_ctl(_epoll_fd, EPOLL_CTL_DEL, conn->fd, NULL);
 	close(conn->fd);
-
-	std::map<int, Connection *>::iterator it = _connections.find(conn->fd);
-	if (it != _connections.end()) {
-		_connections.erase(conn->fd);
-	}
+	_connections.erase(it);
 	_lggr.debug("Connection cleanup completed for fd: " + su::to_string(conn->fd));
+	delete conn;
 }

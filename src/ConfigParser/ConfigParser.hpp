@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 13:53:23 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/18 17:09:04 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/21 15:01:09 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -49,7 +49,7 @@ class ConfigNode {
 class ConfigParser {
 
   public:
-	ConfigParser();
+	ConfigParser(int log_level);
 
 	typedef bool (ConfigParser::*ValidationFunction)(const ConfigNode &);
 
@@ -72,7 +72,7 @@ class ConfigParser {
 	};
 
 	// PARSING THE CONFIGURATION FILE
-	bool loadConfig(const std::string &filePath, std::vector<ServerConfig> &servers, std::string &prefix);
+	bool loadConfig(const std::string &filePath, std::vector<ServerConfig> &servers, std::string &prefix, int log_level);
 
   private:
 	Logger logg_;
@@ -135,7 +135,6 @@ class ConfigParser {
 	bool existentLocationDuplicate(const ServerConfig &server, const LocConfig &location);
 	bool baseLocation(ServerConfig &server);
 	void addRootToErrorUri(ServerConfig &server);
-	void addGlobalMaxBody(ServerConfig &server);
 	std::string addPrefix(const std::string &uri, const std::string &prefix_);
 
 

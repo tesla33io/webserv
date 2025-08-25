@@ -11,13 +11,10 @@
 /* ************************************************************************** */
 
 #include "Response.hpp"
-#include "src/HttpServer/Structs/Connection.hpp"
 #include "src/ConfigParser/Struct.hpp"
 #include "src/HttpServer/HttpServer.hpp"
+#include "src/HttpServer/Structs/Connection.hpp"
 #include "src/Utils/ServerUtils.hpp"
-
-
-Logger Response::logg_("Config.log", Logger::DEBUG, true);
 
 Response::Response()
     : version("HTTP/1.1"),
@@ -92,12 +89,13 @@ Response Response::forbidden() { return Response(403); }
 
 Response Response::notFound() { return Response(404); }
 
-Response Response::methodNotAllowed(const std::string& allowed) { 
+Response Response::methodNotAllowed(const std::string &allowed) {
 	Response resp(405);
 	if (!allowed.empty()) {
 		resp.setHeader("Allow", allowed);
 	}
-	return resp; }
+	return resp;
+}
 
 Response Response::contentTooLarge() { return Response(413); }
 
@@ -111,7 +109,6 @@ Response Response::gatewayTimeout() { return Response(504); }
 
 Response Response::HttpNotSupported() { return Response(505); }
 
-
 // OVErLOAD
 
 Response Response::badRequest(Connection *conn) { return Response(400, conn); }
@@ -120,13 +117,13 @@ Response Response::forbidden(Connection *conn) { return Response(403, conn); }
 
 Response Response::notFound(Connection *conn) { return Response(404, conn); }
 
-Response Response::methodNotAllowed(Connection *conn, const std::string& allowed) {
+Response Response::methodNotAllowed(Connection *conn, const std::string &allowed) {
 	Response resp(405, conn);
 	if (!allowed.empty()) {
 		resp.setHeader("Allow", allowed);
 	}
-	return resp; }
-
+	return resp;
+}
 
 Response Response::contentTooLarge(Connection *conn) { return Response(413, conn); }
 
@@ -198,21 +195,13 @@ void Response::initFromCustomErrorPage(uint16_t code, Connection *conn) {
 	reason_phrase = getReasonPhrase(code);
 
 	if (!conn || !conn->getServerConfig() || !conn->getServerConfig()->hasErrorPage(code)) {
-		logg_.logWithPrefix(Logger::DEBUG, "Response",
-		                       "No custom error page for " + su::to_string(code));
-		logg_.logWithPrefix(Logger::DEBUG, "Response",
-		                       "Creating the default error page for " + su::to_string(code));
 		initFromStatusCode(code);
 		return;
 	}
-	logg_.logWithPrefix(Logger::DEBUG, "Response",
-	                       "A custom error page exists for " + su::to_string(code));
 	// todo check path again
 	std::string fullPath = conn->getServerConfig()->getErrorPage(code);
 	std::ifstream errorFile(fullPath.c_str());
 	if (!errorFile.is_open()) {
-		logg_.logWithPrefix(Logger::WARNING, "Response",
-		                       "Custom error page " + fullPath + " could not be opened.");
 		initFromStatusCode(code);
 		return;
 	}
@@ -223,17 +212,12 @@ void Response::initFromCustomErrorPage(uint16_t code, Connection *conn) {
 	setContentLength(body.length());
 	setContentType(detectContentType(fullPath));
 	errorFile.close();
-	logg_.logWithPrefix(Logger::DEBUG, "Response",
-	                       "Custom error page " + su::to_string(code) + " has been loaded.");
 }
 
 void Response::initFromStatusCode(uint16_t code) {
 	reason_phrase = getReasonPhrase(code);
 	if (code >= 400) {
 		if (body.empty()) {
-			logg_.logWithPrefix(Logger::DEBUG, "Response",
-			                       "No custom error page for " + su::to_string(code) +
-			                           " could be used or exist. Generating the default page now.");
 			std::ostringstream html;
 			html << "<!DOCTYPE html>\n"
 			     << "<html>\n"
@@ -268,8 +252,6 @@ void Response::initFromStatusCode(uint16_t code) {
 			body = html.str();
 			setContentLength(body.length());
 			setContentType("text/html");
-			logg_.logWithPrefix(Logger::DEBUG, "Response",
-			                       "Content-Type set to: " + headers["Content-Type"]);
 		}
 	}
 }

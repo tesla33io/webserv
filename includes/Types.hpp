@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/27 11:55:56 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/19 20:54:03 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/23 20:38:16 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -39,8 +39,15 @@ struct ClientRequest {
 	// CGI request
 	std::string extension;
 
+	public:
+	
 	std::string toString() const;
 	std::string printRequest() const;
+	ClientRequest() : 
+			chunked_encoding(false),
+			content_length(-1),
+			file_upload(false),
+			expect_continue(false) {};
 
 };
 

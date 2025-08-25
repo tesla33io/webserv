@@ -3,7 +3,7 @@
 /*                                                        :::      ::::::::   */
 /*   StaticGetResp.cpp                                  :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
+/*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/19 18:29:33 by htharrau          #+#    #+#             */
 /*   Updated: 2025/08/21 10:35:04 by jalombar         ###   ########.fr       */
@@ -65,7 +65,7 @@ void WebServer::handleFileRequest(ClientRequest &req, Connection *conn, bool end
 		prepareResponse(conn, respReturnDirective(conn, 301, redirectPath));
 		return;
 	}
-
+	
 	// HANDLE CGI
 	std::string extension = getExtension(full_path);
 	if (conn->locConfig->acceptExtension(extension)) {
@@ -92,6 +92,7 @@ void WebServer::handleFileRequest(ClientRequest &req, Connection *conn, bool end
 		return;
 	}
 }
+
 
 // struct dirent {
 //     ino_t          d_ino;       // Inode number

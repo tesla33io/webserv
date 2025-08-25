@@ -24,7 +24,6 @@ void WebServer::processEpollEvents(const struct epoll_event *events, int event_c
 		//             describeEpollEvents(event_mask) + ")");
 
 		if (isListeningSocket(fd)) {
-			// TODO: NULL check
 			ServerConfig *sc = ServerConfig::find(_confs, fd);
 			handleNewConnection(sc);
 		} else if (isCGIFd(fd)) {
@@ -50,6 +49,9 @@ void WebServer::handleClientEvent(int fd, uint32_t event_mask) {
 		Connection *conn = conn_it->second;
 		if (event_mask & EPOLLIN) {
 			handleClientRecv(conn);
+			if (_connections.find(fd) == _connections.end()) {
+				return; // Connection was closed, don't continue
+			}
 		}
 		if (event_mask & EPOLLOUT) {
 			if (conn->response_ready) {
@@ -113,14 +115,19 @@ ssize_t WebServer::receiveData(int client_fd, char *buffer, size_t buffer_size) 
 }
 
 bool WebServer::processReceivedData(Connection *conn, const char *buffer, ssize_t bytes_read) {
-	static int i = 0;
 
-	_lggr.debug("MAX BODY : bytes read " + su::to_string(conn->body_bytes_read) + " / " +
-	            su::to_string(conn->getServerConfig()->getServerMaxBodySize()));
+//	_lggr.debug("MAX BODY : bytes read " + su::to_string(conn->body_bytes_read) + " / " +
+//	            su::to_string(conn->getServerConfig()->getServerMaxBodySize()));
 
+//	if (conn->state == Connection::READING_HEADERS) {
+//		conn->read_buffer += std::string(buffer, bytes_read);
+//		std::cerr << i++ << " calls of processReceivedData (HEADERS)" << std::endl;
+  
+	// _lggr.debug("MAX BODY : bytes read " + su::to_string( conn->body_bytes_read) 
+	// 		+ " / " + su::to_string(conn->getServerConfig()->getServerMaxBodySize()));
+			
 	if (conn->state == Connection::READING_HEADERS) {
 		conn->read_buffer += std::string(buffer, bytes_read);
-		std::cerr << i++ << " calls of processReceivedData (HEADERS)" << std::endl;
 	}
 
 	else if (conn->state == Connection::READING_BODY) {
@@ -129,19 +136,14 @@ bool WebServer::processReceivedData(Connection *conn, const char *buffer, ssize_
 		                       reinterpret_cast<const unsigned char *>(buffer + bytes_read));
 		conn->body_bytes_read += bytes_read;
 
-		std::cerr << i++ << " calls of processReceivedData (BODY)" << std::endl;
-		std::cerr << "Body data size: " << conn->body_data.size() << " bytes" << std::endl;
-
 		_lggr.debug("Read " + su::to_string(conn->body_bytes_read) + " bytes of body so far");
 	}
 
 	else {
-		// For chunked data and other states, keep existing behavior
 		conn->read_buffer += std::string(buffer, bytes_read);
 		if (conn->state == Connection::READING_BODY) {
 			conn->body_bytes_read += bytes_read;
 		}
-		std::cerr << i++ << " calls of processReceivedData (OTHER)" << std::endl;
 	}
 
 	_lggr.debug("Checking if request was completed");
@@ -150,9 +152,6 @@ bool WebServer::processReceivedData(Connection *conn, const char *buffer, ssize_
 			return false;
 		}
 		_lggr.debug("Request was completed");
-		if (conn->chunked && conn->state == Connection::CONTINUE_SENT) {
-			return true;
-		}
 		if (conn->should_close)
 			return false;
 		return handleCompleteRequest(conn);

@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: Invalid date        by                   #+#    #+#             */
-/*   Updated: 2025/08/18 18:25:42 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/21 15:01:00 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -77,7 +77,6 @@ bool ConfigParser::convertTreeToStruct(const ConfigNode &tree, std::vector<Serve
 
 			inheritGeneralConfig(server, forInheritance);
 			sortLocations(server.locations);
-			addGlobalMaxBody(server);
 
 			logg_.logWithPrefix(Logger::INFO, "Config parsing",
 								"Parsed server block on " + server.host + ":" +
@@ -306,32 +305,6 @@ bool ConfigParser::existentLocationDuplicate(const ServerConfig &server,
 	return false;
 }
 
-// // ADD root TO ERROR PAGE URI
-// void ConfigParser::addRootToErrorUri(ServerConfig &server) {
-// 	LocConfig *defaultL = server.defaultLocation();
-// 	if (!server.error_pages.empty() && defaultL != NULL && !defaultL->root.empty()) {
-// 		const std::string &root = defaultL->root;
-// 		for (std::map<uint16_t, std::string>::iterator it = server.error_pages.begin();
-// 			 it != server.error_pages.end(); ++it) {
-// 			const std::string original = it->second;
-// 			it->second = root + ((original[0] == '/') ? "" : "/") + original;
-// 		}
-// 	}
-// }
-
-// MAX of MAX body size per location
-void ConfigParser::addGlobalMaxBody(ServerConfig &server) {
-	size_t max_of_max_body = 1;
-	for (std::vector<LocConfig>::iterator it = server.locations.begin(); it != server.locations.end(); ++it) {
-		if (it->infiniteBodySize()) {
-			server.maximum_body_size = 0;
-			return;
-		}
-		if (it->client_max_body_size > max_of_max_body)
-			max_of_max_body = it->client_max_body_size;
-	}
-	server.maximum_body_size = max_of_max_body;
-}
 
 // SORT LOCATIONS by path length (longest first for proper nginx-style matching)
 void ConfigParser::sortLocations(std::vector<LocConfig> &locations) {
