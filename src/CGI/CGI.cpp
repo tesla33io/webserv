@@ -92,11 +92,3 @@ pid_t CGI::getPid() const { return (pid_); }
 void CGI::setOutputFd(int fd) { output_fd_ = fd; }
 
 int CGI::getOutputFd() const { return (output_fd_); }
-
-/* CGI HANDLER */
-
-uint16_t CGI::cleanup() {
-	// 8. Clean up
-	close(getOutputFd());
-	return (0);
-}

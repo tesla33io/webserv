@@ -47,9 +47,6 @@ class CGI {
 	pid_t getPid() const;
 	void setOutputFd(int fd);
 	int getOutputFd() const;
-
-	// CGI handler
-	uint16_t cleanup();
 };
 
 namespace CGIUtils {
