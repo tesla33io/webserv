@@ -1,5 +1,4 @@
 <?php
-
 // Prevent script from printing default headers
 ini_set('default_mimetype', '');
 
@@ -10,11 +9,39 @@ $upload_dir = getenv('UPLOAD_DIR');
 $deleted = false;
 $error_message = '';
 $exit_code = '200';
+$filename = '';
 
-// Only allow DELETE requests with filename
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['_method']) && $_POST['_method'] === 'DELETE') {
-	$filename = $_POST['filename'];
-	
+// Handle both DELETE and POST methods
+if ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
+	// For true DELETE requests, filename comes from query string or request body
+	if (isset($_GET['filename'])) {
+		$filename = $_GET['filename'];
+	} else {
+		// Try to read from request body
+		$input = file_get_contents('php://input');
+		if ($input) {
+			// Parse as query string if it looks like one
+			if (strpos($input, '=') !== false) {
+				parse_str($input, $data);
+				if (isset($data['filename'])) {
+					$filename = $data['filename'];
+				}
+			} else {
+				// Treat entire body as filename
+				$filename = trim($input);
+			}
+		}
+	}
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['_method']) && $_POST['_method'] === 'DELETE') {
+	// Fallback for form-based deletion
+	$filename = $_POST['filename'] ?? '';
+} else {
+	$error_message = 'Invalid request method';
+	$exit_code = '405';
+}
+
+// Process deletion if we have a filename
+if (empty($error_message) && !empty($filename)) {
 	// Security checks
 	$filename = basename($filename); // Prevent directory traversal
 	
@@ -41,8 +68,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['_method']) && $_POST[
 		$error_message = 'Invalid filename';
 		$exit_code = '400';
 	}
-} else {
-	$error_message = 'Invalid request method or missing filename';
+} elseif (empty($error_message)) {
+	$error_message = 'No filename provided';
 	$exit_code = '400';
 }
 
@@ -79,6 +106,7 @@ if ($error_message != '') {
 			<div style="font-size: 3rem; margin-bottom: 1rem;">❌</div>
 			<h1 class="title">Deletion Failed</h1>
 			<p class="subtitle"><?= htmlspecialchars($error_message) ?></p>
+			<p style="font-size: 0.8em; opacity: 0.7;">Method: <?= htmlspecialchars($_SERVER['REQUEST_METHOD']) ?></p>
 		<?php endif; ?>
 
 		<div style="margin-top: 2rem;">
@@ -91,7 +119,6 @@ if ($error_message != '') {
 </html>
 
 <?php
-
 // Calculate length
 $content = ob_get_contents();
 ob_end_clean();

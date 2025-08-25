@@ -44,11 +44,11 @@ bool WebServer::prepareCGIResponse(CGI *cgi, Connection *conn) {
 	while ((bytes_read = read(cgi->getOutputFd(), buffer, sizeof(buffer))) > 0) {
 		cgi_output.append(buffer, bytes_read);
 		if (cgi_output.size() > 5) {
-			std::cout << "CGI OUTPUT: " << cgi_output << std::endl;
+			//std::cout << "CGI OUTPUT: " << cgi_output << std::endl;
 			std::string s = cgi_output.substr(2, 3);
 			std::stringstream ss(s);
 			ss >> resp_code;
-			std::cout << "CODE: " << resp_code << std::endl;
+			//std::cout << "CODE: " << resp_code << std::endl;
 			if (resp_code > 201)
 				return (prepareResponse(conn, Response(resp_code)));
 		}
@@ -60,7 +60,7 @@ bool WebServer::prepareCGIResponse(CGI *cgi, Connection *conn) {
 		return (false);
 	}
 	std::string resp_body = cgi_output.substr(7);
-	std::cout << "PRINTING CGI OUTPUT: \n";
+	//std::cout << "PRINTING CGI OUTPUT: \n";
 	printCGIResponse(resp_body);
 	return (prepareResponse(conn, Response(resp_code, resp_body)) > 0);
 }
