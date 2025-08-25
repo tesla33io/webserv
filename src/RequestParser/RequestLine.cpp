@@ -66,6 +66,10 @@ bool decodeNValidateUri(const std::string &uri, std::string &decoded) {
 			if (uch > 0x7E)
 				return (false);
 
+			// CRLF injection prevention
+			if (ch == '\r' || ch == '\n')
+				return (false);
+
 			decoded += ch;
 		}
 	}
@@ -73,11 +77,42 @@ bool decodeNValidateUri(const std::string &uri, std::string &decoded) {
 	return (true);
 }
 
+// Additional function to validate query parameters specifically
+bool validateQueryString(const std::string &query) {
+	for (size_t i = 0; i < query.length(); ++i) {
+		unsigned char ch = static_cast<unsigned char>(query[i]);
+		
+		// Check for non-ASCII characters
+		if (ch > 0x7E)
+			return false;
+			
+		// Check for unescaped control characters
+		if (ch <= 0x1F || ch == 0x7F)
+			return false;
+			
+		// CRLF injection prevention
+		if (ch == '\r' || ch == '\n')
+			return false;
+	}
+	return true;
+}
+
 /* Checks */
 uint16_t RequestParsingUtils::checkReqLine(ClientRequest &request, Logger &logger) {
 
 	if (request.method.empty() || request.uri.empty() || request.version.empty()) {
 		logger.logWithPrefix(Logger::WARNING, "HTTP", "Empty component in request line");
+		return 400;
+	}
+
+	// CRLF injection check in method, uri, version
+	if (request.method.find('\r') != std::string::npos || 
+	    request.method.find('\n') != std::string::npos ||
+	    request.uri.find('\r') != std::string::npos ||
+	    request.uri.find('\n') != std::string::npos ||
+	    request.version.find('\r') != std::string::npos ||
+	    request.version.find('\n') != std::string::npos) {
+		logger.logWithPrefix(Logger::WARNING, "HTTP", "CRLF injection attempt detected");
 		return 400;
 	}
 
@@ -97,20 +132,29 @@ uint16_t RequestParsingUtils::checkReqLine(ClientRequest &request, Logger &logge
 		logger.logWithPrefix(Logger::WARNING, "HTTP", "Uri too big");
 		return 414;
 	}
+	
 	std::string decoded_uri;
 	if (!decodeNValidateUri(request.uri, decoded_uri)) {
 		logger.logWithPrefix(Logger::WARNING, "HTTP", "Invalid uri");
 		return 400;
 	}
 	request.uri = decoded_uri;
+	
 	size_t qm = request.uri.find_first_of('?');
 	if (qm != std::string::npos) {
 		request.path = request.uri.substr(0, qm);
 		request.query = request.uri.substr(qm + 1);
+		
+		// Validate query string for non-ASCII characters
+		if (!validateQueryString(request.query)) {
+			logger.logWithPrefix(Logger::WARNING, "HTTP", "Invalid characters in query string");
+			return 400;
+		}
 	} else {
 		request.path = request.uri;
 		request.query = "";
 	}
+	
 	// case 505: "HTTP Version Not Supported"
 	if (request.version != "HTTP/1.1") {
 		logger.logWithPrefix(Logger::WARNING, "HTTP", "Invalid HTTP version");
