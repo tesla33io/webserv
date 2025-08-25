@@ -70,7 +70,7 @@ bool WebServer::isHeadersComplete(Connection *conn) {
 	req.clfd = conn->fd;
 
 	// On error: REQUEST_COMPLETE, Prepare Response
-	uint16_t error_code = RequestParsingUtils::parseRequestHeaders(headers, req);
+	uint16_t error_code = RequestParsingUtils::parseRequestHeaders(headers, req, _lggr);
 	_lggr.debug("[HEADER CHECK] Status post header request parsing : " + su::to_string(error_code));
 	if (error_code != 0) {
 		_lggr.logWithPrefix(Logger::ERROR, "BAD REQUEST", "Malformed or invalid headers");
