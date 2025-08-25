@@ -64,7 +64,7 @@ Wiki\r
 5\r
 pedia\r
 E\r
- in chunks.\r
+ in chunks.000\r
 0\r
 \r
 "
@@ -251,36 +251,11 @@ MANY_CHUNKS+="0\r
 
 
 
-# ============== NEW Expect: 100-continue TESTS ==============
-EXPECT_CONTINUE_SIMPLE="POST /cgi-bin/ HTTP/1.1\r
-Host: $HOST\r
-Content-Type: text/plain\r
-Content-Length: 11\r
-Expect: 100-continue\r
-\r
-Hello World"
-
-EXPECT_CONTINUE_CHUNKED="POST /cgi-bin/ HTTP/1.1\r
-Host: $HOST\r
-Transfer-Encoding: chunked\r
-Content-Type: text/plain\r
-Expect: 100-continue\r
-\r
-5\r
-Hello\r
-5\r
-World\r
-0\r
-\r
-"
-
 
 # ============== RUN TESTS ==============
 
 echo -e "${YELLOW}=== VALID TESTS (Should return 200 OK) ===${NC}"
 send_request "Valid chunked request" "$VALID_CHUNKED"
-send_request "Expect: 100-continue simple" "$EXPECT_CONTINUE_SIMPLE"
-send_request "Expect: 100-continue chunked" "$EXPECT_CONTINUE_CHUNKED"
 send_request "Empty body (0 chunk only)" "$EMPTY_BODY"
 send_request "Big chunk (10 bytes)" "$BIG_CHUNK"
 send_request "Single byte chunks" "$SINGLE_BYTE_CHUNKS"

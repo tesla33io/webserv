@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/08 13:19:18 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/24 00:38:49 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/25 14:16:26 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -81,8 +81,8 @@ std::string WebServer::buildFullPath(const std::string &uri, LocConfig *location
 	std::string relative_uri = uri;
 	if (!location->path.empty() && relative_uri.find(location->path) == 0) {
 		relative_uri = relative_uri.substr(location->path.length());
-		if (relative_uri.empty())
-			relative_uri = "/";
+		// if (relative_uri.empty() && relative_uri != "/")
+		// 	relative_uri = "/";
 	}
 
 	std::string full_path = root + relative_uri;

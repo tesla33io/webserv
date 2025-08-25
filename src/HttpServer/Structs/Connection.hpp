@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/08 13:38:20 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/24 00:48:29 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/25 14:24:49 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -67,7 +67,6 @@ class Connection {
 		READING_HEADERS,  ///< Reading request headers
 		REQUEST_COMPLETE, ///< Complete request received
 		READING_BODY,     ///< Reading request body, when Content-Length > 0
-		CONTINUE_SENT,         ///< 100-Continue response sent
 		READING_CHUNK_SIZE,    ///< Reading chunk size line
 		READING_CHUNK_DATA,    ///< Reading chunk data
 		READING_CHUNK_TRAILER, ///< Reading chunk trailer

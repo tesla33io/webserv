@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/08 13:41:32 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/19 19:03:47 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/25 14:21:39 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -51,8 +51,6 @@ std::string Connection::stateToString(Connection::State state) {
 			return "READING_CHUNK_DATA";
 		case Connection::READING_CHUNK_TRAILER:
 			return "READING_CHUNK_TRAILER";
-		case Connection::CONTINUE_SENT:
-			return "CONTINUE_SENT";
 		case Connection::READING_TRAILER:
 			return "READING_FINAL_TRAILER";
 		case Connection::CHUNK_COMPLETE:

@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:10:22 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/25 11:48:51 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/25 14:40:03 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,7 +30,7 @@ bool WebServer::handleCompleteRequest(Connection *conn) {
 	conn->read_buffer.clear();
 	conn->request_count++;
 	conn->updateActivity();
-	return true; // Continue processing
+	return true; 
 }
 
 uint16_t WebServer::handleCGIRequest(ClientRequest &req, Connection *conn) {
@@ -92,14 +92,6 @@ bool WebServer::isHeadersComplete(Connection *conn) {
 		conn->should_close = true;
 		return true;
 	}
-	if (req.expect_continue) {
-		_lggr.debug("Expect: 100-continue, sending immediate response");
-		prepareResponse(conn, Response::continue_());
-		conn->state = Connection::CONTINUE_SENT;
-		conn->read_buffer.clear();
-		return true;
-	}
-
 	// Valid request headers - store parsed headers in connection
 	conn->headers_buffer = headers;
 	conn->parsed_request = req;
@@ -118,7 +110,7 @@ bool WebServer::isHeadersComplete(Connection *conn) {
 		_lggr.debug("Request POST HEADER remaining data size: " + su::to_string(remaining_data.size()));
 
 		// ERROR handling if Body present when it should not
-		if ((conn->content_length <= 0 || req.expect_continue) && conn->body_bytes_read != 0) {
+		if (conn->content_length <= 0 && conn->body_bytes_read != 0) {
 			_lggr.debug("Body present when it should not: send 400");
 			prepareResponse(conn, Response(400, conn));
 			conn->should_close = true;
@@ -127,20 +119,12 @@ bool WebServer::isHeadersComplete(Connection *conn) {
 		}
 		
 		// Case : content_length 0 or no content length)
-		if (conn->content_length <= 0 && !req.expect_continue) {
+		if (conn->content_length <= 0) {
 			conn->state = Connection::REQUEST_COMPLETE;
 			return true;
 		}
-		// Case : expect -- The body follows immediately after the server's 100 Continue.
-		// The initial request line and headers are not resent. -> recheck with artem
-		// else if (req.expect_continue) {
-		// 	prepareResponse(conn, Response::continue_());
-		// 	conn->state = Connection::READING_BODY;
-		// 	conn->read_buffer.clear();
-		// 	return true;
-		// }
 		// Case : content_length specified
-		else { // if (conn->content_length > 0 && !req.expect_continue)
+		else { // if (conn->content_length > 0)
 			conn->state = Connection::READING_BODY;
 			// check if full body
 			if (static_cast<ssize_t>(conn->body_data.size()) == conn->content_length) {
@@ -163,26 +147,12 @@ bool WebServer::isHeadersComplete(Connection *conn) {
 	}
 	
 	else { // CHUNKED - store remaining data as string 
-		_lggr.debug("CHUNKED : req.expect_continue" + su::to_string(req.expect_continue));
-		
-		// // Case : chunked + expect 100
-		// 	if (req.expect_continue) {
-		// 	_lggr.debug("CHUNKED : req.expect_continue" + su::to_string(req.expect_continue));
-		// 	prepareResponse(conn, Response::continue_());
-		// 	conn->state = Connection::CONTINUE_SENT;
-		// 	conn->read_buffer.clear();
-		// 	conn->chunk_size = 0;
-		// 	conn->chunk_bytes_read = 0;
-		// 	conn->chunk_data.clear();
-		// 	return true;
-		// } else { // Case : chunked, no expect 100
-			conn->state = Connection::READING_CHUNK_SIZE;
-			conn->read_buffer = remaining_data; // Keep any data after headers for chunk processing
-			conn->chunk_size = 0;
-			conn->chunk_bytes_read = 0;
-			conn->chunk_data.clear();
-			return processChunkSize(conn);
-		// }
+		conn->state = Connection::READING_CHUNK_SIZE;
+		conn->read_buffer = remaining_data; // Keep any data after headers for chunk processing
+		conn->chunk_size = 0;
+		conn->chunk_bytes_read = 0;
+		conn->chunk_data.clear();
+		return processChunkSize(conn);
 	}
 	// Default
 	_lggr.logWithPrefix(Logger::ERROR, "BAD REQUEST", "Impossible request");
@@ -213,11 +183,6 @@ bool WebServer::isRequestComplete(Connection *conn) {
 			return true;
 		}
 		return false;
-
-	case Connection::CONTINUE_SENT:
-		_lggr.debug("isRequestComplete->CONTINUE_SENT");
-		conn->state = Connection::READING_CHUNK_SIZE;
-		return processChunkSize(conn);
 
 	case Connection::READING_CHUNK_SIZE:
 		_lggr.debug("isRequestComplete->READING_CHUNK_SIZE");
@@ -289,13 +254,15 @@ bool WebServer::parseRequest(Connection *conn, ClientRequest &req) {
 	return true;
 }
 
+
 void WebServer::processRequest(Connection *conn) {
 	_lggr.info("Processing request from fd: " + su::to_string(conn->fd));
 
 	ClientRequest req = conn->parsed_request;
 	
 	 // Handle body extraction differently for chunked vs non-chunked
-	if (req.chunked_encoding && conn->state == Connection::CHUNK_COMPLETE) {
+	if (req.chunked_encoding) {
+		// For chunked requests, use the reconstructed chunk data
 		req.body = conn->chunk_data;
 		_lggr.debug("Using chunked body data: " + su::to_string(req.body.length()) + " bytes");
 	} else if (!req.chunked_encoding && conn->headers_buffer.size() <= conn->read_buffer.size()) {
@@ -309,41 +276,80 @@ void WebServer::processRequest(Connection *conn) {
 	_lggr.debug("req.headers: " + conn->headers_buffer);
 	_lggr.debug("req.uri: " + req.uri);
 
+	// For chunked requests, use the chunk_data length for content verification
+	size_t actual_body_size = req.chunked_encoding ? conn->chunk_data.size() : req.body.size();
+	
 	_lggr.debug("[Resp] Payload vs content size: " + su::to_string(req.content_length) 
-		            + ", payload size: " + su::to_string(req.body.size()) );
-	if (req.content_length >= 0 && static_cast<ssize_t>(req.body.size()) != req.content_length) {
+		            + ", payload size: " + su::to_string(actual_body_size) );
+	
+	// Only verify content-length for non-chunked requests, or if content-length was explicitly set
+	if (!req.chunked_encoding && req.content_length >= 0 && static_cast<ssize_t>(actual_body_size) != req.content_length) {
 		_lggr.error("[Resp] Payload mismatch, content size: " + su::to_string(req.content_length) 
-		            + ", payload size: " + su::to_string(req.body.size()) );
+		            + ", payload size: " + su::to_string(actual_body_size) );
 		prepareResponse(conn, Response::contentTooLarge(conn));
 		return;
 	}
-
-	// if (req.chunked_encoding && conn->state == Connection::READING_HEADERS) {
-	// 	// Accept chunked requests sequence
-	// 	_lggr.debug("Accepting a chunked request");
-	// 	conn->state = Connection::READING_CHUNK_SIZE;
-	// 	conn->chunked = true;
-	// 	prepareResponse(conn, Response::continue_());
-	// 	return;
-	// }
-
-	// // TODO: this part breaks the req struct for some reason
-	// //       can't debug on my own :(
-	// // Can we remove it? Why is it parsing the request again?
-	// if (req.chunked_encoding && conn->state == Connection::CHUNK_COMPLETE) {
-	// 	_lggr.debug("Chunked request completed!");
-	// 	_lggr.debug("Parsing complete chunked request");
-	// 	// if (!parseRequest(conn, req))
-	// 	// 	return;
-	// 	_lggr.debug("Chunked request parsed successfully");
-	// 	_lggr.debug(conn->toString());
-	// 	_lggr.debug(req.toString());
-	// }
 
 	_lggr.debug("FD " + su::to_string(req.clfd) + " ClientRequest {" + req.toString() + "}");
 	// process the request
 	processValidRequest(req, conn);
 }
+
+// void WebServer::processRequest(Connection *conn) {
+// 	_lggr.info("Processing request from fd: " + su::to_string(conn->fd));
+
+// 	ClientRequest req = conn->parsed_request;
+	
+// 	 // Handle body extraction differently for chunked vs non-chunked
+// 	if (req.chunked_encoding) {
+// 		req.body = conn->chunk_data;
+// 		_lggr.debug("Using chunked body data: " + su::to_string(req.body.length()) + " bytes");
+// 	} else if (!req.chunked_encoding && conn->headers_buffer.size() <= conn->read_buffer.size()) {
+// 		req.body = conn->read_buffer.substr(conn->headers_buffer.size());
+// 	} else {
+// 		_lggr.debug("No body data or headers not properly parsed");
+// 		req.body = "";
+// 	}
+	
+// 	_lggr.debug("req.body: " + req.body);
+// 	_lggr.debug("req.headers: " + conn->headers_buffer);
+// 	_lggr.debug("req.uri: " + req.uri);
+
+// 	_lggr.debug("[Resp] Payload vs content size: " + su::to_string(req.content_length) 
+// 		            + ", payload size: " + su::to_string(req.body.size()) );
+// 	if (req.content_length >= 0 && static_cast<ssize_t>(req.body.size()) != req.content_length) {
+// 		_lggr.error("[Resp] Payload mismatch, content size: " + su::to_string(req.content_length) 
+// 		            + ", payload size: " + su::to_string(req.body.size()) );
+// 		prepareResponse(conn, Response::contentTooLarge(conn));
+// 		return;
+// 	}
+
+// 	// if (req.chunked_encoding && conn->state == Connection::READING_HEADERS) {
+// 	// 	// Accept chunked requests sequence
+// 	// 	_lggr.debug("Accepting a chunked request");
+// 	// 	conn->state = Connection::READING_CHUNK_SIZE;
+// 	// 	conn->chunked = true;
+// 	// 	prepareResponse(conn, Response::continue_());
+// 	// 	return;
+// 	// }
+
+// 	// // TODO: this part breaks the req struct for some reason
+// 	// //       can't debug on my own :(
+// 	// // Can we remove it? Why is it parsing the request again?
+// 	// if (req.chunked_encoding && conn->state == Connection::CHUNK_COMPLETE) {
+// 	// 	_lggr.debug("Chunked request completed!");
+// 	// 	_lggr.debug("Parsing complete chunked request");
+// 	// 	// if (!parseRequest(conn, req))
+// 	// 	// 	return;
+// 	// 	_lggr.debug("Chunked request parsed successfully");
+// 	// 	_lggr.debug(conn->toString());
+// 	// 	_lggr.debug(req.toString());
+// 	// }
+
+// 	_lggr.debug("FD " + su::to_string(req.clfd) + " ClientRequest {" + req.toString() + "}");
+// 	// process the request
+// 	processValidRequest(req, conn);
+// }
 
 void WebServer::processValidRequest(ClientRequest &req, Connection *conn) {
 		

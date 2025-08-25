@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/25 10:46:05 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/23 22:52:46 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/25 14:23:50 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -69,17 +69,6 @@ uint16_t RequestParsingUtils::checkHeader(std::string &name, std::string &value,
 			return 400;
 		}
 		request.content_length = parsed_length;
-	}
-
-	// Expect header
-	if (l_name == "expect") {
-		if (l_value == "100-continue") {
-			request.expect_continue = true;
-			logger.debug("Expect header: " + l_value);
-		} else {
-			logger.logWithPrefix(Logger::WARNING, "HTTP", "Unsupported Expect header: " + value);
-			return 417; // Expectation Failed
-		}
 	}
 
 	return 0;
