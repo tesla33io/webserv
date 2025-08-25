@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: Invalid date        by                   #+#    #+#             */
-/*   Updated: 2025/08/25 14:57:28 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/25 19:12:29 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -66,7 +66,7 @@ bool WebServer::processChunkSize(Connection *conn) {
 			prepareResponse(conn, Response(413, conn)); // Request Entity Too Large
 			conn->should_close = true;
 			conn->state = Connection::REQUEST_COMPLETE;
-			return false;
+			return true;
 		}
 	}
 	

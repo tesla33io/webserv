@@ -106,6 +106,35 @@ C\r
 
 # ============== ERROR TESTS ==============
 
+EXCEED_BODY="POST /cgi-bin/ HTTP/1.1\r
+Host: $HOST\r
+Transfer-Encoding: chunked\r
+Content-Type: text/plain\r
+\r
+5\r
+Hello\r
+5\r
+World\r
+6\r
+!!!!!!\r
+6\r
+123456\r
+5\r
+ABCDE\r
+5\r
+FGHIJ\r
+5\r
+KLMNO\r
+5\r
+PQRST\r
+5\r
+UVWXY\r
+5\r
+Zabcd\r
+0\r
+\r
+"
+
 # Invalid hex size
 INVALID_HEX="POST /cgi-bin/ HTTP/1.1\r
 Host: $HOST\r
@@ -267,6 +296,7 @@ send_request "Chunk size too big for data" "$SIZE_MISMATCH_SMALL"
 send_request "Chunk size too small for data" "$SIZE_MISMATCH_BIG"
 send_request "Empty chunk size line" "$EMPTY_CHUNK_SIZE"
 send_request "Negative chunk size" "$NEGATIVE_CHUNK"
+send_request "Exceed body" "$EXCEED_BODY"
 
 
 echo -e "${YELLOW}=== INCOMPLETE TESTS (May timeout - server waiting for more data) ===${NC}"

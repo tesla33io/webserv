@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/08 13:35:52 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/19 15:57:30 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/25 19:10:17 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -39,6 +39,8 @@ Response::Response(uint16_t code, Connection *conn)
       status_code(code) {
 	initFromCustomErrorPage(code, conn);
 }
+
+
 
 std::string Response::toString() const {
 	std::ostringstream response_stream;
@@ -198,7 +200,7 @@ void Response::initFromCustomErrorPage(uint16_t code, Connection *conn) {
 		initFromStatusCode(code);
 		return;
 	}
-	// todo check path again
+
 	std::string fullPath = conn->getServerConfig()->getErrorPage(code);
 	std::ifstream errorFile(fullPath.c_str());
 	if (!errorFile.is_open()) {

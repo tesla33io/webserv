@@ -9,7 +9,7 @@
             background-color: #fef9e7;
             color: #333;
             text-align: center;
-            margin-top: 10%;
+            margin-top: 5%;
         }
         h1 {
             font-size: 3em;
@@ -20,14 +20,20 @@
             font-size: 1.2em;
             color: #2c3e50;
         }
+        .btn-container {
+            margin-top: 30px;
+        }
         button {
+            display: inline-block;
+            margin: 10px;
             background-color: #3498db;
             color: white;
             border: none;
-            padding: 10px 20px;
+            padding: 12px 25px;
             font-size: 1em;
-            border-radius: 5px;
+            border-radius: 8px;
             cursor: pointer;
+            transition: background-color 0.3s ease;
         }
         button:hover {
             background-color: #2980b9;
@@ -40,20 +46,33 @@
     </style>
 </head>
 <body>
-    <h1>💥 Hello, <span id="name">WORLD333</span>! 💥</h1>
-    <p>This is a silly test page. You are totally doing science here.</p>
+    <h1>💥 Hello, <span id="name">WORLD111</span>! 💥</h1>
+    <p>This is a silly second test page. You are totally doing science here.</p>
     <button onclick="changeName()">Click me for magic</button>
+
+    <div class="btn-container">
+        <button onclick="goTo('/method/')">Test POST-only (/method/)</button>
+        <button onclick="goTo('/cats/')">View Autoindex (/cats/)</button>
+        <button onclick="goTo('/redirect/')">Test Redirect (/redirect/)</button>
+        <button onclick="goTo('/redirectloop/')">Test Redirect Loop (/redirectloop/)</button>
+        <button onclick="goTo('/secret/')">Test Forbidden (/secret/)</button>
+    </div>
+
     <script>
         function changeName() {
             const names = ["WORLD111", "HUMAN111", "YOU111", "111NERD", "111BASHER"];
             const current = document.getElementById("name").innerText;
             let next = names[Math.floor(Math.random() * names.length)];
-            // Ensure the new name is different from the current one
             while (next === current) {
                 next = names[Math.floor(Math.random() * names.length)];
             }
             document.getElementById("name").innerText = next;
         }
+
+        function goTo(path) {
+            window.location.href = path;
+        }
     </script>
 </body>
 </html>
+
