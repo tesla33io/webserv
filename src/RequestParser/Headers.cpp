@@ -92,11 +92,6 @@ uint16_t RequestParsingUtils::parseHeaders(std::istringstream &stream, ClientReq
 	int header_count = 0;
 
 	while (std::getline(stream, line)) {
-		// Remove trailing \r if present
-		if (!line.empty() && line[line.size() - 1] == '\r') {
-			line.erase(line.size() - 1);
-		}
-
 		// Check header count limit
 		if (++header_count > 100) {
 			logger.logWithPrefix(Logger::WARNING, "HTTP", "Too many headers");
