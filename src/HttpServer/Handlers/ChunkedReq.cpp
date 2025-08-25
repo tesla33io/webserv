@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: Invalid date        by                   #+#    #+#             */
-/*   Updated: 2025/08/25 14:42:02 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/25 14:57:28 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -145,7 +145,6 @@ bool WebServer::processTrailer(Connection *conn) {
 	return processTrailer(conn);
 }
 
-// TODO: add more debuggin info
 void WebServer::reconstructChunkedRequest(Connection *conn) {
 	std::string reconstructed_request = conn->headers_buffer;
 
@@ -188,9 +187,6 @@ void WebServer::reconstructChunkedRequest(Connection *conn) {
 	// Store the reconstructed request but don't overwrite read_buffer yet
 	// The body will be handled separately in processRequest()
 	conn->read_buffer = reconstructed_request + conn->chunk_data;
-	// Keep the state as CHUNK_COMPLETE instead of changing to REQUEST_COMPLETE
-	// This allows processRequest to know it was a chunked request
-	// conn->state = Connection::REQUEST_COMPLETE; // Remove this line
 
 	_lggr.debug("Chunked request reconstruction completed successfully");
 	_lggr.debug("Reconstructed request, total body size: " +
@@ -201,58 +197,3 @@ void WebServer::reconstructChunkedRequest(Connection *conn) {
 	_lggr.debug("Reconstructed request preview: " + debug_preview);
 }
 
-
-// // TODO: add more debuggin info
-// void WebServer::reconstructChunkedRequest(Connection *conn) {
-// 	std::string reconstructed_request = conn->headers_buffer;
-
-// 	std::string headers_lower = su::to_lower(reconstructed_request);
-
-// 	size_t te_pos = headers_lower.find("transfer-encoding: chunked");
-// 	if (te_pos != std::string::npos) {
-// 		// Find the end of this header line
-// 		size_t line_end = reconstructed_request.find("\r\n", te_pos);
-// 		if (line_end != std::string::npos) {
-// 			// Remove the Transfer-Encoding line
-// 			reconstructed_request.erase(te_pos, line_end - te_pos + 2);
-// 			_lggr.debug("Removed Transfer-Encoding header from reconstruction");
-// 		}
-// 	}
-
-// 	// Final check: total reconstructed body is < MaxBody
-// 	_lggr.debug("Final chunked body size (" + su::to_string(conn->chunk_data.length()) + 
-// 			") vs max body size (" + su::to_string(conn->locConfig->getMaxBodySize()) + ")");
-// 	if (!conn->locConfig->infiniteBodySize() && conn->locConfig->getMaxBodySize() > 0) {
-// 		if (static_cast<size_t>(conn->chunk_data.length()) > conn->locConfig->getMaxBodySize()) {
-// 			_lggr.error("Final chunked body size (" + su::to_string(conn->chunk_data.length()) + 
-// 					") exceeds max body size (" + su::to_string(conn->locConfig->getMaxBodySize()) + ")");
-// 			prepareResponse(conn, Response(413, conn)); // 413 Request Entity Too Large
-// 			conn->should_close = true;
-// 			conn->state = Connection::REQUEST_COMPLETE;
-// 			return ;
-// 		}
-// 	}
-
-// 	// Add Content-Length header before the final CRLF
-// 	size_t final_crlf = reconstructed_request.find("\r\n\r\n");
-// 	if (final_crlf != std::string::npos) {
-// 		std::string content_length_header =
-// 			"\r\nContent-Length: " + su::to_string(conn->chunk_data.length()) + "\r\n";
-// 		reconstructed_request.insert(final_crlf, content_length_header);
-// 		_lggr.debug("Added Content-Length header: " + su::to_string(conn->chunk_data.length()));
-// 	}
-
-// 	// Store the reconstructed request but don't overwrite read_buffer yet
-// 	// The body will be handled separately in processRequest()
-// 	conn->read_buffer = reconstructed_request + conn->chunk_data;
-// 	conn->state = Connection::REQUEST_COMPLETE;
-
-// 	_lggr.debug("Chunked request reconstruction completed successfully");
-// 	_lggr.debug("Reconstructed request, total body size: " +
-// 				su::to_string(conn->chunk_data.length()));
-	
-// 	// Debug: show first part of reconstructed request
-// 	std::string debug_preview = conn->read_buffer.substr(0, std::min(size_t(200), conn->read_buffer.size()));
-// 	_lggr.debug("Reconstructed request preview: " + debug_preview);
-
-// }

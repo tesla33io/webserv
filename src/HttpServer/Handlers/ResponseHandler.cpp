@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:08:41 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/25 14:24:56 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/25 14:59:39 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -35,11 +35,6 @@ bool WebServer::sendResponse(Connection *conn) {
 	std::string raw_response;
 
 	_lggr.debug("Current state of response [" + conn->response.toShortString());
-	/* if (!conn->response_ready) {
-		_lggr.error("Response is not ready to be sent back to the client");
-		_lggr.debug("Error for clinet " + conn->toString());
-		return false;
-	} */
 	_lggr.debug("Sending response [" + conn->response.toShortString() +
 	            "] back to fd: " + su::to_string(conn->fd));
 	std::cout << conn->response.toShortString() << "] back to fd: " << su::to_string(conn->fd) << std::endl;

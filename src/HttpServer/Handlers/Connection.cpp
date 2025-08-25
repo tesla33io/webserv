@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:09:35 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/23 18:08:41 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/25 14:57:34 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -42,8 +42,6 @@ void WebServer::handleNewConnection(ServerConfig *sc) {
 
 Connection *WebServer::addConnection(int client_fd, ServerConfig *sc) {
 	Connection *conn = new Connection(client_fd);
-	// conn->host = host;
-	// conn->port = port;
 	conn->servConfig = sc;
 	_connections[client_fd] = conn;
 

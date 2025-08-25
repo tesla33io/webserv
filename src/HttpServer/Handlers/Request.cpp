@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:10:22 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/25 14:40:03 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/25 14:58:59 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -276,13 +276,13 @@ void WebServer::processRequest(Connection *conn) {
 	_lggr.debug("req.headers: " + conn->headers_buffer);
 	_lggr.debug("req.uri: " + req.uri);
 
-	// For chunked requests, use the chunk_data length for content verification
+	// For chunked requests: use of chunk_data length for content verification
 	size_t actual_body_size = req.chunked_encoding ? conn->chunk_data.size() : req.body.size();
 	
 	_lggr.debug("[Resp] Payload vs content size: " + su::to_string(req.content_length) 
 		            + ", payload size: " + su::to_string(actual_body_size) );
 	
-	// Only verify content-length for non-chunked requests, or if content-length was explicitly set
+	// Only verify content-length for non-chunked requests
 	if (!req.chunked_encoding && req.content_length >= 0 && static_cast<ssize_t>(actual_body_size) != req.content_length) {
 		_lggr.error("[Resp] Payload mismatch, content size: " + su::to_string(req.content_length) 
 		            + ", payload size: " + su::to_string(actual_body_size) );
@@ -295,61 +295,6 @@ void WebServer::processRequest(Connection *conn) {
 	processValidRequest(req, conn);
 }
 
-// void WebServer::processRequest(Connection *conn) {
-// 	_lggr.info("Processing request from fd: " + su::to_string(conn->fd));
-
-// 	ClientRequest req = conn->parsed_request;
-	
-// 	 // Handle body extraction differently for chunked vs non-chunked
-// 	if (req.chunked_encoding) {
-// 		req.body = conn->chunk_data;
-// 		_lggr.debug("Using chunked body data: " + su::to_string(req.body.length()) + " bytes");
-// 	} else if (!req.chunked_encoding && conn->headers_buffer.size() <= conn->read_buffer.size()) {
-// 		req.body = conn->read_buffer.substr(conn->headers_buffer.size());
-// 	} else {
-// 		_lggr.debug("No body data or headers not properly parsed");
-// 		req.body = "";
-// 	}
-	
-// 	_lggr.debug("req.body: " + req.body);
-// 	_lggr.debug("req.headers: " + conn->headers_buffer);
-// 	_lggr.debug("req.uri: " + req.uri);
-
-// 	_lggr.debug("[Resp] Payload vs content size: " + su::to_string(req.content_length) 
-// 		            + ", payload size: " + su::to_string(req.body.size()) );
-// 	if (req.content_length >= 0 && static_cast<ssize_t>(req.body.size()) != req.content_length) {
-// 		_lggr.error("[Resp] Payload mismatch, content size: " + su::to_string(req.content_length) 
-// 		            + ", payload size: " + su::to_string(req.body.size()) );
-// 		prepareResponse(conn, Response::contentTooLarge(conn));
-// 		return;
-// 	}
-
-// 	// if (req.chunked_encoding && conn->state == Connection::READING_HEADERS) {
-// 	// 	// Accept chunked requests sequence
-// 	// 	_lggr.debug("Accepting a chunked request");
-// 	// 	conn->state = Connection::READING_CHUNK_SIZE;
-// 	// 	conn->chunked = true;
-// 	// 	prepareResponse(conn, Response::continue_());
-// 	// 	return;
-// 	// }
-
-// 	// // TODO: this part breaks the req struct for some reason
-// 	// //       can't debug on my own :(
-// 	// // Can we remove it? Why is it parsing the request again?
-// 	// if (req.chunked_encoding && conn->state == Connection::CHUNK_COMPLETE) {
-// 	// 	_lggr.debug("Chunked request completed!");
-// 	// 	_lggr.debug("Parsing complete chunked request");
-// 	// 	// if (!parseRequest(conn, req))
-// 	// 	// 	return;
-// 	// 	_lggr.debug("Chunked request parsed successfully");
-// 	// 	_lggr.debug(conn->toString());
-// 	// 	_lggr.debug(req.toString());
-// 	// }
-
-// 	_lggr.debug("FD " + su::to_string(req.clfd) + " ClientRequest {" + req.toString() + "}");
-// 	// process the request
-// 	processValidRequest(req, conn);
-// }
 
 void WebServer::processValidRequest(ClientRequest &req, Connection *conn) {
 		

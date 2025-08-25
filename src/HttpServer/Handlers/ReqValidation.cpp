@@ -6,7 +6,7 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/08 12:56:57 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/25 14:29:41 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/25 14:59:07 by htharrau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -73,20 +73,6 @@ bool WebServer::processValidRequestChecks(ClientRequest &req, Connection *conn) 
 		prepareResponse(conn, respReturnDirective(conn, code, target));
 		return false;
 	}
- 
-//	_lggr.debug(
-//	    "[Resp] The matched location does not have return directive or the match is not exact.");
-
-	// method allowed?
-//	if (!conn->locConfig->hasMethod(req.method)) {
-//		_lggr.warn("[Resp] Method " + req.method + " is not allowed for location " +
-//		           conn->locConfig->path);
-//		prepareResponse(
-//		    conn, Response::methodNotAllowed(conn, conn->locConfig->getAllowedMethodsString()));
-//		return false;
-//	}
-//	_lggr.debug("[Resp] Method " + req.method + " is allowed " +
-//	            conn->locConfig->getAllowedMethodsString());
 
 	_lggr.debug("[Resp] No return directive (or no exact match)");
 	
