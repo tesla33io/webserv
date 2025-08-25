@@ -220,8 +220,7 @@ class WebServer {
 	void reconstructChunkedRequest(Connection *conn);
 
 	/* Handlers/ServerCGI.cpp */
-	bool sendCGIResponse(CGI *cgi, Connection *conn);
-	ssize_t prepareCGIResponse(CGI *cgi, Connection *conn);
+	bool prepareCGIResponse(CGI *cgi, Connection *conn);
 	void handleCGIOutput(int fd);
 	bool isCGIFd(int fd) const;
 

@@ -6,17 +6,18 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/19 18:29:33 by htharrau          #+#    #+#             */
-/*   Updated: 2025/08/24 00:41:13 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/21 10:35:04 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "src/HttpServer/Structs/WebServer.hpp"
+#include "src/HttpServer/HttpServer.hpp"
 #include "src/HttpServer/Structs/Connection.hpp"
 #include "src/HttpServer/Structs/Response.hpp"
-#include "src/HttpServer/HttpServer.hpp"
+#include "src/HttpServer/Structs/WebServer.hpp"
 #include "src/Utils/ServerUtils.hpp"
 
-bool WebServer::handleFileSystemErrors(FileType file_type, const std::string& full_path, Connection *conn) {
+bool WebServer::handleFileSystemErrors(FileType file_type, const std::string &full_path,
+                                       Connection *conn) {
 	if (file_type == NOT_FOUND_404) {
 		_lggr.debug("[Resp] Could not open : " + full_path);
 		prepareResponse(conn, Response::notFound(conn));
@@ -37,8 +38,8 @@ bool WebServer::handleFileSystemErrors(FileType file_type, const std::string& fu
 
 void WebServer::handleDirectoryRequest(ClientRequest &req, Connection *conn, bool end_slash) {
 
-	const std::string full_path =  conn->locConfig->getFullPath();
-		
+	const std::string full_path = conn->locConfig->getFullPath();
+
 	_lggr.debug("Directory request: " + full_path);
 
 	if (!end_slash) {
@@ -52,11 +53,11 @@ void WebServer::handleDirectoryRequest(ClientRequest &req, Connection *conn, boo
 	}
 }
 
-void  WebServer::handleFileRequest(ClientRequest &req, Connection *conn, bool end_slash) {
+void WebServer::handleFileRequest(ClientRequest &req, Connection *conn, bool end_slash) {
 
-	const std::string full_path =  conn->locConfig->getFullPath();
+	const std::string full_path = conn->locConfig->getFullPath();
 	_lggr.debug("File request: " + full_path);
-	
+
 	// Trailing '/'? Redirect
 	if (end_slash) { //&& !conn->locConfig->is_exact_()
 		_lggr.debug("File request with trailing slash, redirecting: " + req.path);
@@ -86,7 +87,8 @@ void  WebServer::handleFileRequest(ClientRequest &req, Connection *conn, bool en
 		return;
 	} else {
 		_lggr.debug("Non-GET request for static file - not implemented");
-		prepareResponse(conn, Response::methodNotAllowed(conn, conn->locConfig->getAllowedMethodsString())); 
+		prepareResponse(
+		    conn, Response::methodNotAllowed(conn, conn->locConfig->getAllowedMethodsString()));
 		return;
 	}
 }
@@ -97,7 +99,94 @@ void  WebServer::handleFileRequest(ClientRequest &req, Connection *conn, bool en
 //     char           d_name[256]; // Name of the entry (file or subdirectory)
 //     unsigned char  d_type;      // Type of entry (optional, not always available)
 // };
+
 Response WebServer::generateDirectoryListing(Connection *conn, const std::string &fullDirPath) {
+    _lggr.debug("Generating directory listing for: " + fullDirPath);
+
+    // Open directory
+    DIR *dir = opendir(fullDirPath.c_str());
+    if (dir == NULL) {
+        _lggr.error("Failed to open directory: " + fullDirPath + " - " +
+                    std::string(strerror(errno)));
+        return Response::notFound(conn);
+    }
+
+    // Generate HTML content
+    std::ostringstream htmlContent;
+    struct dirent *entry;
+    htmlContent << "<!DOCTYPE html>\n"
+                << "<html lang=\"en\">\n"
+                << "<head>\n"
+                << "<meta charset=\"UTF-8\">\n"
+                << "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n"
+                << "<title>Directory Listing - " << fullDirPath << "</title>\n"
+                << "<link rel=\"stylesheet\" href=\"/styles.css\">\n"
+                << "</head>\n<body>\n"
+                << "<div class=\"container\">\n"
+                << "<h1 class=\"title\">Directory Listing</h1>\n"
+                << "<p class=\"subtitle\">" << fullDirPath << "</p>\n"
+                << "<table>\n<tr><th>Name</th><th>Type</th><th>Size</th></tr>\n";
+
+    while ((entry = readdir(dir)) != NULL) {
+        std::string filename = entry->d_name;
+        if (filename == ".")
+            continue;
+
+        std::string fullPath = fullDirPath;
+        if (su::back(fullPath) != '/')
+            fullPath += "/";
+        fullPath += filename;
+
+        struct stat fileStat;
+        htmlContent << "<tr><td><a href=\"" << filename;
+        if (stat(fullPath.c_str(), &fileStat) == 0) {
+            if (S_ISDIR(fileStat.st_mode)) {
+                htmlContent << "/\" class=\"dir\">";
+            } else {
+                htmlContent << "\" class=\"file\">";
+            }
+            htmlContent << filename << "</a></td><td>";
+            if (S_ISDIR(fileStat.st_mode))
+                htmlContent << "<span class=\"dir\">Directory</span>";
+            else if (S_ISREG(fileStat.st_mode))
+                htmlContent << "<span class=\"file\">File</span>";
+            else
+                htmlContent << "Other";
+
+            htmlContent << "</td><td class=\"size\">";
+            if (S_ISREG(fileStat.st_mode))
+                htmlContent << su::to_string(fileStat.st_size);
+            else
+                htmlContent << "-";
+            htmlContent << "</td></tr>\n";
+        } else {
+            htmlContent << "\">" << filename << "</a></td><td>Unknown</td><td>-</td></tr>\n";
+        }
+    }
+
+    htmlContent << "</table>\n"
+                << "<footer>Generated by WebServer " << __WEBSERV_VERSION__ << "</footer>\n"
+                << "</div>\n"
+                << "<div class=\"floating-elements\">\n"
+                << "<div class=\"floating-element\"></div>\n"
+                << "<div class=\"floating-element\"></div>\n"
+                << "<div class=\"floating-element\"></div>\n"
+                << "</div>\n"
+                << "</body>\n</html>";
+
+    closedir(dir);
+
+    // Create response
+    std::string body = htmlContent.str();
+    Response resp(200, body);
+    resp.setContentType("text/html");
+    resp.setContentLength(body.length());
+
+    _lggr.debug("Generated directory listing (" + su::to_string(body.length()) + " bytes)");
+    return resp;
+}
+
+/* Response WebServer::generateDirectoryListing(Connection *conn, const std::string &fullDirPath) {
 	_lggr.debug("Generating directory listing for: " + fullDirPath);
 
 	// Open directory
@@ -207,4 +296,4 @@ Response WebServer::generateDirectoryListing(Connection *conn, const std::string
 
 	_lggr.debug("Generated directory listing (" + su::to_string(body.length()) + " bytes)");
 	return resp;
-}
+} */

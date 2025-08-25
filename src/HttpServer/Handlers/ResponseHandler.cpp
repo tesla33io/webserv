@@ -3,17 +3,17 @@
 /*                                                        :::      ::::::::   */
 /*   ResponseHandler.cpp                                :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
+/*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:08:41 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/24 00:48:15 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/20 16:21:00 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "src/HttpServer/Structs/WebServer.hpp"
+#include "src/HttpServer/HttpServer.hpp"
 #include "src/HttpServer/Structs/Connection.hpp"
 #include "src/HttpServer/Structs/Response.hpp"
-#include "src/HttpServer/HttpServer.hpp"
+#include "src/HttpServer/Structs/WebServer.hpp"
 
 ssize_t WebServer::prepareResponse(Connection *conn, const Response &resp) {
 	if (conn->response_ready) {
@@ -100,7 +100,7 @@ Response WebServer::respFileRequest(Connection *conn, const std::string &fullFil
 	_lggr.debug("Handling file request: " + fullFilePath);
 	// Read file content
 	std::string content = getFileContent(fullFilePath);
-	// this check is redondant as it has already been checked 
+	// this check is redondant as it has already been checked
 	if (content.empty()) {
 		_lggr.error("Failed to read file: " + fullFilePath);
 		return Response::notFound(conn);
@@ -113,7 +113,6 @@ Response WebServer::respFileRequest(Connection *conn, const std::string &fullFil
 	            su::to_string(content.length()) + " bytes)");
 	return resp;
 }
-
 
 Response WebServer::respReturnDirective(Connection *conn, uint16_t code, std::string target) {
 	_lggr.debug("Handling return directive '" + su::to_string(code) + "' to " + target);

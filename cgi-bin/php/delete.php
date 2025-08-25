@@ -9,7 +9,7 @@ ob_start();
 $upload_dir = getenv('UPLOAD_DIR');
 $deleted = false;
 $error_message = '';
-$exit_status = '200 OK';
+$exit_code = '200';
 
 // Only allow DELETE requests with filename
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['_method']) && $_POST['_method'] === 'DELETE') {
@@ -26,24 +26,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['_method']) && $_POST[
 			$deleted = unlink($file_path);
 			if (!$deleted) {
 				$error_message = 'Delete operation failed (server error)';
-				$exit_status = '502 Bad Gateway';
+				$exit_code = '502';
 			}
 		} else {
 			if (!file_exists($file_path)) {
 				$error_message = 'File not found';
-				$exit_status = '404 Not Found';
+				$exit_code = '404';
 			} else if (!is_writable($file_path)) {
 				$error_message = 'File not writable';
-				$exit_status = '403 Forbidden';
+				$exit_code = '403';
 			}
 		}
 	} else {
 		$error_message = 'Invalid filename';
-		$exit_status = '400 Bad Request';
+		$exit_code = '400';
 	}
 } else {
 	$error_message = 'Invalid request method or missing filename';
-	$exit_status = '400 Bad Request';
+	$exit_code = '400';
 }
 
 if ($error_message != '') {
@@ -97,11 +97,7 @@ $content = ob_get_contents();
 ob_end_clean();
 $content_length = strlen($content);
 
-// Set headers
-echo "HTTP/1.1 " . $exit_status . "\r\n";
-echo "Content-Type: text/html; charset=UTF-8\r\n";
-echo "Content-Length: " . $content_length . "\r\n";
-echo "\r\n";
+echo $exit_code . "\n";
 
 // Output content
 echo $content;

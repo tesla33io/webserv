@@ -6,21 +6,20 @@
 /*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:10:22 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/24 00:47:28 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/21 10:33:46 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "src/HttpServer/Structs/WebServer.hpp"
+#include "src/HttpServer/HttpServer.hpp"
 #include "src/HttpServer/Structs/Connection.hpp"
 #include "src/HttpServer/Structs/Response.hpp"
-#include "src/HttpServer/HttpServer.hpp"
+#include "src/HttpServer/Structs/WebServer.hpp"
 #include "src/Utils/ServerUtils.hpp"
 
 /* Request handlers */ // deprecated
 void WebServer::handleRequestTooLarge(Connection *conn, ssize_t bytes_read) {
 	_lggr.info("Reached max content length for fd: " + su::to_string(conn->fd) + ", " +
-			   su::to_string(bytes_read) + "/" +
-			   su::to_string(conn->locConfig->getMaxBodySize()));
+	           su::to_string(bytes_read) + "/" + su::to_string(conn->locConfig->getMaxBodySize()));
 	prepareResponse(conn, Response(413, conn));
 }
 
@@ -47,7 +46,7 @@ uint16_t WebServer::handleCGIRequest(ClientRequest &req, Connection *conn) {
 		_lggr.error("EPollManage for CGI request failed.");
 		return (502);
 	}
-	
+
 	return (0);
 }
 
@@ -106,7 +105,6 @@ bool WebServer::isHeadersComplete(Connection *conn) {
 	conn->parsed_request = req;
 	conn->chunked = req.chunked_encoding;
 	conn->content_length = req.content_length;
-	
 
 	if (!conn->chunked) { 	//Store remaining data as binary body data for Content-Length requests
 
@@ -194,9 +192,9 @@ bool WebServer::isHeadersComplete(Connection *conn) {
 
 
 bool WebServer::isRequestComplete(Connection *conn) {
-	
+
 	switch (conn->state) {
-		
+
 	case Connection::READING_HEADERS:
 		_lggr.debug("isRequestComplete->READING_HEADERS");
 		return isHeadersComplete(conn);
@@ -209,14 +207,13 @@ bool WebServer::isRequestComplete(Connection *conn) {
 					
 		if (static_cast<ssize_t>(conn->body_data.size()) == conn->content_length) {
 			_lggr.debug("Read full content-length: " + su::to_string(conn->body_data.size()) +
-						" bytes received");
+			            " bytes received");
 			conn->state = Connection::REQUEST_COMPLETE;
 			reconstructRequest(conn);
 			return true;
 		}
 		return false;
 
-		
 	case Connection::CONTINUE_SENT:
 		_lggr.debug("isRequestComplete->CONTINUE_SENT");
 		conn->state = Connection::READING_CHUNK_SIZE;
@@ -257,20 +254,20 @@ bool WebServer::reconstructRequest(Connection *conn) {
 
 	if (conn->content_length > 0) {
 		size_t body_size =
-			std::min(static_cast<size_t>(conn->content_length), conn->body_data.size());
+		    std::min(static_cast<size_t>(conn->content_length), conn->body_data.size());
 
 		reconstructed_request.append(reinterpret_cast<const char *>(&conn->body_data[0]),
-									 body_size);
+		                             body_size);
 
 		_lggr.debug("Reconstructed request with " + su::to_string(body_size) +
-					" bytes of body data");
+		            " bytes of body data");
 	}
 
 	conn->read_buffer = reconstructed_request;
 
 	size_t headers_end = conn->headers_buffer.size();
 	std::string debug_output =
-		"Reconstructed request headers:\n" + conn->read_buffer.substr(0, headers_end);
+	    "Reconstructed request headers:\n" + conn->read_buffer.substr(0, headers_end);
 	if (conn->content_length > 0) {
 		debug_output += "\n[Binary body data: " + su::to_string(conn->body_data.size()) + " bytes]";
 	}
@@ -344,11 +341,9 @@ void WebServer::processRequest(Connection *conn) {
 	// }
 
 	_lggr.debug("FD " + su::to_string(req.clfd) + " ClientRequest {" + req.toString() + "}");
-	
 	// process the request
 	processValidRequest(req, conn);
 }
-
 
 void WebServer::processValidRequest(ClientRequest &req, Connection *conn) {
 		

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   EpollEventHandler.cpp                              :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: htharrau <htharrau@student.42.fr>          +#+  +:+       +#+        */
+/*   By: jalombar <jalombar@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/07 14:06:48 by jalombar          #+#    #+#             */
-/*   Updated: 2025/08/24 00:46:58 by htharrau         ###   ########.fr       */
+/*   Updated: 2025/08/20 16:20:20 by jalombar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -71,6 +71,8 @@ void WebServer::handleClientEvent(int fd, uint32_t event_mask) {
 		}
 	} else {
 		_lggr.debug("Ignoring event for unknown fd: " + su::to_string(fd));
+		epollManage(EPOLL_CTL_DEL, fd, 0);
+		close(fd);
 	}
 }
 
@@ -114,6 +116,13 @@ ssize_t WebServer::receiveData(int client_fd, char *buffer, size_t buffer_size) 
 
 bool WebServer::processReceivedData(Connection *conn, const char *buffer, ssize_t bytes_read) {
 
+//	_lggr.debug("MAX BODY : bytes read " + su::to_string(conn->body_bytes_read) + " / " +
+//	            su::to_string(conn->getServerConfig()->getServerMaxBodySize()));
+
+//	if (conn->state == Connection::READING_HEADERS) {
+//		conn->read_buffer += std::string(buffer, bytes_read);
+//		std::cerr << i++ << " calls of processReceivedData (HEADERS)" << std::endl;
+  
 	// _lggr.debug("MAX BODY : bytes read " + su::to_string( conn->body_bytes_read) 
 	// 		+ " / " + su::to_string(conn->getServerConfig()->getServerMaxBodySize()));
 			

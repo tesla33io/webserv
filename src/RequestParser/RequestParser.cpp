@@ -172,6 +172,7 @@ uint16_t RequestParsingUtils::parseRequest(const std::string &raw_request, Clien
 		return 400;
 	}
 
+	logger.logWithPrefix(Logger::DEBUG, "HTTP", "Parsing request");
 	request.chunked_encoding = false;
 	request.file_upload = false;
 	request.extension = "";

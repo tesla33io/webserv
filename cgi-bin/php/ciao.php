@@ -8,7 +8,7 @@ ob_start();
 
 // Default name if none provided
 $name = 'Guest';
-$exit_status = '200 OK';
+$exit_code = '200';
 
 // Check if 'name' is set in the URL query parameters
 if (isset($_GET['name'])) {
@@ -68,11 +68,7 @@ $content = ob_get_contents();
 ob_end_clean();
 $content_length = strlen($content);
 
-// Set headers
-echo "HTTP/1.1 " . $exit_status . "\r\n";
-echo "Content-Type: text/html; charset=UTF-8\r\n";
-echo "Content-Length: " . $content_length . "\r\n";
-echo "\r\n";
+echo $exit_code . "\n";
 
 // Output content
 echo $content;

@@ -63,6 +63,7 @@ uint16_t RequestParsingUtils::parseBody(std::istringstream &stream, ClientReques
 	std::string body(content_length, '\0');
 	stream.read(&body[0], content_length);
 	std::streamsize actually_read = stream.gcount();
+	std::cout << "____________CONTENT LENGTH: " << content_length << ", ACTUALLY READ: " << actually_read << std::endl;
 	if (actually_read != content_length) {
 		logger.logWithPrefix(Logger::WARNING, "HTTP",
 		                     "Body length mismatch: expected " + su::to_string(content_length) +

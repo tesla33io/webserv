@@ -22,7 +22,7 @@ filename = ''
 filesize = 0
 file_extension = ''
 error_message = ''
-exit_status = '200 OK'
+exit_code = '200'
 
 def get_file_icon(extension):
 	icons = {
@@ -99,25 +99,25 @@ if request_method == 'POST' and content_length > 0:
 					
 					uploaded = True
 					filesize = os.path.getsize(target_path)
-					exit_status = '201 Created'
+					exit_code = '201'
 					
 				except Exception as e:
 					error_message = 'Unable to save file'
-					exit_status = '502 Bad Gateway'
+					exit_code = '502'
 			else:
 				error_message = 'No file uploaded'
-				exit_status = '400 Bad Request'
+				exit_code = '400'
 		else:
 			error_message = 'No file field found'
-			exit_status = '400 Bad Request'
+			exit_code = '400'
 			
 	except Exception as e:
 		error_message = f'Upload processing error: {str(e)}'
-		exit_status = '502 Bad Gateway'
+		exit_code = '502'
 		
 elif request_method != 'POST':
 	error_message = 'Invalid request method'
-	exit_status = '405 Method Not Allowed'
+	exit_code = '405'
 
 if error_message:
 	log_error(error_message)
@@ -225,11 +225,9 @@ html_content += '''
 # Calculate content length
 content_length = len(html_content.encode('utf-8'))
 
-# Send headers
-print(f"HTTP/1.1 {exit_status}")
-print("Content-Type: text/html; charset=UTF-8")
-print(f"Content-Length: {content_length}")
-print()  # Empty line to separate headers from content
+# Send exit_code
+print(f"{exit_code}\r\n", end="")
+print("\r")
 
 # Send content
 print(html_content)

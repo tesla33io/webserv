@@ -1,9 +1,5 @@
 <?php
 
-// Prevent script from printing default headers
-ini_set('default_mimetype', '');
-header_remove("X-Powered-By");
-
 // Start output buffering to calculate content length
 ob_start();
 
@@ -19,14 +15,16 @@ $filename = '';
 $filesize = 0;
 $file_extension = '';
 $error_message = '';
-$exit_status = '200 OK';
+$exit_code = '200';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
+
 	// Get uploaded file
 	$uploaded_file = $_FILES['file'];
 
 	// Check if file was uploaded successfully
 	if ($uploaded_file['error'] === UPLOAD_ERR_OK) {
+	
 		// Sanitize filename
 		$filename = basename($uploaded_file['name']);
 		$filename = preg_replace('/[^a-zA-Z0-9._-]/', '', $filename);
@@ -57,26 +55,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
 
 		// Move uploaded file
 		if (move_uploaded_file($uploaded_file['tmp_name'], $target_path)) {
+
 			$uploaded = true;
 			$filesize = $uploaded_file['size'];
-			$exit_status = '201 Created';
+			$exit_code = '201';
 		} else {
 			$error_message = 'Unable to save file';
-			$exit_status = '502 Bad Gateway';
+			$exit_code = '502';
 		}
 	} elseif ($uploaded_file['error'] === UPLOAD_ERR_INI_SIZE || $uploaded_file['error'] === UPLOAD_ERR_FORM_SIZE) {
 		$error_message = 'File too large';
-		$exit_status = '413 Payload Too Large';
+		$exit_code = '413';
 	} elseif ($uploaded_file['error'] === UPLOAD_ERR_NO_FILE) {
 		$error_message = 'No file uploaded';
-		$exit_status = '400 Bad Request';
+		$exit_code = '400';
 	} else {
 		$error_message = 'Unknown upload error';
-		$exit_status = '502 Bad Gateway';
+		$exit_code = '502';
 	}
 } elseif ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 	$error_message = 'Invalid request method';
-	$exit_status = '405 Method Not Allowed';
+	$exit_code = '405';
 }
 
 // Function to get file icon based on extension
@@ -237,11 +236,7 @@ $content = ob_get_contents();
 ob_end_clean();
 $content_length = strlen($content);
 
-// Set headers
-echo "HTTP/1.1 " . $exit_status . "\r\n";
-echo "Content-Type: text/html; charset=UTF-8\r\n";
-echo "Content-Length: " . $content_length . "\r\n";
-echo "\r\n";
+echo $exit_code . "\n";
 
 // Output content
 echo $content;

@@ -10,10 +10,10 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "src/HttpServer/Structs/WebServer.hpp"
+#include "src/HttpServer/HttpServer.hpp"
 #include "src/HttpServer/Structs/Connection.hpp"
 #include "src/HttpServer/Structs/Response.hpp"
-#include "src/HttpServer/HttpServer.hpp"
+#include "src/HttpServer/Structs/WebServer.hpp"
 
 void printCGIResponse(const std::string &cgi_output) {
 	std::istringstream response_stream(cgi_output);
@@ -34,28 +34,35 @@ void printCGIResponse(const std::string &cgi_output) {
 	}
 }
 
-bool WebServer::sendCGIResponse(CGI *cgi, Connection *conn) {
+bool WebServer::prepareCGIResponse(CGI *cgi, Connection *conn) {
 	Logger logger;
 	std::string cgi_output;
 	char buffer[4096];
 	ssize_t bytes_read;
+	int resp_code = 200;
 
 	while ((bytes_read = read(cgi->getOutputFd(), buffer, sizeof(buffer))) > 0) {
 		cgi_output.append(buffer, bytes_read);
+		if (cgi_output.size() > 5) {
+			std::cout << "CGI OUTPUT: " << cgi_output << std::endl;
+			std::string s = cgi_output.substr(2, 3);
+			std::stringstream ss(s);
+			ss >> resp_code;
+			std::cout << "CODE: " << resp_code << std::endl;
+			if (resp_code > 201)
+				return (prepareResponse(conn, Response(resp_code)));
+		}
 	}
 
 	if (bytes_read == -1) {
 		logger.logWithPrefix(Logger::ERROR, "CGI", "Error reading from CGI script");
 		close(cgi->getOutputFd());
-		waitpid(cgi->getPid(), NULL, 0);
 		return (false);
 	}
-	printCGIResponse(cgi_output);
-	conn->response_ready = true;
-	send(conn->fd, cgi_output.c_str(), cgi_output.length(), 0);
-	cgi->cleanup();
-	delete cgi;
-	return (true);
+	std::string resp_body = cgi_output.substr(7);
+	std::cout << "PRINTING CGI OUTPUT: \n";
+	printCGIResponse(resp_body);
+	return (prepareResponse(conn, Response(resp_code, resp_body)) > 0);
 }
 
 ssize_t WebServer::prepareCGIResponse(CGI *cgi, Connection *conn) {
@@ -89,16 +96,18 @@ ssize_t WebServer::prepareCGIResponse(CGI *cgi, Connection *conn) {
 }
 
 void WebServer::handleCGIOutput(int fd) {
-	CGI *cgi;
-	Connection *conn;
-	for (std::map<int, std::pair<CGI *, Connection *> >::iterator it = _cgi_pool.begin();
-	     it != _cgi_pool.end(); ++it) {
-		if (fd == it->first) {
-			cgi = it->second.first;
-			conn = it->second.second;
-		}
-	}
-	sendCGIResponse(cgi, conn);
+	std::map<int, std::pair<CGI *, Connection *> >::iterator it = _cgi_pool.find(fd);
+	if (it == _cgi_pool.end())
+		return;
+
+	CGI *cgi = it->second.first;
+	Connection *conn = it->second.second;
+
+	_lggr.debug("Processing CGI Output");
+
+	_cgi_pool.erase(it);
+	epollManage(EPOLL_CTL_DEL, fd, 0);
+	prepareCGIResponse(cgi, conn);
 }
 
 bool WebServer::isCGIFd(int fd) const { return (_cgi_pool.find(fd) != _cgi_pool.end()); }
