@@ -5,7 +5,7 @@ from html import escape
 
 # Default values
 name = 'Guest'
-exit_status = '200 OK'
+exit_code = '200'
 
 # Get query parameters from environment variables
 query_string = os.environ.get('QUERY_STRING', '')
@@ -59,11 +59,9 @@ html_content = f"""<!DOCTYPE html>
 # Calculate content length
 content_length = len(html_content.encode('utf-8'))
 
-# Send headers
-print(f"HTTP/1.1 {exit_status}")
-print("Content-Type: text/html; charset=UTF-8")
-print(f"Content-Length: {content_length}")
-print()  # Empty line to separate headers from content
+# Send exit_code
+print(f"{exit_code}\r\n", end="")
+print("\r")
 
 # Send content
 print(html_content)

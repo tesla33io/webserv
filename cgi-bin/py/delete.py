@@ -9,7 +9,7 @@ from datetime import datetime
 deleted = False
 filename = ''
 error_message = ''
-exit_status = '200 OK'
+exit_code = '200'
 
 def log_error(message):
 	try:
@@ -44,28 +44,28 @@ if request_method == 'POST':
 					try:
 						os.unlink(file_path)
 						deleted = True
-						exit_status = '200 OK'
+						exit_code = '200'
 						
 					except Exception as e:
 						error_message = 'Delete operation failed (server error)'
-						exit_status = '502 Bad Gateway'
+						exit_code = '502'
 				else:
 					error_message = 'File not found or not writable'
-					exit_status = '404 Not Found'
+					exit_code = '404'
 			else:
 				error_message = 'Invalid filename after sanitization'
-				exit_status = '400 Bad Request'
+				exit_code = '400'
 		else:
 			error_message = 'No filename field found'
-			exit_status = '400 Bad Request'
+			exit_code = '400'
 			
 	except Exception as e:
 		error_message = f'Delete processing error: {str(e)}'
-		exit_status = '502 Bad Gateway'
+		exit_code = '502'
 		
 else:
 	error_message = 'Invalid request method'
-	exit_status = '405 Method Not Allowed'
+	exit_code = '405'
 
 if error_message:
 	log_error(error_message)
@@ -113,11 +113,9 @@ html_content += """
 # Calculate content length
 content_length = len(html_content.encode('utf-8'))
 
-# Send headers
-print(f"HTTP/1.1 {exit_status}")
-print("Content-Type: text/html; charset=UTF-8")
-print(f"Content-Length: {content_length}")
-print()  # Empty line to separate headers from content
+# Send exit_code
+print(f"{exit_code}\r\n", end="")
+print("\r")
 
 # Send content
 print(html_content)

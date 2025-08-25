@@ -44,6 +44,7 @@ bool WebServer::prepareCGIResponse(CGI *cgi, Connection *conn) {
 	while ((bytes_read = read(cgi->getOutputFd(), buffer, sizeof(buffer))) > 0) {
 		cgi_output.append(buffer, bytes_read);
 		if (cgi_output.size() > 5) {
+			std::cout << "CGI OUTPUT: " << cgi_output << std::endl;
 			std::string s = cgi_output.substr(2, 3);
 			std::stringstream ss(s);
 			ss >> resp_code;
